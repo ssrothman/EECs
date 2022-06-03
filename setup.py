@@ -16,11 +16,11 @@ import subprocess
 
 command = 'swig -python -c++ -fastproxy -keyword -py3 -o eec_back_wrap.cc eec_back.i'
 print(command)
-subprocess.run(command.split(), cwd='eec/backend/')
+subprocess.run(command.split(), cwd='eec/_backend/')
 
 # eec_back extension module
 _eec_back = Extension("_eec_back",
-                   ["eec/backend/eec_back_wrap.cc", "eec/backend/eec_back.cc"],
+                   ["eec/_backend/eec_back_wrap.cc", "eec/_backend/eec_back.cc"],
                    include_dirs = [numpy_include],
                    libraries=['stdc++', 'm'],
                    extra_compile_args=['-std=c++14']

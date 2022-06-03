@@ -1,6 +1,6 @@
 *.pyc
 build/*
-eec/backend/eec_back.py
-eec/backend/eec_back_wrap.cc
+eec/_backend/eec_back.py
+eec/_backend/eec_back_wrap.cc
 energy_energy_correlators.egg-info/*
 *.so

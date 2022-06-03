@@ -1,7 +1,4 @@
-#if __package__ or "." in __name__:
-#  from . import eec_back as backend
-#else:
-from .backend import eec_back as backend
+from ._backend import eec_back as backend
 import awkward as ak
 import numpy as np
 from scipy.special import comb
@@ -42,6 +39,7 @@ class ProjectedEEC:
 
   #don't bin at all
   eec = ProjectedEEC(3)
+  eec(particles, jets)
   dRs = eec.dRs
   wts = eec.wts
   '''
@@ -85,7 +83,7 @@ class ProjectedEEC:
       self.dRs = None
       self.wts = None 
 
-  def __call__(self, parts, jets, *bin_vars):
+  def __call__(self, parts, jets, *bin_vars, verbose=False):
     '''
     Computed EECs and bin appropriately
 
@@ -97,7 +95,7 @@ class ProjectedEEC:
         broadcasting will be handed behind the scenes by this method
     '''
     #call c++ backend to compute correlator values
-    dRs, wts = projectedEEC_values(parts, jets, self.N)
+    dRs, wts = projectedEEC_values(parts, jets, self.N, verbose=verbose)
 
     if self.hist is None: #if we're not filling a histogram
       if self.dRs is None:

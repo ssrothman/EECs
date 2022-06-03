@@ -1,4 +1,4 @@
-%module eec_back
+%module (moduleimport="import _eec_back") eec_back
 
 %{
   #define SWIG_FILE_WITH_INIT

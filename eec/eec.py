@@ -1,7 +1,7 @@
-if __package__ or "." in __name__:
-  from . import eec_back as backend
-else:
-  import eec_back as backend
+#if __package__ or "." in __name__:
+#  from . import eec_back as backend
+#else:
+from .backend import eec_back as backend
 import awkward as ak
 import numpy as np
 from scipy.special import comb

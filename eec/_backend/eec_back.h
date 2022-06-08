@@ -19,10 +19,12 @@ typedef std::vector<std::vector<idx_t>> factor_t;
 
 void eec_onejet(float* jet, int nPart, int nFeat, int N,
                 float* dRs, int nDR,
-                float* wts, int nWT);
+                float* wts, int nWT,
+                int maxL);
 
 void eec(float *jets, int nPartTot, int nFeat, int* jetIdxs, int nJets, int N,
           float* dRs, int nDRTot, float* wts, int nWTTot,
-          int* dRIdxs, int nDRIdxs);
+          int* dRIdxs, int nDRIdxs,
+          int maxL);
 
 #endif

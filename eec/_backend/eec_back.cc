@@ -365,7 +365,8 @@ void doM(const coord_t* const jet, const idx_t nPart, const idx_t N,
 
 void eec_onejet(float* jet, int nPart, int nFeat, int N,
                 float* dRs, int nDR,
-                float* wts, int nWT){
+                float* wts, int nWT,
+                int maxL){
   /*
    * Compute EEC for one jet
    * 
@@ -388,8 +389,6 @@ void eec_onejet(float* jet, int nPart, int nFeat, int N,
     std::cerr << "Error: must have len(dRs) == len(wts) == nPart choose 2" << std::endl;
     return;
   }
-  //std::vector<coord_t> dRs(nDR, -1.0); 
-  //std::vector<coord_t> wts(nDR, 0.0);
 
   //fill dR vector
   fillDR2(jet, nPart, dRs);
@@ -417,11 +416,16 @@ void eec_onejet(float* jet, int nPart, int nFeat, int N,
   std::cout<<std::endl;
 #endif
 
-  std::vector<idx_t> cache(intPow((idx_t)nPart,2), 0);
+  std::vector<idx_t> cache(0, 0);
+  std::vector<idx_t> newCache(0, 0);
 
-  doM(jet, nPart, N, 2, dRs, compositions, symFactors, nullptr, 0, &cache, wts);
-  for(idx_t M=3; M<=N; ++M){
-    doM(jet, nPart, N, M, dRs, compositions, symFactors, &cache, 2, nullptr, wts);
+  for(idx_t M=2; M<=N; ++M){
+    if(M<=maxL){
+      std::swap(cache, newCache);
+      doM(jet, nPart, N, M, dRs, compositions, symFactors, &cache, M-1, &newCache, wts);
+    } else{
+      doM(jet, nPart, N, M, dRs, compositions, symFactors, &cache, maxL, nullptr, wts);
+    }
   }
 
 #ifdef VERBOSE
@@ -471,7 +475,8 @@ void eec(float* jets, int nPartTot, int nFeat,
           int N,
           float* dRs, int nDRTot,
           float* wts, int nWTTot,
-          int* dRIdxs, int nDRIdxs){
+          int* dRIdxs, int nDRIdxs,
+          int maxL){
   //TODO: need some size checks for everything else too
   if(nFeat!=3){
     std::cerr << "Error: nFeat must be 3" << std::endl;
@@ -490,7 +495,8 @@ void eec(float* jets, int nPartTot, int nFeat,
     nDR = dRIdxs[i] - prevDRIdx;
     eec_onejet(&jets[3*prevJetIdx], nPart, nFeat, N, 
                 &dRs[prevDRIdx], nDR, 
-                &wts[prevDRIdx], nDR);
+                &wts[prevDRIdx], nDR,
+                maxL);
     prevJetIdx = jetIdxs[i];
     prevDRIdx = dRIdxs[i];
   }

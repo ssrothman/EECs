@@ -6,6 +6,15 @@ from time import time
 import boost_histogram as bh
 from numbers import Number
 
+'''
+maximum correlator order for which to store cached dRs for the L-fold combinations
+needs to be limited because eventually you'll run out of RAM
+if we want to support jets with up to 256 particles in them, the largest
+L-fold cache will take up 32*(256**L) bytes
+For L=4 this is already ~140 gigs
+'''
+MAX_CACHE_ORDER = 4
+
 class ProjectedEEC:
   '''
   Wrapper class for c++ backend computing energy-energy correlators (EECs) 
@@ -83,7 +92,7 @@ class ProjectedEEC:
       self.dRs = None
       self.wts = None 
 
-  def __call__(self, parts, jets, *bin_vars, verbose=False):
+  def __call__(self, parts, jets, *bin_vars, weights=None, verbose=False):
     '''
     Computed EECs and bin appropriately
 
@@ -91,11 +100,16 @@ class ProjectedEEC:
     jets: awkward array of jet 4-vectors. Axes (event, jet)
     bin_vars: optional additional variables to bin against
       must be passed in the same order as their axes were passed to the constructor
-      bin_vars will must be broadcast-compatible with the jets array, but the actual
+      bin_vars must be broadcast-compatible with the jets array, but the actual
         broadcasting will be handed behind the scenes by this method
+    weights: optional awkward array of event or jet weights.
+      Must be broadcast-compatible with the jets array
+    verbose: whether to print timing information
     '''
     #call c++ backend to compute correlator values
     dRs, wts = projectedEEC_values(parts, jets, self.N, verbose=verbose)
+    if weights is not None:
+      wts = wts*weights
 
     if self.hist is None: #if we're not filling a histogram
       if self.dRs is None:
@@ -228,7 +242,7 @@ def projectedEEC_values(parts, jet4vec, N, verbose=False):
     print('setting up inputs took %0.3f seconds'%(time()-t0))
     t0 = time()
 
-  dRs, wts = backend.eec(jets, jetIdxs, N, nDR, nDR, dRIdxs)
+  dRs, wts = backend.eec(jets, jetIdxs, N, nDR, nDR, dRIdxs, MAX_CACHE_ORDER)
   dRs = np.sqrt(dRs)
   
   if verbose:

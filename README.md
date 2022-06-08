@@ -1,7 +1,7 @@
 # EECs
 c++ backend to compute energy-energy correlators
 
-Install with `./setup.py install`
+Install with `pip install -e .`
 
 Manifest:
 * Source files:

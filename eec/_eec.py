@@ -5,6 +5,8 @@ from scipy.special import comb
 from time import time
 import boost_histogram as bh
 from numbers import Number
+from coffea.processor.accumulator import AccumulatorABC
+
 
 '''
 maximum correlator order for which to store cached dRs for the L-fold combinations
@@ -15,7 +17,7 @@ For L=4 this is already ~140 gigs
 '''
 MAX_CACHE_ORDER = 4
 
-class ProjectedEEC:
+class ProjectedEEC(AccumulatorABC):
   '''
   Wrapper class for c++ backend computing energy-energy correlators (EECs) 
   Correlators of higher order than 2 are project onto the longest side of the N-simplex
@@ -53,7 +55,7 @@ class ProjectedEEC:
   wts = eec.wts
   '''
 
-  def __init__(self, N, axes=None, hist=None, dRs=None, wts=None):
+  def __init__(self, N, axes=None, axisNames = None, axisLabels=None, hist=None, dRs=None, wts=None):
     '''
     N: correlator order
       Must be >= 2
@@ -61,6 +63,8 @@ class ProjectedEEC:
       If axes is None, don't bin and instead just store the dR and weight arrays
       If axies is not None, the first axis is the dR axis, 
         and any additional axes can be for arbitrary other variables (eg pt, eta, etc)
+    axisNames: names by which to refer to axes in code
+    axisLabels: x-axis labels for axes
     hist: bh.Histogram object to use as the histogram
       If hist is supplied, axes, dRs, wts are ignored
       Intended only for use by internal methods (ie __add__, etc)
@@ -77,22 +81,39 @@ class ProjectedEEC:
       self.hist = hist
       self.dRs = None
       self.wts = None
+      self.axisNames = axisNames
+      self.axisLabels = axisLabels
     elif dRs is not None and wts is not None:
       self.dRs = dRs
       self.wts = wts
       self.hist = None
+      self.axisNames = None
+      self.axisLabels = None
     elif dRs is not None or wts is not None:
       raise ValueError("Must supply either both or neither of dRs, wts")
     elif axes is not None:
       self.hist = bh.Histogram(*axes)
+      self.axisNames = axisNames
+      self.axisLabels = axisLabels
       self.dRs = None
       self.wts = None
     else:
       self.hist = None
       self.dRs = None
       self.wts = None 
+      self.axisNames = None
+      self.axisLabels = None
 
-  def __call__(self, parts, jets, *bin_vars, weights=None, verbose=False):
+  def identity(self):
+    if self.hist is not None:
+      return ProjectedEEC(self.N, 
+                          hist=self.hist.copy(deep=True).reset(), 
+                          axisNames=self.axisNames, 
+                          axisLabels=self.axisLabels)
+    else:
+      return ProjectedEEC(self.N)
+
+  def fill(self, parts, jets, *bin_vars, weights=None, verbose=False):
     '''
     Computed EECs and bin appropriately
 
@@ -130,24 +151,7 @@ class ProjectedEEC:
                       *[ak.flatten(var, axis=None) for var in bin_vars], 
                       weight=ak.flatten(wts, axis=None))
 
-  def __add__(self, other):
-    print("top of add")
-    if type(other) is not ProjectedEEC or self.N != other.N:
-      print("failed type")
-      return NotImplemented
-
-    if self.hist is not None and other.hist is not None:
-      return ProjectedEEC(self.N, hist=self.hist+other.hist)
-    elif self.hist is not None or other.hist is not None:
-      return NotImplemented
-    else:
-      return ProjectedEEC(self.N, dRs = ak.concatenate((self.dRs, other.dRs), axis=0),
-                                  wts = ak.concatenate((self.wts, other.wts), axis=0))
-
-  def __radd__(self, other):
-    return self + other
-  
-  def __iadd__(self, other):
+  def add(self, other):
     if type(other) is not ProjectedEEC or self.N != other.N:
       return NotImplemented
 

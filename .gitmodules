@@ -1,0 +1,6 @@
+[submodule "toyjets"]
+	path = toyjets
+	url = git@github.com:ssrothman/toyjets.git
+[submodule "simon_util_cpp"]
+	path = simon_util_cpp
+	url = git@github.com:ssrothman/simon_util_cpp.git

@@ -27,14 +27,14 @@ int main(){
     std::cout << arma::frowvec(j_o->pt);
 
     printf("DR J\n");
-    std::cout << arma::frowvec(EEC.dR2s->data());
+    std::cout << arma::frowvec(*EEC.dRs);
     printf("DR dropped\n");
-    std::cout << arma::frowvec(EEC_o.dR2s->data());
+    std::cout << arma::frowvec(*EEC_o.dRs);
     printf("\n\n");
-    printf("WT (%0.3f)\n", EEC.ptAtZero);
-    std::cout << arma::frowvec(EEC.wts->data());
-    printf("WT dropped (%0.3f)\n", EEC_o.ptAtZero);
-    std::cout << arma::frowvec(EEC_o.wts->data());
+    printf("WT\n");
+    std::cout << arma::frowvec(*EEC.wts);
+    printf("WT dropped\n");
+    std::cout << arma::frowvec(*EEC_o.wts);
     printf("\n\n");
 
     printf("COV\n");

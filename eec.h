@@ -14,26 +14,22 @@
 struct projectedEEC{
     unsigned order;
     unsigned nPart;
-    std::unique_ptr<vecND::nodiagvec> dR2s, wts;
-    float ptAtZero;
+    std::unique_ptr<std::vector<float>> dRs, wts, dRs_o;
     std::unique_ptr<arma::fmat> cov;
-    std::unique_ptr<vecND::nodiagvec> dR2s_o;
     std::unique_ptr<arma::fmat> transfer;
 
     projectedEEC(unsigned order, unsigned nPart,
-                 std::unique_ptr<vecND::nodiagvec>&& dR2s,
-                 std::unique_ptr<vecND::nodiagvec>&& wts,
-                 float ptAtZero,
+                 std::unique_ptr<std::vector<float>>&& dRs,
+                 std::unique_ptr<std::vector<float>>&& wts,
+                 std::unique_ptr<std::vector<float>>&& dRs_o,
                  std::unique_ptr<arma::fmat>&& cov,
-                 std::unique_ptr<vecND::nodiagvec>&& dR2s_o,
                  std::unique_ptr<arma::fmat>&& transfer) :
         order(order),
         nPart(nPart),
-        dR2s(std::move(dR2s)),
+        dRs(std::move(dRs)),
         wts(std::move(wts)),
-        ptAtZero(ptAtZero),
+        dRs_o(std::move(dRs_o)),
         cov(std::move(cov)),
-        dR2s_o(std::move(dR2s_o)),
         transfer(std::move(transfer)){}
 };
 

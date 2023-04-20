@@ -1,17 +1,23 @@
-testCov: eec.cc testCov.cc simon_util_cpp/combinatorics.cc toyjets/gaus.cc toyjets/gen.cc
+testBin: eec.o testBin.o simon_util_cpp/combinatorics.o toyjets/gaus.o toyjets/gen.o
 	g++ $^ -o $@ -larmadillo
 
-testTrans: eec.cc testTrans.cc simon_util_cpp/combinatorics.cc toyjets/gaus.cc toyjets/gen.cc
+testCov: eec.o testCov.o simon_util_cpp/combinatorics.o toyjets/gaus.o toyjets/gen.o
 	g++ $^ -o $@ -larmadillo
 
-testWt: eec.cc testWt.cc simon_util_cpp/combinatorics.cc toyjets/gaus.cc
-	g++ $^ -o $@
+testTrans: eec.o testTrans.o simon_util_cpp/combinatorics.o toyjets/gaus.o toyjets/gen.o
+	g++ $^ -o $@ -larmadillo
 
-testDR: eec.cc testDR.cc simon_util_cpp/combinatorics.cc
-	g++ $^ -o $@
+testWt: eec.o testWt.o simon_util_cpp/combinatorics.o toyjets/gaus.o
+	g++ $^ -o $@ -larmadillo
 
-testComp: eec.cc testComp.cc simon_util_cpp/combinatorics.cc
-	g++ $^ -o $@
+testDR: eec.o testDR.o simon_util_cpp/combinatorics.o
+	g++ $^ -o $@ -larmadillo
+
+testComp: eec.o testComp.o simon_util_cpp/combinatorics.o
+	g++ $^ -o $@ -larmadillo
+
+%.o: %.cc
+	g++ -c -o $@ $^ -I/usr/local/include/Minuit2 
 
 clean: 
 	rm -f *.o

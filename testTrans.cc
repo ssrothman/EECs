@@ -2,6 +2,7 @@
 #include "eec.h"
 #include "toyjets/gen.h"
 #include "toyjets/gaus.h"
+#include <boost/histogram.hpp>
 
 int main(){
     unsigned N=5u;
@@ -33,21 +34,21 @@ int main(){
     printf("\n\n");
 
     printf("EEC_Gen DR\n");
-    std::cout << arma::frowvec(EEC.dR2s->data());
+    std::cout << arma::frowvec(*EEC.dRs);
     printf("EEC_Gen DR 2\n");
-    std::cout << arma::frowvec(trans.dR2s->data());
+    std::cout << arma::frowvec(*trans.dRs);
     printf("\n");
     printf("EEC_Reco DR\n");
-    std::cout << arma::frowvec(EEC_o.dR2s->data());
+    std::cout << arma::frowvec(*EEC_o.dRs);
     printf("EEC_Reco DR 2\n");
-    std::cout << arma::frowvec(trans.dR2s_o->data());
+    std::cout << arma::frowvec(*trans.dRs_o);
     printf("\n\n");
     printf("EEC_Gen WT\n");
-    std::cout << arma::frowvec(EEC.wts->data());
+    std::cout << arma::frowvec(*EEC.wts);
     printf("EEC_Gen WT 2\n");
-    std::cout << arma::frowvec(trans.wts->data());
+    std::cout << arma::frowvec(*trans.wts);
     printf("EEC_Reco WT\n");
-    std::cout << arma::frowvec(EEC_o.wts->data());
+    std::cout << arma::frowvec(*EEC_o.wts);
     printf("\n\n");
 
     std::cout << *trans.transfer;

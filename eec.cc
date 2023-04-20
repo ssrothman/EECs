@@ -2,18 +2,44 @@
 #include "simon_util_cpp/util.h"
 #include "simon_util_cpp/deltaR.h"
 
+projectedEEC packageResults(const constdata& cd,
+                            computedata& ans){
+    using fvec=std::vector<float>;
+    auto dRs = std::make_unique<fvec>(cd.dR2s->data());
+    dRs->emplace_back(0.0);
+    
+    auto wts = std::make_unique<fvec>(ans.wts->data());
+    wts->emplace_back(ans.ptAtZero);
+
+    if (cd.dR2s_o){
+        auto dRs_o = std::make_unique<fvec>(cd.dR2s_o->data());
+        dRs_o->emplace_back(0.0);
+
+        return projectedEEC(cd.order, cd.nPart,
+                            std::move(dRs),
+                            std::move(wts),
+                            std::move(dRs_o),
+                            std::move(ans.cov),
+                            std::move(ans.transfer));
+
+    } else {
+        return projectedEEC(cd.order, cd.nPart,
+                            std::move(dRs),
+                            std::move(wts),
+                            nullptr,
+                            std::move(ans.cov),
+                            nullptr);
+    }
+}
+
 void finalizeCovariance(const constdata& cd,
                         computedata& ans){
     float normfact;
     for(unsigned iPart=0; iPart<cd.nPart; ++iPart){
         normfact = intPow<float>(1/(1-cd.Es->at(iPart)), cd.order);
-        printf("factor %u = %0.3f\n", iPart, normfact);
         for(unsigned iDR=0; iDR<cd.dR2s->size(); ++iDR){
             float rescaled_contrib = -normfact * (*ans.cov)(iDR, iPart);
             float rescaled_actual = (normfact-1) * ans.wts->at(iDR);
-            printf("\tCOV(%u, %u) = (%0.3f) + (%0.3f) = %0.3f\n",
-                    iDR, iPart, rescaled_contrib, rescaled_actual,
-                    rescaled_contrib + rescaled_actual);
             (*ans.cov)(iDR, iPart) = rescaled_contrib + rescaled_actual;
         }
         unsigned iDR = cd.dR2s->size();
@@ -38,13 +64,7 @@ void addTransfer(const constdata& cd,
         if(tfact==0){
             continue;
         }
-        printf("Gen ord ");
-        printOrd(ord_t);
-        printf("\nwith reco ord ");
-        printOrd(ord_o);
         unsigned dRidx_o = getMaxDR(*cd.dR2s_o, ord_o);
-        printf("\ncontributes (%u, %u) = (%0.5f) * (%0.5f) = %0.5f\n\n", 
-                dRidx_o, dRidx, nextWt, tfact, nextWt*tfact);
         ans.transfer->at(dRidx_o, dRidx) += nextWt * tfact;
     } while(iterate_full(cd.order, ord_o, cd.nPart_o));
 }
@@ -65,14 +85,7 @@ projectedEEC doProjected(const std::shared_ptr<const jet> j,
 
     finalizeCovariance(cd, ans);
 
-    return projectedEEC(cd.order, cd.nPart,
-                        std::move(cd.dR2s),
-                        std::move(ans.wts),
-                        ans.ptAtZero,
-                        std::move(ans.cov),
-                        std::move(cd.dR2s_o),
-                        std::move(ans.transfer));
-                        
+    return packageResults(cd, ans);            
 }
 
 void pointAtZero(const constdata& cd, computedata& ans){

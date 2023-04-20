@@ -8,11 +8,14 @@
 #include <boost/histogram/axis.hpp>
 #include <boost/histogram/ostream.hpp>
 #include <boost/histogram/indexed.hpp>
+#include <chrono>
+
+using namespace std::chrono;
 
 int main(){
-    unsigned N=50u;
-    unsigned order=2u;
-    unsigned Njet=100u;
+    unsigned N=40u;
+    unsigned order=5u;
+    unsigned Njet=10u;
 
     using namespace boost::histogram;
     auto dRaxis = axis::variable<double>{0.01, 0.10, 0.30, 0.50, 1.0};
@@ -23,30 +26,53 @@ int main(){
     auto EEChist_o = make_histogram_with(std::vector<double>(), dRaxis);
     auto COVhist_o = make_histogram_with(std::vector<double>(), dRaxis, dRaxis);
 
+    size_t jettime = 0;
+    size_t EECtime = 0;
+    size_t covtime = 0;
+    size_t hittime = 0;
+
     for(unsigned i=0; i<Njet; ++i){
+        auto t0 = high_resolution_clock::now();
         printf("%u\n", i);
         auto j = std::make_shared<jet>();
         auto j_o = std::make_shared<jet>();
 
         gausJet(N, *j_o);
-        auto ptrans = std::make_shared<arma::fmat>(genJet(*j_o, *j, 
-                        0.15, 0.05, 0.05,
-                        0.20, 0.80, 0.00, 0.00, 0.2));
+        auto ptrans = std::make_shared<arma::mat>(genJet(*j_o, *j, 
+                        0.15, 0.01, 0.01,
+                        0.00, 0.00, 0.00, 0.00, 0.2));
+        auto t1 = high_resolution_clock::now();
 
+        printf("before EEC\n");
         projectedEEC EEC = doProjected(j, order, ptrans, j_o);
+        printf("between EECs\n");
         projectedEEC EEC_o = doProjected(j_o, order);
+        printf("after EEC\n");
 
-        arma::fmat cov = (*EEC.cov) * arma::trans(*EEC.cov);
+        auto t2 = high_resolution_clock::now();
+
+        arma::mat cov = (*EEC.cov) * arma::trans(*EEC.cov);
+        arma::mat cov_o = (*EEC_o.cov) * arma::trans(*EEC_o.cov);
+
+        auto t3 = high_resolution_clock::now();
 
         fill1d(EEChist, *EEC.dRs, *EEC.wts);
         fill2d(COVhist, *EEC.dRs, *EEC.dRs, cov);
         fill2d(TRANShist, *EEC.dRs_o, *EEC.dRs, *EEC.transfer);
 
-        arma::fmat cov_o = (*EEC_o.cov) * arma::trans(*EEC_o.cov);
 
         fill1d(EEChist_o, *EEC_o.dRs, *EEC_o.wts);
         fill2d(COVhist_o, *EEC_o.dRs, *EEC.dRs_o, cov_o);
+
+        auto t4 = high_resolution_clock::now();
+
+        jettime += duration_cast<microseconds>(t1-t0).count();
+        EECtime += duration_cast<microseconds>(t2-t1).count();
+        covtime += duration_cast<microseconds>(t3-t2).count();
+        hittime += duration_cast<microseconds>(t4-t3).count();
     }
+    printf("JET TIME %lu\nEEC TIME %lu\nCOV TIME %lu\nHST TIME %lu\n\n", jettime, EECtime, covtime, hittime);
+
     printf("gen EEC\n");
     std::cout << EEChist;
     printf("reco EEC\n");

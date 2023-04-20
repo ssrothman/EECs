@@ -4,7 +4,7 @@
 
 projectedEEC packageResults(const constdata& cd,
                             computedata& ans){
-    using fvec=std::vector<float>;
+    using fvec=std::vector<f_t>;
     auto dRs = std::make_unique<fvec>(cd.dR2s->data());
     dRs->emplace_back(0.0);
     
@@ -34,12 +34,12 @@ projectedEEC packageResults(const constdata& cd,
 
 void finalizeCovariance(const constdata& cd,
                         computedata& ans){
-    float normfact;
+    f_t normfact;
     for(unsigned iPart=0; iPart<cd.nPart; ++iPart){
-        normfact = intPow<float>(1/(1-cd.Es->at(iPart)), cd.order);
+        normfact = intPow<f_t>(1/(1-cd.Es->at(iPart)), cd.order);
         for(unsigned iDR=0; iDR<cd.dR2s->size(); ++iDR){
-            float rescaled_contrib = -normfact * (*ans.cov)(iDR, iPart);
-            float rescaled_actual = (normfact-1) * ans.wts->at(iDR);
+            f_t rescaled_contrib = -normfact * (*ans.cov)(iDR, iPart);
+            f_t rescaled_actual = (normfact-1) * ans.wts->at(iDR);
             (*ans.cov)(iDR, iPart) = rescaled_contrib + rescaled_actual;
         }
         unsigned iDR = cd.dR2s->size();
@@ -51,28 +51,35 @@ void finalizeCovariance(const constdata& cd,
 void addTransfer(const constdata& cd,
                  const std::vector<unsigned>& ord_t,
                  const unsigned dRidx,
-                 const float nextWt,
+                 const f_t nextWt,
                  computedata& ans){
 
     std::vector<unsigned> ord_o = ord0_full(cd.order);
 
+    std::vector<unsigned> nadj(cd.order);
+    for(unsigned i=0; i<cd.order; ++i){
+        nadj[i] = cd.adj->at(ord_t[i]).size();
+        if(nadj[i]==0){
+            return; //break out early if there are no neighbors
+        }
+    }
+
     do{
-        float tfact = 1;
-        for(unsigned i=0; i<cd.order && tfact>0; ++i){
-            tfact *= cd.ptrans->at(ord_o[i], ord_t[i]);
+        float tfact = 1.0f;
+        std::vector<unsigned> ord_test(cd.order);
+        for(unsigned i=0; i<cd.order; ++i){
+            ord_test[i] = cd.adj->at(ord_t[i])[ord_o[i]];
+            tfact *= cd.ptrans->at(ord_test[i], ord_t[i]);
         }
-        if(tfact==0){
-            continue;
-        }
-        unsigned dRidx_o = getMaxDR(*cd.dR2s_o, ord_o);
+        unsigned dRidx_o = getMaxDR(*cd.dR2s_o, ord_test);
         ans.transfer->at(dRidx_o, dRidx) += nextWt * tfact;
-    } while(iterate_full(cd.order, ord_o, cd.nPart_o));
+    } while (iterate_awkward(nadj, ord_o));
 }
 
 
 projectedEEC doProjected(const std::shared_ptr<const jet> j,
                          const unsigned order,
-                         const std::shared_ptr<const arma::fmat> ptrans,
+                         const std::shared_ptr<const mat_t> ptrans,
                          const std::shared_ptr<const jet> j_o){
     constdata cd = getConstdata(j, order, j_o, ptrans);
     computedata ans = initializeComputedata(cd);
@@ -89,9 +96,9 @@ projectedEEC doProjected(const std::shared_ptr<const jet> j,
 }
 
 void pointAtZero(const constdata& cd, computedata& ans){
-    float result = 0;
+    f_t result = 0;
     for(unsigned i=0; i<cd.nPart; ++i){
-        float nextwt = intPow<float>(cd.Es->at(i), cd.order);
+        f_t nextwt = intPow<f_t>(cd.Es->at(i), cd.order);
         result += nextwt;
         //accumulate covariance
         (*ans.cov)(cd.dR2s->size(), i) += nextwt; 
@@ -126,7 +133,7 @@ void addWt(const constdata& cd,
     for(const comp& c : cd.comps->at(M-1)){//for each composition
         double nextWt = c.factor;
         for(unsigned i=0; i<M; ++i){
-            nextWt *= intPow<float>(cd.Es->at(ord[i]), c.composition[i]);
+            nextWt *= intPow<f_t>(cd.Es->at(ord[i]), c.composition[i]);
         }
         ans.wts->at(dRidx) += nextWt;
         
@@ -147,22 +154,25 @@ void addWt(const constdata& cd,
     }
 }
 
-unsigned getMaxDR(const vecND::nodiagvec& dR2s,
+unsigned getMaxDR(const nodiagvec& dR2s,
                   const std::vector<unsigned> ord){
     if(uniform(ord)){
         return dR2s.size();
     }
-    float maxDR=0;
+    f_t maxDR=0;
     unsigned maxidx=-1;
 
     unsigned idx;
-    float dR;
+    f_t dR;
     const unsigned M = ord.size();
     std::vector<unsigned> ord2 = ord0_nodiag(2);
     do{
         std::vector<unsigned> ord_test(2);
         ord_test[0] = ord[ord2[0]];
         ord_test[1] = ord[ord2[1]];
+        if(uniform(ord_test)){
+            continue;
+        }
         dR = dR2s.at(ord_test, &idx);
         if(dR > maxDR){
             maxDR = dR;
@@ -172,7 +182,7 @@ unsigned getMaxDR(const vecND::nodiagvec& dR2s,
     return maxidx;
 }
 
-void getDR2(vecND::nodiagvec& result,
+void getDR2(nodiagvec& result,
             const std::vector<float>& eta,
             const std::vector<float>& phi){
     //check that arguments make sense
@@ -195,30 +205,42 @@ void getDR2(vecND::nodiagvec& result,
 }
 
 void normalizePt(const std::vector<float> &pts,
-                 std::vector<float>& Eout){
-    float sumPt=0;
-    for(const float& pt: pts){
+                 std::vector<f_t>& Eout){
+    f_t sumPt=0;
+    for(const f_t& pt: pts){
         sumPt += pt;
     }
 
     Eout.clear();
     Eout.reserve(pts.size());
     
-    for(const float& pt: pts){
+    for(const f_t& pt: pts){
         Eout.push_back(pt/sumPt);
+    }
+}
+
+void getAdj(const mat_t& ptrans, adjacency_t& adj){
+    adj.clear();
+    adj.resize(ptrans.n_cols);
+    for(unsigned i=0; i<ptrans.n_cols; ++i){
+        for(unsigned j=0; j<ptrans.n_rows; ++j){
+            if(ptrans(j, i)>0){
+                adj[i].emplace_back(j);
+            }
+        }
     }
 }
 
 constdata getConstdata(const std::shared_ptr<const jet> j,
                        const unsigned order,
                        const std::shared_ptr<const jet> j_o,
-                       const std::shared_ptr<const arma::fmat> ptrans){
+                       const std::shared_ptr<const mat_t> ptrans){
     unsigned nPart = j->pt.size();
     
-    auto Es = std::make_unique<std::vector<float>>();
+    auto Es = std::make_unique<std::vector<f_t>>();
     normalizePt(j->pt, *Es);
 
-    auto dR2s = std::make_unique<vecND::nodiagvec>(nPart, 2u);
+    auto dR2s = std::make_unique<nodiagvec>(nPart, 2u);
     getDR2(*dR2s, j->eta, j->phi);
 
     auto comps = std::make_unique<comp_t>();
@@ -226,13 +248,18 @@ constdata getConstdata(const std::shared_ptr<const jet> j,
 
     if(j_o){
         unsigned nPart_o = j_o->pt.size();
-        auto dR2s_o = std::make_unique<vecND::nodiagvec>(nPart_o, 2u);
+        auto dR2s_o = std::make_unique<nodiagvec>(nPart_o, 2u);
         getDR2(*dR2s_o, j_o->eta, j_o->phi);
+
+        auto adj = std::make_unique<adjacency_t>();
+        getAdj(*ptrans, *adj);
+
         return constdata(order, nPart,
                          std::move(Es),
                          std::move(dR2s),
                          std::move(comps),
                          std::move(ptrans),
+                         std::move(adj),
                          nPart_o,
                          std::move(dR2s_o));
     } else {
@@ -244,13 +271,13 @@ constdata getConstdata(const std::shared_ptr<const jet> j,
 }
 
 computedata initializeComputedata(const constdata& cd){
-    auto wts = std::make_unique<vecND::nodiagvec>(cd.nPart, 2u);
-    auto cov = std::make_unique<arma::fmat>(wts->size()+1, cd.nPart,
+    auto wts = std::make_unique<nodiagvec>(cd.nPart, 2u);
+    auto cov = std::make_unique<mat_t>(wts->size()+1, cd.nPart,
                                             arma::fill::zeros);
 
     if(cd.ptrans){
         unsigned size_o = choose(cd.nPart_o, 2u);
-        auto transfer  = std::make_unique<arma::fmat>(size_o+1,
+        auto transfer  = std::make_unique<mat_t>(size_o+1,
                                                      wts->size()+1,
                                                      arma::fill::zeros);
         return computedata(std::move(wts), 

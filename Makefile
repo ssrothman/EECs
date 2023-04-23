@@ -1,6 +1,9 @@
 LIBS=-larmadillo
 CFLAGS=-O3
 
+testTrans_oo: testTrans_oo.o simon_util_cpp/combinatorics.o toyjets/gaus.o toyjets/gen.o jetinfo.o maxDR.o
+	g++ $^ -o $@ $(LIBS) $(CFLAGS)
+
 testBin: eec.o testBin.o simon_util_cpp/combinatorics.o toyjets/gaus.o toyjets/gen.o
 	g++ $^ -o $@ $(LIBS) $(CFLAGS)
 

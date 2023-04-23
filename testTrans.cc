@@ -22,11 +22,11 @@ int main(){
     printf("did both\n\n");
 
     printf("j\n");
-    std::cout << arma::frowvec(j->pt)/j->sumpt;
+    std::cout << arma::trans(j->ptvec())/j->sumpt;
     printf("j_o\n");
-    std::cout << arma::frowvec(j_o->pt)/j_o->sumpt;
+    std::cout << arma::trans(j_o->ptvec())/j_o->sumpt;
     printf("mat * j\n");
-    std::cout << arma::trans(*ptrans *arma::fvec(j->pt)/j->sumpt);
+    std::cout << arma::trans(*ptrans *j->ptvec()/j->sumpt);
     printf("\n\n");
 
     std::cout << *ptrans;

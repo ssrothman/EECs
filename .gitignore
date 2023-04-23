@@ -2,3 +2,4 @@ testBin
 testCov
 testTrans
 *.o
+gmon.out

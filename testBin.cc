@@ -13,8 +13,8 @@
 using namespace std::chrono;
 
 int main(){
-    unsigned N=40u;
-    unsigned order=5u;
+    unsigned N=20u;
+    unsigned order=3u;
     unsigned Njet=10u;
 
     using namespace boost::histogram;

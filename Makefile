@@ -1,5 +1,5 @@
-LIBS="-larmadillo"
-CFLAGS="-pg"
+LIBS=-larmadillo
+CFLAGS=-O3
 
 testBin: eec.o testBin.o simon_util_cpp/combinatorics.o toyjets/gaus.o toyjets/gen.o
 	g++ $^ -o $@ $(LIBS) $(CFLAGS)

@@ -183,39 +183,32 @@ unsigned getMaxDR(const nodiagvec& dR2s,
 }
 
 void getDR2(nodiagvec& result,
-            const std::vector<float>& eta,
-            const std::vector<float>& phi){
+            const std::shared_ptr<const jet> j){
     //check that arguments make sense
     if(result.dim()!=2){
         throw std::logic_error("getDR() needs a 2-dimensional vecND");
     }
-    if(result.nPart()!=eta.size()){
-        throw std::logic_error("result.nPart != eta.size()");
-    }
-    if(eta.size()!=phi.size()){
-        throw std::logic_error("eta.size() != phi.size()");
+    if(result.nPart()!=j->nPart){
+        throw std::logic_error("result.nPart != jet.nPart");
     }
 
     std::vector<unsigned> ord = result.ord0();
     bool loop;
     for(size_t i=0, loop=true; loop; loop=result.iterate(ord), ++i){//iterate over pairs
-        result.at(i) = dR2(eta[ord[0]], phi[ord[0]],
-                           eta[ord[1]], phi[ord[1]]);
+        const particle& p1 = j->particles[ord[0]];
+        const particle& p2 = j->particles[ord[1]];
+        result.at(i) = dR2(p1.eta, p1.phi,
+                           p2.eta, p2.phi);
     }
 }
 
-void normalizePt(const std::vector<float> &pts,
+void normalizePt(const std::shared_ptr<const jet> j,
                  std::vector<f_t>& Eout){
-    f_t sumPt=0;
-    for(const f_t& pt: pts){
-        sumPt += pt;
-    }
-
     Eout.clear();
-    Eout.reserve(pts.size());
+    Eout.reserve(j->nPart);
     
-    for(const f_t& pt: pts){
-        Eout.push_back(pt/sumPt);
+    for(const particle& part: j->particles){
+        Eout.push_back(part.pt/j->sumpt);
     }
 }
 
@@ -235,21 +228,21 @@ constdata getConstdata(const std::shared_ptr<const jet> j,
                        const unsigned order,
                        const std::shared_ptr<const jet> j_o,
                        const std::shared_ptr<const mat_t> ptrans){
-    unsigned nPart = j->pt.size();
+    unsigned nPart = j->nPart;
     
     auto Es = std::make_unique<std::vector<f_t>>();
-    normalizePt(j->pt, *Es);
+    normalizePt(j, *Es);
 
     auto dR2s = std::make_unique<nodiagvec>(nPart, 2u);
-    getDR2(*dR2s, j->eta, j->phi);
+    getDR2(*dR2s, j);
 
     auto comps = std::make_unique<comp_t>();
     fillCompositions(order, *comps); 
 
     if(j_o){
-        unsigned nPart_o = j_o->pt.size();
+        unsigned nPart_o = j_o->nPart;
         auto dR2s_o = std::make_unique<nodiagvec>(nPart_o, 2u);
-        getDR2(*dR2s_o, j_o->eta, j_o->phi);
+        getDR2(*dR2s_o, j_o);
 
         auto adj = std::make_unique<adjacency_t>();
         getAdj(*ptrans, *adj);

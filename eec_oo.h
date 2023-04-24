@@ -168,7 +168,6 @@ private:
         for(unsigned i=0; i<J1.nPart; ++i){
             double nextwt = intPow(J1.Es->at(i), powOrder);
             nextwt *= comps->at(0)[0].factor;
-            printf("F = %u\n", comps->at(0)[0].factor);
 
             //accumulate weight
             ptAtZero += nextwt;
@@ -196,9 +195,6 @@ private:
             }
         }
 
-        printf("Transfering ");
-        printOrd(ord_J1);
-        printf(":\n");
         std::vector<unsigned> ord_iter = ord0_full(powOrder);
         do{
             float tfact = 1.0f;
@@ -207,12 +203,6 @@ private:
                 ord_J2[i] = adj->data.at(ord_J1[i])[ord_iter[i]];
                 tfact *= ptrans->at(ord_J2[i], ord_J1[i]);
             }
-            printf("  -> ");
-            printOrd(ord_J2);
-            printf(" [which is ");
-            printOrd(ord_iter);
-            printf("]\n");
-            printf(": (%0.5f) * (%0.5f) \n\t\t\t\t= %0.5f\n", tfact, nextWt, tfact*nextWt);
             unsigned dRidx_J2 = getMaxDR(J2, ord_J2);
             transfer.at(dRidx_J2, dRidx_J1) += nextWt * tfact;
         } while (iterate_awkward(nadj, ord_iter));

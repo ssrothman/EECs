@@ -30,12 +30,12 @@
 
 enum EECKind{
     PROJECTED=0,
-    RESOLVED=1
+    RESOLVED=1,
 };
 
 //can be either nodiagvec or symvec
 //for projected or resolved respectively
-template <enum EECKind K=PROJECTED>
+template <enum EECKind K=PROJECTED, bool nonIRC=false>
 class EECCalculator{
 public:
     EECCalculator(const std::shared_ptr<const jet> j1,
@@ -45,36 +45,34 @@ public:
         J2(), ptrans(nullptr), adj(nullptr), 
         comps(customComps ? customComps : getCompositions(maxOrder))
     {
+        checkNonIRC(customComps);
         initialize();
     }
 
     EECCalculator(const std::shared_ptr<const jet> j1, 
                   const unsigned maxOrder,
                   const std::shared_ptr<const arma::mat> ptrans,
-                  const std::shared_ptr<const jet> j2):
+                  const std::shared_ptr<const jet> j2,
+                  const std::shared_ptr<std::vector<comp_t>> customComps = nullptr):
         maxOrder(maxOrder),
         J1(j1), J2(j2), ptrans(ptrans),
         adj(std::make_unique<adjacency>(ptrans)), 
-        comps(getCompositions(maxOrder))
+        comps(customComps ? customComps : getCompositions(maxOrder))
     {
+        checkNonIRC(customComps);
         initialize();
     }
 
     void run(){
-        printf("top of run\n");
         computePointAtZero();
-        printf("did point at zero\n");
         for(unsigned M=2; M<=maxOrder; ++M){
             if(M > J1.nPart){
-                printf("skipping %u\n", M);
                 continue;
             } 
             computeMwayContribution(M);
-            printf("did %u-way\n",M);
         }
 
         finalizeCovariance();
-        printf("finalized cov\n");
 
         ran=true;
     }
@@ -87,7 +85,6 @@ public:
         for(unsigned i=0; i<result.size(); ++i){
             result.at(i) = std::sqrt(result.at(i));
         }
-        printf("about to return from getdRs()\n");
         return result;
     }
 
@@ -127,7 +124,6 @@ public:
     unsigned maxOrder;
 private:
     void initialize() {
-        printf("top of initialize\n");
         ran = false;
 
         if constexpr(K==EECKind::RESOLVED){
@@ -173,13 +169,21 @@ private:
                                       arma::fill::zeros);
             }
         }
-        printf("initialized\n");
-        printf("offsets:\n");
-        printOrd(offsets);
-        printf("\noffsets_J2:\n");
-        printOrd(offsets_J2);
-        printf("\n");
+    }
 
+    void checkNonIRC(std::shared_ptr<std::vector<comp_t>> customComps) const{
+        if(customComps){
+            if constexpr(!nonIRC){
+                throw std::logic_error("Custom comps require NonIRC");
+            }
+            if (maxOrder != 2){
+                throw std::logic_error("Custom comps only supported for second order correlators");
+            }
+        } else {
+            if constexpr(nonIRC){
+                throw std::logic_error("Non IRC requires Custom comps");
+            }
+        }
     }
 
     void checkOrder(unsigned order) const{
@@ -207,7 +211,12 @@ private:
         double normfact;
         for(unsigned order=2; order<=maxOrder; ++order){
             for(unsigned iPart=0; iPart<J1.nPart; ++iPart){
-                normfact = intPow(1/(1-J1.Es->at(iPart)), order);
+                if constexpr(nonIRC){
+                    normfact = intPow(1/(1-J1.Es->at(iPart)), 
+                            comps->at(order-2)[0][0].composition[0]);
+                } else {
+                    normfact = intPow(1/(1-J1.Es->at(iPart)), order);
+                }
                 for(size_t iDR=0; iDR<wts[order-2].size(); ++iDR){
                     double contrib = -normfact*cov[order-2](iDR,iPart);
                     double actual = (normfact-1)* wts[order-2].at(iDR);
@@ -254,12 +263,17 @@ private:
                 //accumulate transfer matrix
                 if(ptrans){
                     std::vector<unsigned> ord_J1;
-                    ord_J1.reserve(order);
-                    for(unsigned i=0; i<M; ++i){
-                        ord_J1.insert(ord_J1.end(), c.composition[i], ord[i]);
+                    if constexpr(nonIRC){
+                        ord_J1 = ord;
+                    } else {
+                        ord_J1.reserve(order);
+                        for(unsigned i=0; i<M; ++i){
+                            ord_J1.insert(ord_J1.end(), c.composition[i], ord[i]);
+                        }
                     }
 
-                    accumulateTransfer(ord_J1, dRidx, nextWt, order);
+                    accumulateTransfer(ord_J1, dRidx, nextWt, order, 
+                                       c.composition);
                 }
             }
         }
@@ -269,8 +283,16 @@ private:
         for(unsigned order=2; order<=maxOrder; ++order){
             size_t iDR = wts[order-2].size()-1;
             for(unsigned i=0; i<J1.nPart; ++i){
-                double nextwt = intPow(J1.Es->at(i), order);
-                nextwt *= comps->at(order-2)[0][0].factor; //this is probably always 1...
+                double nextwt;
+                double rawwt;
+                if constexpr(nonIRC){
+                    rawwt = intPow(J1.Es->at(i),
+                        comps->at(order-2)[0][0].composition[0]);
+                    nextwt = rawwt * comps->at(order-2)[0][0].factor;
+                } else {
+                    nextwt = intPow(J1.Es->at(i), order);
+                }
+
                 //accumulate weight
                 wts[order-2].at(iDR) += nextwt;
                 
@@ -280,18 +302,29 @@ private:
                 //accumulate transfer matrix
                 if(ptrans){
                     std::vector<unsigned> ord(order, i);
-                    accumulateTransfer(ord, wts[order-2].size()-1, nextwt, order);
+                    if constexpr(nonIRC){
+                        for(unsigned M=2; M<=order; ++M){
+                            for(const comp& c : comps->at(order-2)[M-1]){
+                                accumulateTransfer(ord, iDR, 
+                                                   c.factor*rawwt, 
+                                                   order, c.composition);
+
+                            }
+                        }
+                    } else {
+                        accumulateTransfer(ord, iDR, nextwt, order);
+                    }
                 }
             }
         }
     }
 
     void accumulateTransfer(const std::vector<unsigned>& ord_J1,
-                            const unsigned dRidx_J1,
+                            const size_t dRidx_J1,
                             const double nextWt,
-                            const unsigned order){
+                            const unsigned order,
+                            const std::vector<unsigned>& comp = {}){
 
-        printf("top of accumulate transfer\n");
         std::vector<unsigned> nadj(order);
         for(unsigned i=0; i<order; ++i){
             nadj[i] = adj->data.at(ord_J1[i]).size();
@@ -306,7 +339,12 @@ private:
             std::vector<unsigned> ord_J2(order);
             for(unsigned i=0; i<order; ++i){
                 ord_J2[i] = adj->data.at(ord_J1[i])[ord_iter[i]];
-                tfact *= ptrans->at(ord_J2[i], ord_J1[i]);
+                if constexpr(nonIRC){
+                    tfact *= intPow(ptrans->at(ord_J2[i], ord_J1[i]),
+                                    comp[i]);
+                } else {
+                    tfact *= ptrans->at(ord_J2[i], ord_J1[i]);
+                }
             }
             size_t dRidx_J2;
             if constexpr(K==EECKind::PROJECTED){
@@ -317,10 +355,6 @@ private:
                 unsigned M_J2 = std::distance(ord_J2.begin(), end);
                 if(M_J2==1){
                     dRidx_J2 = offsets_J2[order-1];
-                    printf("ord_J2 = ");
-                    printOrd(ord_J2);
-                    printf("\n");
-                    printf("idx_J2 = %lu\n", dRidx_J2);
                 } else {
                     dRidx_J2 = getNodiagIdx(ord_J2, J2.nPart, M_J2) 
                              + offsets_J2[M_J2-2];
@@ -328,7 +362,6 @@ private:
             }
             transfer[order-2].at(dRidx_J2, dRidx_J1) += nextWt * tfact;
         } while (iterate_awkward(nadj, ord_iter));
-        printf("end of accumulate transfer\n");
     }
 
     //the jet to do
@@ -341,7 +374,7 @@ private:
 
     //precomputed quantities
     const std::shared_ptr<std::vector<comp_t>> comps; //indexed by [order, M] -> vector<composition>
-                                                      //
+
     std::vector<size_t> offsets;    //offsets into wts array for M-way
     std::vector<size_t> offsets_J2; //contributions to resolved EEC
 
@@ -355,5 +388,6 @@ private:
 
 typedef EECCalculator<EECKind::PROJECTED> ProjectedEECCalculator;
 typedef EECCalculator<EECKind::RESOLVED> ResolvedEECCalculator;
+typedef EECCalculator<EECKind::PROJECTED, true> NonIRCEECCalculator;
 
 #endif

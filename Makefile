@@ -1,6 +1,9 @@
 LIBS=-larmadillo
 CFLAGS=-O3
 
+testNonIRC_oo: testNonIRC_oo.o simon_util_cpp/combinatorics.o toyjets/gaus.o toyjets/gen.o jetinfo.o maxDR.o compositions.o
+	g++ $^ -o $@ $(LIBS) $(CFLAGS)
+
 testResolved_oo: testResolved_oo.o simon_util_cpp/combinatorics.o toyjets/gaus.o toyjets/gen.o jetinfo.o maxDR.o compositions.o
 	g++ $^ -o $@ $(LIBS) $(CFLAGS)
 
@@ -27,6 +30,9 @@ testComp: eec.o testComp.o simon_util_cpp/combinatorics.o
 
 testResolved_oo.o : testResolved_oo.cc eec_oo.h jetinfo.h compositions.h maxDR.h adj.h
 	g++ -c -o $@ testResolved_oo.cc -I/usr/local/include/Minuit2 $(CFLAGS)
+
+testNonIRC_oo.o : testNonIRC_oo.cc eec_oo.h jetinfo.h compositions.h maxDR.h adj.h
+	g++ -c -o $@ testNonIRC_oo.cc -I/usr/local/include/Minuit2 $(CFLAGS)
 
 testTrans_oo.o : testTrans_oo.cc eec_oo.h jetinfo.h compositions.h maxDR.h adj.h
 	g++ -c -o $@ testTrans_oo.cc -I/usr/local/include/Minuit2 $(CFLAGS)

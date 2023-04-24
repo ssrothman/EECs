@@ -12,7 +12,7 @@ int main(){
     gausJet(N, *j_o);
     auto ptrans = std::make_shared<arma::mat>(genJet(*j_o, *j, 
                     0.15, 0.05, 0.05,
-                    0.10, 0.00, 0.00, 0.00, 0.3));
+                    0.20, 0.00, 0.00, 0.00, 0.3));
 
     printf("j\n");
     std::cout << arma::trans(j->ptvec())/j->sumpt;
@@ -24,8 +24,9 @@ int main(){
     std::cout << *ptrans;
     printf("\n\n");
 
-    ProjectedEECCalculator trans(j, order, ptrans, j_o);
-    ProjectedEECCalculator reco(j_o, order);
+    auto customComps = getCustomComps(2, 1);
+    NonIRCEECCalculator trans(j, order, ptrans, j_o, customComps);
+    NonIRCEECCalculator reco(j_o, order, customComps);
 
     printf("made\n");
     trans.run();

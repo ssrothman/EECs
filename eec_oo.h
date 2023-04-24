@@ -24,25 +24,19 @@ public:
                   const unsigned order,
                   const std::shared_ptr<const arma::mat> ptrans=nullptr,
                   const std::shared_ptr<const jet> j2=nullptr,
-                  const unsigned p1=1, const unsigned p2=1) :
+                  const std::shared_ptr<comp_t> customComps = nullptr): 
         order(order), J1(j1), 
         J2(j2), ptrans(ptrans),
         adj(std::make_unique<adjacency>(ptrans)), 
-        comps(getCompositions(order)),
-        p1(p1), p2(p2),
-        powOrder(p1 + p2),
-        doNonIRC((p1!=1 || p2!=1)),
+        comps(customComps ? customComps : getCompositions(order)),
+        powOrder(comps->at(0)[0].composition[0]),
         wts(J1.nPart, 2u),
         cov(wts.size()+1, J1.nPart, arma::fill::zeros),
         ptAtZero(0),
         transfer(j2 ? J2.dR2s->size()+1 : 0,
                  j2 ? J1.dR2s->size()+1 : 0, 
                  arma::fill::zeros),
-        ran(false) {
-            if(doNonIRC && order!=2){
-                throw std::logic_error("non-IRC EECs only supported for second-order");
-            }
-        }
+        ran(false) {}
 
     void run(){
         computePointAtZero();
@@ -99,6 +93,9 @@ public:
         return transfer;
     }
 
+    //info about the calculation
+    const unsigned order;
+
 private:
     void checkRan() const{
         if(!ran){
@@ -133,32 +130,8 @@ private:
         std::vector<unsigned> ord = ord0_nodiag(M);
         bool loop;
         do{
-            if(doNonIRC){
-                accumulateWtnonIRC(ord);
-            } else {
-                accumulateWt(M, ord);
-            }
+            accumulateWt(M, ord);
         } while (iterate_nodiag(M, ord, J1.nPart));
-    }
-
-    void accumulateWtnonIRC(const std::vector<unsigned>& ord){
-        unsigned dRidx = getMaxDR(J1, ord);
-
-        double nextWt1 = 2*intPow(J1.Es->at(ord[0]), p1)
-                          *intPow(J1.Es->at(ord[1]), p2);
-        double nextWt2 = 2*intPow(J1.Es->at(ord[0]), p2)
-                          *intPow(J1.Es->at(ord[1]), p1);
-        double nextWt = nextWt1 + nextWt2;
-
-        wts.at(dRidx) += nextWt;
-
-        cov(dRidx, ord[0]) += nextWt;
-        cov(dRidx, ord[1]) += nextWt;
-
-        if(ptrans){
-            accumulateTransfer(ord, dRidx, nextWt1, {p1, p2});
-            accumulateTransfer(ord, dRidx, nextWt2, {p2, p1});
-        }
     }
 
     void accumulateWt(const unsigned M,
@@ -181,83 +154,70 @@ private:
             //accumulate transfer matrix
             if(ptrans){
                 std::vector<unsigned> ord_J1;
-                ord_J1.reserve(order);
+                ord_J1.reserve(powOrder);
                 for(unsigned i=0; i<M; ++i){
                     ord_J1.insert(ord_J1.end(), c.composition[i], ord[i]);
                 }
 
-                accumulateTransferNoPow(ord_J1, dRidx, nextWt);
+                accumulateTransfer(ord_J1, dRidx, nextWt);
             }
         }
     }
 
     void computePointAtZero(){
-        unsigned dRidx = J1.dR2s->size();
         for(unsigned i=0; i<J1.nPart; ++i){
             double nextwt = intPow(J1.Es->at(i), powOrder);
-            double extra = 1.0;
+            nextwt *= comps->at(0)[0].factor;
+            printf("F = %u\n", comps->at(0)[0].factor);
 
-            if(doNonIRC){
-                extra = 2.0;
-            }
             //accumulate weight
-            ptAtZero += nextwt * extra;
+            ptAtZero += nextwt;
             
             //accumulate covariance
-            cov(dRidx, i) += nextwt * extra; 
+            cov(J1.dR2s->size(), i) += nextwt; 
 
             //accumulate transfer matrix
-            if(ptrans && !doNonIRC){
-                std::vector<unsigned> ord(order, i);
-                accumulateTransferNoPow(ord, dRidx, nextwt);
-            } else if(ptrans){
-                accumulateTransfer({i,i}, dRidx, nextwt, {p1, p2});
-                accumulateTransfer({i,i}, dRidx, nextwt, {p2, p1});
+            if(ptrans){
+                std::vector<unsigned> ord(powOrder, i);
+                accumulateTransfer(ord, J1.dR2s->size(), nextwt);
             }
         }
     }
 
-    void accumulateTransferNoPow(const std::vector<unsigned>& ord_J1,
-                            const unsigned dRidx_J1,
-                            const double nextWt){
-        accumulateTransfer(ord_J1, dRidx_J1, nextWt,
-                std::vector<unsigned>(ord_J1.size(), 1));
-    }
-
     void accumulateTransfer(const std::vector<unsigned>& ord_J1,
                             const unsigned dRidx_J1,
-                            const double nextWt,
-                            const std::vector<unsigned>& powers){
+                            const double nextWt){
 
-        printf("ord = ");
-        printOrd(ord_J1);
-        printf("\n\tpows = ");
-        printOrd(powers);
-        printf("\n");
-        std::vector<unsigned> nadj(order);
-        for(unsigned i=0; i<order; ++i){
+        std::vector<unsigned> nadj(powOrder);
+        for(unsigned i=0; i<powOrder; ++i){
             nadj[i] = adj->data.at(ord_J1[i]).size();
             if(nadj[i]==0){
                 return; //break out early if there are no neighbors
             }
         }
 
-        std::vector<unsigned> ord_iter = ord0_full(order);
+        printf("Transfering ");
+        printOrd(ord_J1);
+        printf(":\n");
+        std::vector<unsigned> ord_iter = ord0_full(powOrder);
         do{
             float tfact = 1.0f;
-            std::vector<unsigned> ord_J2(order);
-            for(unsigned i=0; i<order; ++i){
+            std::vector<unsigned> ord_J2(powOrder);
+            for(unsigned i=0; i<powOrder; ++i){
                 ord_J2[i] = adj->data.at(ord_J1[i])[ord_iter[i]];
-                tfact *= intPow(ptrans->at(ord_J2[i], ord_J1[i]),
-                                powers[i]);
+                tfact *= ptrans->at(ord_J2[i], ord_J1[i]);
             }
+            printf("  -> ");
+            printOrd(ord_J2);
+            printf(" [which is ");
+            printOrd(ord_iter);
+            printf("]\n");
+            printf(": (%0.5f) * (%0.5f) \n\t\t\t\t= %0.5f\n", tfact, nextWt, tfact*nextWt);
             unsigned dRidx_J2 = getMaxDR(J2, ord_J2);
             transfer.at(dRidx_J2, dRidx_J1) += nextWt * tfact;
         } while (iterate_awkward(nadj, ord_iter));
     }
 
-    //info about the calculation
-    const unsigned order;
 
     //the jet to do
     const struct jetinfo J1;
@@ -269,9 +229,7 @@ private:
 
     //precomputed quantities
     const std::shared_ptr<comp_t> comps;
-    const unsigned p1, p2;
-    const unsigned powOrder; 
-    bool doNonIRC;
+    const unsigned powOrder; //for customComps
 
     //quantities to compute
     vecND::nodiagvec wts;

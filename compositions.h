@@ -10,4 +10,6 @@ inline std::shared_ptr<comp_t> getCompositions(unsigned order){
     return result;
 }
 
+std::shared_ptr<comp_t> getCustomComps(unsigned p1, unsigned p2);
+
 #endif

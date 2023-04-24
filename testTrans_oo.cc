@@ -24,8 +24,9 @@ int main(){
     std::cout << *ptrans;
     printf("\n\n");
 
-    EECCalculator trans(j, order, ptrans, j_o, 1, 2);
-    EECCalculator reco(j_o, order, nullptr, nullptr, 1, 2);
+    auto customComps = getCustomComps(2, 2);
+    EECCalculator trans(j, order, ptrans, j_o, customComps);
+    EECCalculator reco(j_o, order, nullptr, nullptr, customComps);
 
     printf("made\n");
     trans.run();

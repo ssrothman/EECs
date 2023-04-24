@@ -42,7 +42,7 @@ public:
                   const unsigned maxOrder,
                   const std::shared_ptr<std::vector<comp_t>> customComps = nullptr):
         maxOrder(maxOrder), J1(j1),
-        J2(nullptr), ptrans(nullptr), adj(nullptr), 
+        J2(), ptrans(nullptr), adj(nullptr), 
         comps(customComps ? customComps : getCompositions(maxOrder))
     {
         initialize();
@@ -87,6 +87,7 @@ public:
         for(unsigned i=0; i<result.size(); ++i){
             result.at(i) = std::sqrt(result.at(i));
         }
+        printf("about to return from getdRs()\n");
         return result;
     }
 
@@ -126,6 +127,7 @@ public:
     unsigned maxOrder;
 private:
     void initialize() {
+        printf("top of initialize\n");
         ran = false;
 
         if constexpr(K==EECKind::RESOLVED){
@@ -134,6 +136,15 @@ private:
             for(unsigned i=2; i<=maxOrder; ++i){
                 acc += choose(J1.nPart, i);
                 offsets.emplace_back(acc);
+            }
+
+            if(ptrans){
+                size_t acc_J2=0;
+                offsets_J2.emplace_back(0);
+                for(unsigned i=2; i<=maxOrder; ++i){
+                    acc_J2 += choose(J2.nPart, i);
+                    offsets_J2.emplace_back(acc_J2);
+                }
             }
         }
 
@@ -165,7 +176,10 @@ private:
         printf("initialized\n");
         printf("offsets:\n");
         printOrd(offsets);
+        printf("\noffsets_J2:\n");
+        printOrd(offsets_J2);
         printf("\n");
+
     }
 
     void checkOrder(unsigned order) const{
@@ -266,7 +280,7 @@ private:
                 //accumulate transfer matrix
                 if(ptrans){
                     std::vector<unsigned> ord(order, i);
-                    accumulateTransfer(ord, J1.dR2s->size(), nextwt, order);
+                    accumulateTransfer(ord, wts[order-2].size()-1, nextwt, order);
                 }
             }
         }
@@ -277,6 +291,7 @@ private:
                             const double nextWt,
                             const unsigned order){
 
+        printf("top of accumulate transfer\n");
         std::vector<unsigned> nadj(order);
         for(unsigned i=0; i<order; ++i){
             nadj[i] = adj->data.at(ord_J1[i]).size();
@@ -293,9 +308,27 @@ private:
                 ord_J2[i] = adj->data.at(ord_J1[i])[ord_iter[i]];
                 tfact *= ptrans->at(ord_J2[i], ord_J1[i]);
             }
-            size_t dRidx_J2 = getMaxDR(J2, ord_J2, true);
+            size_t dRidx_J2;
+            if constexpr(K==EECKind::PROJECTED){
+                dRidx_J2 = getMaxDR(J2, ord_J2, true);
+            } else if constexpr(K==EECKind::RESOLVED){
+                std::sort(ord_J2.begin(), ord_J2.end());
+                auto end = std::unique(ord_J2.begin(), ord_J2.end());
+                unsigned M_J2 = std::distance(ord_J2.begin(), end);
+                if(M_J2==1){
+                    dRidx_J2 = offsets_J2[order-1];
+                    printf("ord_J2 = ");
+                    printOrd(ord_J2);
+                    printf("\n");
+                    printf("idx_J2 = %lu\n", dRidx_J2);
+                } else {
+                    dRidx_J2 = getNodiagIdx(ord_J2, J2.nPart, M_J2) 
+                             + offsets_J2[M_J2-2];
+                }
+            }
             transfer[order-2].at(dRidx_J2, dRidx_J1) += nextWt * tfact;
         } while (iterate_awkward(nadj, ord_iter));
+        printf("end of accumulate transfer\n");
     }
 
     //the jet to do
@@ -309,8 +342,8 @@ private:
     //precomputed quantities
     const std::shared_ptr<std::vector<comp_t>> comps; //indexed by [order, M] -> vector<composition>
                                                       //
-    std::vector<size_t> offsets; //offsets into wts array for M-way
-                                 //contributions to resolved EEC
+    std::vector<size_t> offsets;    //offsets into wts array for M-way
+    std::vector<size_t> offsets_J2; //contributions to resolved EEC
 
     //quantities to compute
     std::vector<std::vector<double>> wts; //shape of weights vec different for projected vs resolved

@@ -12,7 +12,7 @@ int main(){
     gausJet(N, *j_o);
     auto ptrans = std::make_shared<arma::mat>(genJet(*j_o, *j, 
                     0.15, 0.05, 0.05,
-                    0.30, 0.80, 0.00, 0.00, 0.3));
+                    0.20, 0.80, 0.00, 0.00, 0.3));
 
     printf("j\n");
     std::cout << arma::trans(j->ptvec())/j->sumpt;
@@ -24,28 +24,31 @@ int main(){
     std::cout << *ptrans;
     printf("\n\n");
 
-    //ResolvedECCalculator trans(j, order, ptrans, j_o);
+    printf("before reco\n");
     ResolvedEECCalculator reco(j_o, order);
+    printf("between\n");
+    ResolvedEECCalculator trans(j, order, ptrans, j_o);
+    printf("after reco\n");
 
-    //printf("made\n");
-    //trans.run();
-    /* printf("did trans\n\n"); */
+    printf("made\n");
+    trans.run();
+     printf("did trans\n\n"); 
     reco.run();
     printf("did reco\n\n");
 
-    //printf("GEN DR\n");
-    /* std::cout << arma::rowvec(trans.getdRs()); */
-    /* printf("\n"); */
-    /* printf("RECO DR\n"); */
-    /* std::cout << arma::rowvec(trans.getdRs_J2()); */
+    printf("GEN DR\n");
+    std::cout << arma::rowvec(trans.getdRs());
+    printf("\n");
+    printf("RECO DR\n");
+    std::cout << arma::rowvec(trans.getdRs_J2());
     printf("RECO DR 2\n");
     std::cout << arma::rowvec(reco.getdRs());
     printf("\n\n");
-    /* printf("GEN WT\n"); */
-    /* std::cout << arma::rowvec(trans.getwts(3)); */
+    printf("GEN WT\n");
+    std::cout << arma::rowvec(trans.getwts(3));
     printf("RECO WT\n");
     std::cout << arma::rowvec(reco.getwts(3));
     printf("\n\n");
 
-    /* std::cout << trans.getTransfer(3); */
+    std::cout << trans.getTransfer(3);
 }

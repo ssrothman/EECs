@@ -1,6 +1,8 @@
 #ifndef EECs_ADJ_H
 #define EECs_ADJ_H
 
+#include <vector>
+
 class adjacency{
 public:
     adjacency(std::shared_ptr<const arma::mat> ptrans){

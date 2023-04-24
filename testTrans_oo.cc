@@ -25,7 +25,7 @@ int main(){
     printf("\n\n");
 
     EECCalculator trans(j, order, ptrans, j_o);
-    EECCalculator reco(j_o, order, nullptr, nullptr);
+    EECCalculator reco(j_o, order);
 
     printf("made\n");
     trans.run();

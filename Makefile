@@ -22,6 +22,9 @@ testDR: eec.o testDR.o simon_util_cpp/combinatorics.o
 testComp: eec.o testComp.o simon_util_cpp/combinatorics.o
 	g++ $^ -o $@ $(LIBS) $(CFLAGS)
 
+testTrans_oo.o : testTrans_oo.cc eec_oo.h jetinfo.h compositions.h maxDR.h adj.h
+	g++ -c -o $@ testTrans_oo.cc -I/usr/local/include/Minuit2 $(CFLAGS)
+
 %.o: %.cc
 	g++ -c -o $@ $^ -I/usr/local/include/Minuit2 $(CFLAGS)
 

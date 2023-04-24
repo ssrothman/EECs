@@ -28,25 +28,35 @@
  * note that EECCalculator(jet, order, ptrans, jet, customComps) is NOT supported
  */
 
+enum kind{
+    PROJECTED=0,
+    RESOLVED=1
+};
+
 //can be either nodiagvec or symvec
 //for projected or resolved respectively
-template <typename T=vecND::nodiagvec>
+template <typename T=vecND::nodiagvec, enum kind K=PROJECTED>
 class EECCalculator{
 public:
+    EECCalculator(const std::shared_ptr<const jet> j1,
+                  const unsigned maxOrder,
+                  const std::shared_ptr<std::vector<comp_t>> customComps = nullptr):
+        maxOrder(maxOrder), J1(j1),
+        J2(nullptr), ptrans(nullptr), adj(nullptr), 
+        comps(customComps ? customComps : getCompositions(maxOrder))
+    {
+        initialize();
+    }
+
     EECCalculator(const std::shared_ptr<const jet> j1, 
                   const unsigned maxOrder,
-                  const std::shared_ptr<const arma::mat> ptrans=nullptr,
-                  const std::shared_ptr<const jet> j2=nullptr,
-                  const std::shared_ptr<std::vector<comp_t>> customComps = nullptr): 
+                  const std::shared_ptr<const arma::mat> ptrans,
+                  const std::shared_ptr<const jet> j2):
         maxOrder(maxOrder),
         J1(j1), J2(j2), ptrans(ptrans),
         adj(std::make_unique<adjacency>(ptrans)), 
-        comps(customComps ? customComps : getCompositions(maxOrder))
+        comps(getCompositions(maxOrder))
     {
-        if(customComps && ptrans){
-            throw std::logic_error("non IRC correlators with customComps are NOT supported with transfer matrices");
-        }
-
         initialize();
     }
 
@@ -271,4 +281,3 @@ private:
 };
 
 #endif
-

@@ -4,15 +4,15 @@
 #include "eec_oo.h"
 
 int main(){
-    unsigned N=4u;
-    unsigned order=2u;
+    unsigned N=50u;
+    unsigned order=5u;
     auto j = std::make_shared<jet>();
     auto j_o = std::make_shared<jet>();
 
     gausJet(N, *j_o);
     auto ptrans = std::make_shared<arma::mat>(genJet(*j_o, *j, 
                     0.15, 0.05, 0.05,
-                    0.30, 0.80, 0.00, 0.00, 0.3));
+                    0.30, 0.80, 0.10, 0.10, 0.3));
 
     printf("j\n");
     std::cout << arma::trans(j->ptvec())/j->sumpt;
@@ -24,9 +24,8 @@ int main(){
     std::cout << *ptrans;
     printf("\n\n");
 
-    auto customComps = getCustomComps(2, 2);
-    EECCalculator trans(j, order, ptrans, j_o, customComps);
-    EECCalculator reco(j_o, order, nullptr, nullptr, customComps);
+    EECCalculator trans(j, order, ptrans, j_o);
+    EECCalculator reco(j_o, order, nullptr, nullptr);
 
     printf("made\n");
     trans.run();
@@ -43,10 +42,10 @@ int main(){
     std::cout << arma::rowvec(reco.getdRs());
     printf("\n\n");
     printf("GEN WT\n");
-    std::cout << arma::rowvec(trans.getwts());
+    std::cout << arma::rowvec(trans.getwts(3));
     printf("RECO WT\n");
-    std::cout << arma::rowvec(reco.getwts());
+    std::cout << arma::rowvec(reco.getwts(3));
     printf("\n\n");
 
-    std::cout << trans.getTransfer();
+    std::cout << trans.getTransfer(3);
 }

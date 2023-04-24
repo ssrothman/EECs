@@ -4,6 +4,7 @@
 #include "jetinfo.h"
 
 unsigned getMaxDR(const jetinfo& J,
-                  const std::vector<unsigned>& ord);
+                  std::vector<unsigned>& ord,
+                  bool uniqify = false);
 
 #endif

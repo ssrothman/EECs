@@ -2,7 +2,14 @@
 #include "simon_util_cpp/deltaR.h"
 
 unsigned getMaxDR(const jetinfo& J,
-                  const std::vector<unsigned>& ord){
+                  std::vector<unsigned>& ord,
+                  bool uniqify){
+    unsigned M = ord.size();
+    if(uniqify){
+        std::sort(ord.begin(), ord.end());
+        auto end = std::unique(ord.begin(), ord.end());
+        M = std::distance(ord.begin(), end);
+    }
     if(uniform(ord)){
         return J.dR2s->size();
     }
@@ -11,7 +18,6 @@ unsigned getMaxDR(const jetinfo& J,
 
     unsigned idx;
     double dR;
-    const unsigned M = ord.size();
     std::vector<unsigned> ord2 = ord0_nodiag(2);
     do{
         std::vector<unsigned> ord_test(2);

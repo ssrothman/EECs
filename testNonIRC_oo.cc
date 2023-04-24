@@ -12,7 +12,7 @@ int main(){
     gausJet(N, *j_o);
     auto ptrans = std::make_shared<arma::mat>(genJet(*j_o, *j, 
                     0.15, 0.05, 0.05,
-                    0.20, 0.00, 0.00, 0.00, 0.3));
+                    0.15, 0.80, 0.00, 0.10, 0.3));
 
     printf("j\n");
     std::cout << arma::trans(j->ptvec())/j->sumpt;
@@ -47,6 +47,7 @@ int main(){
     printf("RECO WT\n");
     std::cout << arma::rowvec(reco.getwts(2));
     printf("\n\n");
-
     std::cout << trans.getTransfer(2);
+    printf("\n\n");
+    std::cout << arma::trans(arma::sum(trans.getTransfer(2), 1));
 }

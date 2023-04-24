@@ -40,10 +40,25 @@ class EECCalculator{
 public:
     EECCalculator(const std::shared_ptr<const jet> j1,
                   const unsigned maxOrder,
+                  const std::vector<double>& PU,
                   const std::shared_ptr<std::vector<comp_t>> customComps = nullptr):
         maxOrder(maxOrder), J1(j1),
         J2(), ptrans(nullptr), adj(nullptr), 
-        comps(customComps ? customComps : getCompositions(maxOrder))
+        comps(customComps ? customComps : getCompositions(maxOrder)),
+        doPU(true), PU(PU)
+    {
+        checkNonIRC(customComps);
+        initialize();
+    }
+
+
+    EECCalculator(const std::shared_ptr<const jet> j1,
+                  const unsigned maxOrder,
+                  const std::shared_ptr<std::vector<comp_t>> customComps = nullptr):
+        maxOrder(maxOrder), J1(j1),
+        J2(), ptrans(nullptr), adj(nullptr), 
+        comps(customComps ? customComps : getCompositions(maxOrder)),
+        doPU(false)
     {
         checkNonIRC(customComps);
         initialize();
@@ -57,7 +72,8 @@ public:
         maxOrder(maxOrder),
         J1(j1), J2(j2), ptrans(ptrans),
         adj(std::make_unique<adjacency>(ptrans)), 
-        comps(customComps ? customComps : getCompositions(maxOrder))
+        comps(customComps ? customComps : getCompositions(maxOrder)),
+        doPU(false)
     {
         checkNonIRC(customComps);
         initialize();
@@ -95,6 +111,16 @@ public:
         return wts[order-2];
     }
 
+    const std::vector<double>& getwts_noPU(unsigned order) const{
+        checkRan();
+        checkOrder(order);
+        if(!doPU){
+            throw std::logic_error("Asking for wts_noPU when PU was not run");
+        }
+        
+        return wts_noPU[order-2];
+    }
+
     const arma::mat& getCov(unsigned order) const{
         checkRan();
         checkOrder(order);
@@ -121,7 +147,13 @@ public:
         return transfer[order-2];
     }
 
+    const arma::mat& getTransfer(unsigned order, 
+                                 EECCalculator<K, nonIRC> reco){
+        return transfer[order-2];
+    }
+
     unsigned maxOrder;
+    const bool doPU;
 private:
     void initialize() {
         ran = false;
@@ -153,6 +185,9 @@ private:
             }
             nconfig += 1; //point at zero
             wts.emplace_back(nconfig, 0.0);
+            if(doPU){
+                wts_noPU.emplace_back(nconfig);
+            }
             cov.emplace_back(nconfig, J1.nPart, arma::fill::zeros);
             if(ptrans){
                 size_t nconfig_J2=0;
@@ -249,11 +284,18 @@ private:
             const comp_t& thiscomps = comps->at(order-2);
             for(const comp& c : thiscomps[M-1]){//for each composition
                 double nextWt = c.factor;
+                bool hasPU=!doPU;
                 for(unsigned i=0; i<M; ++i){
                     nextWt *= intPow(J1.Es->at(ord[i]), c.composition[i]);
+                    if(doPU && PU[ord[i]]){
+                        hasPU = true;
+                    }
                 }
                 //accumulate weight
                 wts[order-2].at(dRidx) += nextWt;
+                if(doPU && !hasPU){
+                    wts_noPU[order-2].at(dRidx) += nextWt;
+                }
                 
                 //accumulate covariance
                 for(unsigned i=0; i<M; ++i){
@@ -295,6 +337,9 @@ private:
 
                 //accumulate weight
                 wts[order-2].at(iDR) += nextwt;
+                if(!PU[i]){
+                    wts_noPU[order-2].at(iDR) += nextwt;
+                }
                 
                 //accumulate covariance
                 cov[order-2](iDR, i) += nextwt; 
@@ -367,6 +412,9 @@ private:
     //the jet to do
     const struct jetinfo J1;
 
+    //optionally track the PU-free component
+    const std::vector<bool> PU;
+
     //only present if also doing unfolding
     const struct jetinfo J2; 
     const std::shared_ptr<const arma::mat> ptrans;
@@ -378,11 +426,14 @@ private:
     std::vector<size_t> offsets;    //offsets into wts array for M-way
     std::vector<size_t> offsets_J2; //contributions to resolved EEC
 
+
     //quantities to compute
-    std::vector<std::vector<double>> wts; //shape of weights vec different for projected vs resolved
+    std::vector<std::vector<double>> wts;      
     std::vector<arma::mat> cov;
     std::vector<arma::mat> transfer;
                        
+    std::vector<std::vector<double>> wts_noPU; 
+
     bool ran;
 };
 

@@ -28,14 +28,14 @@
  * note that EECCalculator(jet, order, ptrans, jet, customComps) is NOT supported
  */
 
-enum kind{
+enum EECKind{
     PROJECTED=0,
     RESOLVED=1
 };
 
 //can be either nodiagvec or symvec
 //for projected or resolved respectively
-template <typename T=vecND::nodiagvec, enum kind K=PROJECTED>
+template <enum EECKind K=PROJECTED>
 class EECCalculator{
 public:
     EECCalculator(const std::shared_ptr<const jet> j1,
@@ -61,12 +61,20 @@ public:
     }
 
     void run(){
+        printf("top of run\n");
         computePointAtZero();
+        printf("did point at zero\n");
         for(unsigned M=2; M<=maxOrder; ++M){
+            if(M > J1.nPart){
+                printf("skipping %u\n", M);
+                continue;
+            } 
             computeMwayContribution(M);
+            printf("did %u-way\n",M);
         }
 
         finalizeCovariance();
+        printf("finalized cov\n");
 
         ran=true;
     }
@@ -82,13 +90,11 @@ public:
         return result;
     }
 
-    std::vector<double> getwts(unsigned order) const{
+    const std::vector<double>& getwts(unsigned order) const{
         checkRan();
         checkOrder(order);
         
-        std::vector<double> result(wts[order-2].data());
-        result.emplace_back(ptAtZero[order-2]);
-        return result;
+        return wts[order-2];
     }
 
     const arma::mat& getCov(unsigned order) const{
@@ -122,16 +128,44 @@ private:
     void initialize() {
         ran = false;
 
+        if constexpr(K==EECKind::RESOLVED){
+            size_t acc=0;
+            offsets.emplace_back(0);
+            for(unsigned i=2; i<=maxOrder; ++i){
+                acc += choose(J1.nPart, i);
+                offsets.emplace_back(acc);
+            }
+        }
+
         for(unsigned order=2; order<=maxOrder; ++order){
-            wts.emplace_back(J1.nPart, 2u, 0);
-            cov.emplace_back(wts[0].size()+1, J1.nPart, arma::fill::zeros);
-            ptAtZero.emplace_back(0);
+            size_t nconfig=0;
+            if constexpr(K==EECKind::PROJECTED){
+                nconfig = choose(J1.nPart, 2);
+            } else if constexpr(K==EECKind::RESOLVED){
+                nconfig = offsets[order-1];
+            }
+            nconfig += 1; //point at zero
+            wts.emplace_back(nconfig, 0.0);
+            cov.emplace_back(nconfig, J1.nPart, arma::fill::zeros);
             if(ptrans){
-                transfer.emplace_back(J2.dR2s->size()+1,
-                                      J1.dR2s->size()+1, 
+                size_t nconfig_J2=0;
+                if constexpr(K==EECKind::PROJECTED){
+                    nconfig_J2 = choose(J2.nPart, 2);
+                } else if constexpr(K==EECKind::RESOLVED){
+                    for(unsigned i=2; i<=order; ++i){
+                        nconfig_J2 += choose(J2.nPart, i);
+                    }
+                }
+                nconfig_J2+=1; //point at zero
+                transfer.emplace_back(nconfig_J2,
+                                      nconfig,
                                       arma::fill::zeros);
             }
         }
+        printf("initialized\n");
+        printf("offsets:\n");
+        printOrd(offsets);
+        printf("\n");
     }
 
     void checkOrder(unsigned order) const{
@@ -160,30 +194,33 @@ private:
         for(unsigned order=2; order<=maxOrder; ++order){
             for(unsigned iPart=0; iPart<J1.nPart; ++iPart){
                 normfact = intPow(1/(1-J1.Es->at(iPart)), order);
-                for(unsigned iDR=0; iDR<J1.dR2s->size(); ++iDR){
-                    double contrib = -normfact * cov[order-2](iDR, iPart);
-                    double actual = (normfact-1) * wts[order-2].at(iDR);
+                for(size_t iDR=0; iDR<wts[order-2].size(); ++iDR){
+                    double contrib = -normfact*cov[order-2](iDR,iPart);
+                    double actual = (normfact-1)* wts[order-2].at(iDR);
                     cov[order-2](iDR, iPart) = contrib + actual;
                 }
-                //special case for point at zero
-                unsigned iDR = J1.dR2s->size();
-                cov[order-2](iDR, iPart) = -normfact * cov[order-2](iDR, iPart)
-                                           +(normfact-1) * ptAtZero[order-2];
             }
         }
     }
 
     void computeMwayContribution(unsigned M){
         std::vector<unsigned> ord = ord0_nodiag(M);
-        bool loop;
+        size_t ordidx = 0;
         do{
-            accumulateWt(M, ord);
+            accumulateWt(M, ord, ordidx);
+            ++ordidx;
         } while (iterate_nodiag(M, ord, J1.nPart));
     }
 
     void accumulateWt(const unsigned M,
-                      std::vector<unsigned>& ord){ //ord actually is const I promise
-        unsigned dRidx = getMaxDR(J1, ord, false);
+                      std::vector<unsigned>& ord,
+                      const size_t ordidx){ //ord actually is const I promise
+        size_t dRidx;
+        if constexpr(K==EECKind::PROJECTED){
+            dRidx = getMaxDR(J1, ord, false);
+        } else if constexpr(K==EECKind::RESOLVED){
+            dRidx = ordidx + offsets[M-2];
+        }
 
         for(unsigned order=M; order<=maxOrder; ++order){//for each order
             const comp_t& thiscomps = comps->at(order-2);
@@ -216,14 +253,15 @@ private:
 
     void computePointAtZero(){
         for(unsigned order=2; order<=maxOrder; ++order){
+            size_t iDR = wts[order-2].size()-1;
             for(unsigned i=0; i<J1.nPart; ++i){
                 double nextwt = intPow(J1.Es->at(i), order);
                 nextwt *= comps->at(order-2)[0][0].factor; //this is probably always 1...
                 //accumulate weight
-                ptAtZero[order-2] += nextwt;
+                wts[order-2].at(iDR) += nextwt;
                 
                 //accumulate covariance
-                cov[order-2](J1.dR2s->size(), i) += nextwt; 
+                cov[order-2](iDR, i) += nextwt; 
 
                 //accumulate transfer matrix
                 if(ptrans){
@@ -255,7 +293,7 @@ private:
                 ord_J2[i] = adj->data.at(ord_J1[i])[ord_iter[i]];
                 tfact *= ptrans->at(ord_J2[i], ord_J1[i]);
             }
-            unsigned dRidx_J2 = getMaxDR(J2, ord_J2, true);
+            size_t dRidx_J2 = getMaxDR(J2, ord_J2, true);
             transfer[order-2].at(dRidx_J2, dRidx_J1) += nextWt * tfact;
         } while (iterate_awkward(nadj, ord_iter));
     }
@@ -270,14 +308,19 @@ private:
 
     //precomputed quantities
     const std::shared_ptr<std::vector<comp_t>> comps; //indexed by [order, M] -> vector<composition>
+                                                      //
+    std::vector<size_t> offsets; //offsets into wts array for M-way
+                                 //contributions to resolved EEC
 
     //quantities to compute
-    std::vector<T> wts; //shape of weights vec different for projected vs resolved
+    std::vector<std::vector<double>> wts; //shape of weights vec different for projected vs resolved
     std::vector<arma::mat> cov;
-    std::vector<double> ptAtZero;
     std::vector<arma::mat> transfer;
                        
     bool ran;
 };
+
+typedef EECCalculator<EECKind::PROJECTED> ProjectedEECCalculator;
+typedef EECCalculator<EECKind::RESOLVED> ResolvedEECCalculator;
 
 #endif

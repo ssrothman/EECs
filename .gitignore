@@ -1,5 +1,7 @@
 testBin
 testCov
 testTrans
+testTrans_oo
+testResolved_oo
 *.o
 gmon.out

@@ -33,9 +33,9 @@ public:
                   const std::vector<bool>& PU,
                   const std::shared_ptr<std::vector<comp_t>> customComps = nullptr):
         maxOrder(maxOrder), J1(j1),
+        PU(PU),
         J2(), ptrans(nullptr), adj(nullptr), 
-        comps(customComps ? customComps : getCompositions(maxOrder)),
-        PU(PU)
+        comps(customComps ? customComps : getCompositions(maxOrder))
     {
         checkPU(true);
         checkNonIRC(customComps);
@@ -312,6 +312,10 @@ private:
                 if constexpr(doPU){
                     if(!hasPU){
                         wts_noPU[order-2].at(dRidx) += nextWt;
+                    }
+                } else {
+                    if(hasPU){
+                        printf("this will never happen!\n");
                     }
                 }
                 

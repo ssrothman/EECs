@@ -18,16 +18,6 @@
 #include "maxDR.h"
 #include "adj.h"
 
-/*
- * 3 possible invocations
- *
- * 1) EECCalculator(jet, order) will just calculate the EEC, no frills
- * 2) EECCalculator(jet, order, ptrans, jet) will calculate the EEC and a transfer matrix
- * 3) EECCalculator(jet, order, nullptr, nullptr, customComps) will calculate a nonIRC EEC
- *
- * note that EECCalculator(jet, order, ptrans, jet, customComps) is NOT supported
- */
-
 enum EECKind{
     PROJECTED=0,
     RESOLVED=1,
@@ -35,18 +25,19 @@ enum EECKind{
 
 //can be either nodiagvec or symvec
 //for projected or resolved respectively
-template <enum EECKind K=PROJECTED, bool nonIRC=false>
+template <enum EECKind K=PROJECTED, bool nonIRC=false, bool doPU=false>
 class EECCalculator{
 public:
     EECCalculator(const std::shared_ptr<const jet> j1,
                   const unsigned maxOrder,
-                  const std::vector<double>& PU,
+                  const std::vector<bool>& PU,
                   const std::shared_ptr<std::vector<comp_t>> customComps = nullptr):
         maxOrder(maxOrder), J1(j1),
         J2(), ptrans(nullptr), adj(nullptr), 
         comps(customComps ? customComps : getCompositions(maxOrder)),
-        doPU(true), PU(PU)
+        PU(PU)
     {
+        checkPU(true);
         checkNonIRC(customComps);
         initialize();
     }
@@ -57,9 +48,9 @@ public:
                   const std::shared_ptr<std::vector<comp_t>> customComps = nullptr):
         maxOrder(maxOrder), J1(j1),
         J2(), ptrans(nullptr), adj(nullptr), 
-        comps(customComps ? customComps : getCompositions(maxOrder)),
-        doPU(false)
+        comps(customComps ? customComps : getCompositions(maxOrder))
     {
+        checkPU(false);
         checkNonIRC(customComps);
         initialize();
     }
@@ -72,9 +63,9 @@ public:
         maxOrder(maxOrder),
         J1(j1), J2(j2), ptrans(ptrans),
         adj(std::make_unique<adjacency>(ptrans)), 
-        comps(customComps ? customComps : getCompositions(maxOrder)),
-        doPU(false)
+        comps(customComps ? customComps : getCompositions(maxOrder))
     {
+        checkPU(false);
         checkNonIRC(customComps);
         initialize();
     }
@@ -114,7 +105,7 @@ public:
     const std::vector<double>& getwts_noPU(unsigned order) const{
         checkRan();
         checkOrder(order);
-        if(!doPU){
+        if constexpr(!doPU){
             throw std::logic_error("Asking for wts_noPU when PU was not run");
         }
         
@@ -144,16 +135,33 @@ public:
         checkRan();
         checkTransfer();
 
+        if constexpr(nonIRC){
+            throw std::logic_error("need to pass PU calculator for transfer normalization");
+        }
+
         return transfer[order-2];
     }
 
-    const arma::mat& getTransfer(unsigned order, 
-                                 EECCalculator<K, nonIRC> reco){
-        return transfer[order-2];
+    const arma::mat getTransfer(unsigned order, 
+                             const EECCalculator<K, true, true>& reco){
+        if constexpr(!nonIRC){
+            throw std::logic_error("passing PU calculator only necessary for nonIRC correlators");
+        }
+
+        arma::vec recoweights = reco.getwts_noPU(order);
+        arma::vec transsum = arma::sum(transfer[order-2], 1);
+        transsum.replace(0, 1);
+
+        arma::mat result =transfer[order-2].each_col()
+                             % (recoweights / transsum);
+        return result;
+    }
+
+    bool hasRun() const{
+        return ran;
     }
 
     unsigned maxOrder;
-    const bool doPU;
 private:
     void initialize() {
         ran = false;
@@ -185,7 +193,7 @@ private:
             }
             nconfig += 1; //point at zero
             wts.emplace_back(nconfig, 0.0);
-            if(doPU){
+            if constexpr(doPU){
                 wts_noPU.emplace_back(nconfig);
             }
             cov.emplace_back(nconfig, J1.nPart, arma::fill::zeros);
@@ -203,6 +211,12 @@ private:
                                       nconfig,
                                       arma::fill::zeros);
             }
+        }
+    }
+
+    void checkPU(bool wantPU){
+        if (doPU != wantPU){
+            throw std::logic_error("doPU template argument needs to match whether you pass PU");
         }
     }
 
@@ -284,17 +298,21 @@ private:
             const comp_t& thiscomps = comps->at(order-2);
             for(const comp& c : thiscomps[M-1]){//for each composition
                 double nextWt = c.factor;
-                bool hasPU=!doPU;
+                bool hasPU=false;
                 for(unsigned i=0; i<M; ++i){
                     nextWt *= intPow(J1.Es->at(ord[i]), c.composition[i]);
-                    if(doPU && PU[ord[i]]){
-                        hasPU = true;
+                    if constexpr(doPU){
+                        if(PU[ord[i]]){
+                            hasPU = true;
+                        }
                     }
                 }
                 //accumulate weight
                 wts[order-2].at(dRidx) += nextWt;
-                if(doPU && !hasPU){
-                    wts_noPU[order-2].at(dRidx) += nextWt;
+                if constexpr(doPU){
+                    if(!hasPU){
+                        wts_noPU[order-2].at(dRidx) += nextWt;
+                    }
                 }
                 
                 //accumulate covariance
@@ -337,8 +355,10 @@ private:
 
                 //accumulate weight
                 wts[order-2].at(iDR) += nextwt;
-                if(!PU[i]){
-                    wts_noPU[order-2].at(iDR) += nextwt;
+                if constexpr(doPU){
+                    if(!PU[i]){
+                        wts_noPU[order-2].at(iDR) += nextwt;
+                    }
                 }
                 
                 //accumulate covariance
@@ -351,7 +371,7 @@ private:
                         for(unsigned M=2; M<=order; ++M){
                             for(const comp& c : comps->at(order-2)[M-1]){
                                 accumulateTransfer(ord, iDR, 
-                                                   c.factor*rawwt, 
+                                                   rawwt, 
                                                    order, c.composition);
 
                             }
@@ -439,6 +459,8 @@ private:
 
 typedef EECCalculator<EECKind::PROJECTED> ProjectedEECCalculator;
 typedef EECCalculator<EECKind::RESOLVED> ResolvedEECCalculator;
-typedef EECCalculator<EECKind::PROJECTED, true> NonIRCEECCalculator;
+
+template <bool PU>
+using NonIRCEECCalculator = EECCalculator<EECKind::PROJECTED, true, PU>;
 
 #endif

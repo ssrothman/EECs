@@ -3,5 +3,6 @@ testCov
 testTrans
 testTrans_oo
 testResolved_oo
+testNonIRC_oo
 *.o
 gmon.out

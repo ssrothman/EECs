@@ -12,7 +12,7 @@ int main(){
     gausJet(N, *j_o);
     auto ptrans = std::make_shared<arma::mat>(genJet(*j_o, *j, 
                     0.15, 0.05, 0.05,
-                    0.15, 0.80, 0.00, 0.10, 0.3));
+                    0.15, 0.80, 0.10, 0.10, 0.3));
 
     printf("j\n");
     std::cout << arma::trans(j->ptvec())/j->sumpt;
@@ -24,9 +24,20 @@ int main(){
     std::cout << *ptrans;
     printf("\n\n");
 
+    arma::vec colsum = arma::sum(*ptrans, 1);
+    printf("colsum\n");
+    std::cout << arma::trans(colsum);
+    printf("\n");
+    std::vector<bool> PU(colsum.n_rows);
+    for(unsigned i=0; i<colsum.n_rows; ++i){
+        PU[i] = colsum(i)==0;
+    }
+    printOrd(PU);
+    printf("\n\n");
+
     auto customComps = getCustomComps(2, 1);
-    NonIRCEECCalculator trans(j, order, ptrans, j_o, customComps);
-    NonIRCEECCalculator reco(j_o, order, customComps);
+    NonIRCEECCalculator<false> trans(j, order, ptrans, j_o, customComps);
+    NonIRCEECCalculator<true> reco(j_o, order, PU, customComps);
 
     printf("made\n");
     trans.run();
@@ -46,8 +57,10 @@ int main(){
     std::cout << arma::rowvec(trans.getwts(2));
     printf("RECO WT\n");
     std::cout << arma::rowvec(reco.getwts(2));
+    printf("RECO WT noPU\n");
+    std::cout << arma::rowvec(reco.getwts_noPU(2));
     printf("\n\n");
-    std::cout << trans.getTransfer(2);
-    printf("\n\n");
-    std::cout << arma::trans(arma::sum(trans.getTransfer(2), 1));
+    std::cout << trans.getTransfer(2, reco);
+    //printf("\n\n");
+    //std::cout << arma::trans(arma::sum(trans.getTransfer(2), 1));
 }

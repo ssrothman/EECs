@@ -1,7 +1,7 @@
 #include "jetinfo.h"
 
-std::unique_ptr<std::vector<double>> normalizePt(const jet& j){
-    auto result = std::make_unique<std::vector<double>>();
+std::shared_ptr<std::vector<double>> normalizePt(const jet& j){
+    auto result = std::make_shared<std::vector<double>>();
     result->reserve(j.nPart);
     
     for(const particle& part: j.particles){
@@ -10,8 +10,8 @@ std::unique_ptr<std::vector<double>> normalizePt(const jet& j){
     return result;
 }
 
-std::unique_ptr<vecND::nodiagvec> getdR2s(const jet& j){
-    auto result = std::make_unique<vecND::nodiagvec>(j.nPart, 2u);
+std::shared_ptr<vecND::nodiagvec> getdR2s(const jet& j){
+    auto result = std::make_shared<vecND::nodiagvec>(j.nPart, 2u);
 
     std::vector<unsigned> ord = result->ord0();
     unsigned i=0;

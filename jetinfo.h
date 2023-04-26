@@ -13,22 +13,22 @@
 #include "simon_util_cpp/vecND.h"
 #include "simon_util_cpp/combinatorics.h"
 
-std::unique_ptr<std::vector<double>> normalizePt(const jet& j);
+std::shared_ptr<std::vector<double>> normalizePt(const jet& j);
 
-std::unique_ptr<vecND::nodiagvec> getdR2s(const jet& j);
+std::shared_ptr<vecND::nodiagvec> getdR2s(const jet& j);
 
 struct jetinfo{
     unsigned nPart;
-    std::unique_ptr<std::vector<double>> Es;
-    std::unique_ptr<vecND::nodiagvec> dR2s;
+    std::shared_ptr<std::vector<double>> Es;
+    std::shared_ptr<vecND::nodiagvec> dR2s;
 
     jetinfo():
         nPart(0), Es(nullptr), dR2s(nullptr) {
         }
 
     jetinfo(unsigned nPart,
-            std::unique_ptr<std::vector<double>>&& Es,
-            std::unique_ptr<vecND::nodiagvec>&& dR2s):
+            std::shared_ptr<std::vector<double>>&& Es,
+            std::shared_ptr<vecND::nodiagvec>&& dR2s):
         nPart(nPart), Es(std::move(Es)), dR2s(std::move(dR2s)) {
         }
 

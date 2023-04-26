@@ -28,7 +28,7 @@ enum EECKind{
 template <enum EECKind K=PROJECTED, bool nonIRC=false, bool doPU=false>
 class EECCalculator{
 public:
-    EECCalculator(const std::shared_ptr<const jet> j1,
+    EECCalculator(const jet& j1,
                   const unsigned maxOrder,
                   const std::vector<bool>& PU,
                   const std::shared_ptr<std::vector<comp_t>> customComps = nullptr):
@@ -42,27 +42,27 @@ public:
         initialize();
     }
 
-
-    EECCalculator(const std::shared_ptr<const jet> j1,
+    EECCalculator(const jet& j1,
                   const unsigned maxOrder,
                   const std::shared_ptr<std::vector<comp_t>> customComps = nullptr):
         maxOrder(maxOrder), J1(j1),
         J2(), ptrans(nullptr), adj(nullptr), 
         comps(customComps ? customComps : getCompositions(maxOrder))
     {
+        printf("top of constructor\n");
         checkPU(false);
         checkNonIRC(customComps);
         initialize();
     }
 
-    EECCalculator(const std::shared_ptr<const jet> j1, 
+    EECCalculator(const jet& j1, 
                   const unsigned maxOrder,
                   const std::shared_ptr<const arma::mat> ptrans,
                   const std::shared_ptr<const jet> j2,
                   const std::shared_ptr<std::vector<comp_t>> customComps = nullptr):
         maxOrder(maxOrder),
         J1(j1), J2(j2), ptrans(ptrans),
-        adj(std::make_unique<adjacency>(ptrans)), 
+        adj(std::make_shared<adjacency>(ptrans)), 
         comps(customComps ? customComps : getCompositions(maxOrder))
     {
         checkPU(false);
@@ -82,6 +82,13 @@ public:
         finalizeCovariance();
 
         ran=true;
+    }
+
+    const std::vector<double>& getResolvedDRS(unsigned order) const {
+        checkRan();
+        checkResolved();
+
+        return resolveddRs[order-2];
     }
 
     std::vector<double> getdRs() const{
@@ -164,15 +171,18 @@ public:
     unsigned maxOrder;
 private:
     void initialize() {
+        printf("top of initialize\n");
         ran = false;
 
         if constexpr(K==EECKind::RESOLVED){
+            printf("is resolved\n");
             size_t acc=0;
             offsets.emplace_back(0);
             for(unsigned i=2; i<=maxOrder; ++i){
                 acc += choose(J1.nPart, i);
                 offsets.emplace_back(acc);
             }
+            printf("got offsets\n");
 
             if(ptrans){
                 size_t acc_J2=0;
@@ -185,6 +195,7 @@ private:
         }
 
         for(unsigned order=2; order<=maxOrder; ++order){
+            printf("doing nconfig %u\n", order);
             size_t nconfig=0;
             if constexpr(K==EECKind::PROJECTED){
                 nconfig = choose(J1.nPart, 2);
@@ -193,10 +204,15 @@ private:
             }
             nconfig += 1; //point at zero
             wts.emplace_back(nconfig, 0.0);
+            if constexpr(K==EECKind::RESOLVED){
+                resolveddRs.emplace_back(nconfig, 0.0);
+            }
             if constexpr(doPU){
                 wts_noPU.emplace_back(nconfig);
             }
+            printf("setup wts\n");
             cov.emplace_back(nconfig, J1.nPart, arma::fill::zeros);
+            printf("setup cov\n");
             if(ptrans){
                 size_t nconfig_J2=0;
                 if constexpr(K==EECKind::PROJECTED){
@@ -211,7 +227,9 @@ private:
                                       nconfig,
                                       arma::fill::zeros);
             }
+            printf("done\n");
         }
+        printf("double done\n");
     }
 
     void checkPU(bool wantPU){
@@ -292,6 +310,33 @@ private:
             dRidx = getMaxDR(J1, ord, false);
         } else if constexpr(K==EECKind::RESOLVED){
             dRidx = ordidx + offsets[M-2];
+            if(M==2){
+                resolveddRs[0][dRidx] = std::sqrt(J1.dR2s.at(ord));
+            } else if(M==3){
+                std::vector<double> dRs(3);
+                dRs[0] = std::sqrt(J1.dR2s.at({ord[0], ord[1]}));
+                dRs[1] = std::sqrt(J1.dR2s.at({ord[0], ord[2]}));
+                dRs[2] = std::sqrt(J1.dR2s.at({ord[1], ord[2]}));
+                std::sort(dRs.begin(), dRs.end());
+                resolveddRs[0][dRidx] = dRs[0];
+                resolveddRs[1][dRidx] = dRs[1];
+                resolveddRs[2][dRidx] = dRs[2];
+            } else if(M==4){
+                std::vector<double> dRs(4);
+                dRs[0] = std::sqrt(J1.dR2s.at({ord[0], ord[1]}));
+                dRs[1] = std::sqrt(J1.dR2s.at({ord[0], ord[2]}));
+                dRs[2] = std::sqrt(J1.dR2s.at({ord[0], ord[3]}));
+                dRs[3] = std::sqrt(J1.dR2s.at({ord[1], ord[2]}));
+                dRs[4] = std::sqrt(J1.dR2s.at({ord[1], ord[3]}));
+                dRs[5] = std::sqrt(J1.dR2s.at({ord[2], ord[3]}));
+                std::sort(dRs.begin(), dRs.end());
+                resolveddRs[0][dRidx] = dRs[0];
+                resolveddRs[1][dRidx] = dRs[1];
+                resolveddRs[2][dRidx] = dRs[2];
+                resolveddRs[3][dRidx] = dRs[3];
+                resolveddRs[4][dRidx] = dRs[4];
+                resolveddRs[5][dRidx] = dRs[5];
+            }
         }
 
         for(unsigned order=M; order<=maxOrder; ++order){//for each order
@@ -442,7 +487,7 @@ private:
     //only present if also doing unfolding
     const struct jetinfo J2; 
     const std::shared_ptr<const arma::mat> ptrans;
-    const std::unique_ptr<adjacency> adj;
+    const std::shared_ptr<adjacency> adj;
 
     //precomputed quantities
     const std::shared_ptr<std::vector<comp_t>> comps; //indexed by [order, M] -> vector<composition>
@@ -457,6 +502,8 @@ private:
     std::vector<arma::mat> transfer;
                        
     std::vector<std::vector<double>> wts_noPU; 
+
+    std::vector<std::vector<double>> resolveddRs;
 
     bool ran;
 };

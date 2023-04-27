@@ -49,7 +49,6 @@ public:
         J2(), ptrans(nullptr), adj(nullptr), 
         comps(customComps ? customComps : getCompositions(maxOrder))
     {
-        printf("top of constructor\n");
         checkPU(false);
         checkNonIRC(customComps);
         initialize();
@@ -84,11 +83,12 @@ public:
         ran=true;
     }
 
-    const std::vector<double>& getResolvedDRS(unsigned order) const {
+    const std::vector<double>& getResolvedDRs(unsigned order,
+                                              unsigned n) const {
         checkRan();
         checkResolved();
 
-        return resolveddRs[order-2];
+        return resolveddRs[order-2][n];
     }
 
     std::vector<double> getdRs() const{
@@ -171,18 +171,15 @@ public:
     unsigned maxOrder;
 private:
     void initialize() {
-        printf("top of initialize\n");
         ran = false;
 
         if constexpr(K==EECKind::RESOLVED){
-            printf("is resolved\n");
             size_t acc=0;
             offsets.emplace_back(0);
             for(unsigned i=2; i<=maxOrder; ++i){
                 acc += choose(J1.nPart, i);
                 offsets.emplace_back(acc);
             }
-            printf("got offsets\n");
 
             if(ptrans){
                 size_t acc_J2=0;
@@ -195,7 +192,6 @@ private:
         }
 
         for(unsigned order=2; order<=maxOrder; ++order){
-            printf("doing nconfig %u\n", order);
             size_t nconfig=0;
             if constexpr(K==EECKind::PROJECTED){
                 nconfig = choose(J1.nPart, 2);
@@ -205,14 +201,16 @@ private:
             nconfig += 1; //point at zero
             wts.emplace_back(nconfig, 0.0);
             if constexpr(K==EECKind::RESOLVED){
-                resolveddRs.emplace_back(nconfig, 0.0);
+                std::vector<std::vector<double>> next(choose(order,2));
+                for(unsigned i=0; i<choose(order,2); ++i){
+                    next.at(i).resize(nconfig, 0.0);
+                }
+                resolveddRs.push_back(std::move(next));
             }
             if constexpr(doPU){
                 wts_noPU.emplace_back(nconfig);
             }
-            printf("setup wts\n");
             cov.emplace_back(nconfig, J1.nPart, arma::fill::zeros);
-            printf("setup cov\n");
             if(ptrans){
                 size_t nconfig_J2=0;
                 if constexpr(K==EECKind::PROJECTED){
@@ -227,9 +225,13 @@ private:
                                       nconfig,
                                       arma::fill::zeros);
             }
-            printf("done\n");
         }
-        printf("double done\n");
+    }
+
+    void checkResolved() const{
+        if constexpr(K != EECKind::RESOLVED){
+            throw std::logic_error("Asking for resolved quantities on projected EEC");
+        }
     }
 
     void checkPU(bool wantPU){
@@ -311,31 +313,36 @@ private:
         } else if constexpr(K==EECKind::RESOLVED){
             dRidx = ordidx + offsets[M-2];
             if(M==2){
-                resolveddRs[0][dRidx] = std::sqrt(J1.dR2s.at(ord));
+                resolveddRs.at(0).at(0).at(dRidx) = std::sqrt(J1.dR2s->at(ord));
+                resolveddRs.at(1).at(0).at(dRidx) = std::sqrt(J1.dR2s->at(ord));
+                resolveddRs.at(2).at(0).at(dRidx) = std::sqrt(J1.dR2s->at(ord));
             } else if(M==3){
                 std::vector<double> dRs(3);
-                dRs[0] = std::sqrt(J1.dR2s.at({ord[0], ord[1]}));
-                dRs[1] = std::sqrt(J1.dR2s.at({ord[0], ord[2]}));
-                dRs[2] = std::sqrt(J1.dR2s.at({ord[1], ord[2]}));
+                dRs.at(0) = std::sqrt(J1.dR2s->at(std::vector<unsigned>({ord.at(0), ord.at(1)})));
+                dRs.at(1) = std::sqrt(J1.dR2s->at(std::vector<unsigned>({ord.at(0), ord.at(2)})));
+                dRs.at(2) = std::sqrt(J1.dR2s->at(std::vector<unsigned>({ord.at(1), ord.at(2)})));
                 std::sort(dRs.begin(), dRs.end());
-                resolveddRs[0][dRidx] = dRs[0];
-                resolveddRs[1][dRidx] = dRs[1];
-                resolveddRs[2][dRidx] = dRs[2];
+                resolveddRs.at(1).at(0).at(dRidx) = dRs.at(2);
+                resolveddRs.at(1).at(1).at(dRidx) = dRs.at(1);
+                resolveddRs.at(1).at(2).at(dRidx) = dRs.at(0);
+                resolveddRs.at(2).at(0).at(dRidx) = dRs.at(2);
+                resolveddRs.at(2).at(1).at(dRidx) = dRs.at(1);
+                resolveddRs.at(2).at(2).at(dRidx) = dRs.at(0);
             } else if(M==4){
-                std::vector<double> dRs(4);
-                dRs[0] = std::sqrt(J1.dR2s.at({ord[0], ord[1]}));
-                dRs[1] = std::sqrt(J1.dR2s.at({ord[0], ord[2]}));
-                dRs[2] = std::sqrt(J1.dR2s.at({ord[0], ord[3]}));
-                dRs[3] = std::sqrt(J1.dR2s.at({ord[1], ord[2]}));
-                dRs[4] = std::sqrt(J1.dR2s.at({ord[1], ord[3]}));
-                dRs[5] = std::sqrt(J1.dR2s.at({ord[2], ord[3]}));
+                std::vector<double> dRs(6);
+                dRs.at(0) = std::sqrt(J1.dR2s->at(std::vector<unsigned>({ord.at(0), ord.at(1)})));
+                dRs.at(1) = std::sqrt(J1.dR2s->at(std::vector<unsigned>({ord.at(0), ord.at(2)})));
+                dRs.at(2) = std::sqrt(J1.dR2s->at(std::vector<unsigned>({ord.at(0), ord.at(3)})));
+                dRs.at(3) = std::sqrt(J1.dR2s->at(std::vector<unsigned>({ord.at(1), ord.at(2)})));
+                dRs.at(4) = std::sqrt(J1.dR2s->at(std::vector<unsigned>({ord.at(1), ord.at(3)})));
+                dRs.at(5) = std::sqrt(J1.dR2s->at(std::vector<unsigned>({ord.at(2), ord.at(3)})));
                 std::sort(dRs.begin(), dRs.end());
-                resolveddRs[0][dRidx] = dRs[0];
-                resolveddRs[1][dRidx] = dRs[1];
-                resolveddRs[2][dRidx] = dRs[2];
-                resolveddRs[3][dRidx] = dRs[3];
-                resolveddRs[4][dRidx] = dRs[4];
-                resolveddRs[5][dRidx] = dRs[5];
+                resolveddRs.at(2).at(0).at(dRidx) = dRs.at(5);
+                resolveddRs.at(2).at(1).at(dRidx) = dRs.at(4);
+                resolveddRs.at(2).at(2).at(dRidx) = dRs.at(3);
+                resolveddRs.at(2).at(3).at(dRidx) = dRs.at(2);
+                resolveddRs.at(2).at(4).at(dRidx) = dRs.at(1);
+                resolveddRs.at(2).at(5).at(dRidx) = dRs.at(0);
             }
         }
 
@@ -345,9 +352,9 @@ private:
                 double nextWt = c.factor;
                 bool hasPU=false;
                 for(unsigned i=0; i<M; ++i){
-                    nextWt *= intPow(J1.Es->at(ord[i]), c.composition[i]);
+                    nextWt *= intPow(J1.Es->at(ord.at(i)), c.composition.at(i));
                     if constexpr(doPU){
-                        if(PU[ord[i]]){
+                        if(PU[ord.at(i)]){
                             hasPU = true;
                         }
                     }
@@ -366,7 +373,7 @@ private:
                 
                 //accumulate covariance
                 for(unsigned i=0; i<M; ++i){
-                    cov[order-2](dRidx, ord[i]) += nextWt;
+                    cov[order-2](dRidx, ord.at(i)) += nextWt;
                 }
 
                 //accumulate transfer matrix
@@ -377,7 +384,7 @@ private:
                     } else {
                         ord_J1.reserve(order);
                         for(unsigned i=0; i<M; ++i){
-                            ord_J1.insert(ord_J1.end(), c.composition[i], ord[i]);
+                            ord_J1.insert(ord_J1.end(), c.composition.at(i), ord.at(i));
                         }
                     }
 
@@ -405,7 +412,7 @@ private:
                 //accumulate weight
                 wts[order-2].at(iDR) += nextwt;
                 if constexpr(doPU){
-                    if(!PU[i]){
+                    if(!PU.at(i)){
                         wts_noPU[order-2].at(iDR) += nextwt;
                     }
                 }
@@ -441,8 +448,8 @@ private:
 
         std::vector<unsigned> nadj(order);
         for(unsigned i=0; i<order; ++i){
-            nadj[i] = adj->data.at(ord_J1[i]).size();
-            if(nadj[i]==0){
+            nadj.at(i) = adj->data.at(ord_J1.at(i)).size();
+            if(nadj.at(i)==0){
                 return; //break out early if there are no neighbors
             }
         }
@@ -452,12 +459,12 @@ private:
             double tfact = 1.0;
             std::vector<unsigned> ord_J2(order);
             for(unsigned i=0; i<order; ++i){
-                ord_J2[i] = adj->data.at(ord_J1[i])[ord_iter[i]];
+                ord_J2.at(i) = adj->data.at(ord_J1.at(i))[ord_iter.at(i)];
                 if constexpr(nonIRC){
-                    tfact *= intPow(ptrans->at(ord_J2[i], ord_J1[i]),
-                                    comp[i]);
+                    tfact *= intPow(ptrans->at(ord_J2.at(i), ord_J1.at(i)),
+                                    comp.at(i));
                 } else {
-                    tfact *= ptrans->at(ord_J2[i], ord_J1[i]);
+                    tfact *= ptrans->at(ord_J2.at(i), ord_J1.at(i));
                 }
             }
             size_t dRidx_J2;
@@ -503,7 +510,7 @@ private:
                        
     std::vector<std::vector<double>> wts_noPU; 
 
-    std::vector<std::vector<double>> resolveddRs;
+    std::vector<std::vector<std::vector<double>>> resolveddRs;
 
     bool ran;
 };

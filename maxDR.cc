@@ -11,7 +11,7 @@ unsigned getMaxDR(const jetinfo& J,
         M = std::distance(ord.begin(), end);
     }
     if(uniform(ord)){
-        return J.dR2s->size();
+        return J.dR2s.size();
     }
     double maxDR=0;
     unsigned maxidx=-1;
@@ -26,7 +26,7 @@ unsigned getMaxDR(const jetinfo& J,
         if(uniform(ord_test)){
             continue;
         }
-        dR = J.dR2s->at(ord_test, &idx);
+        dR = J.dR2s.at(ord_test, &idx);
         if(dR > maxDR){
             maxDR = dR;
             maxidx = idx;

@@ -339,21 +339,20 @@ private:
         } else if constexpr(K==EECKind::RESOLVED){
             dRidx = ordidx + offsets_[M-2];
             if(M==2){
-                resolveddRs_.at(0).at(0).at(dRidx) = std::sqrt(J1_.dR2s.at(ord));
-                resolveddRs_.at(1).at(0).at(dRidx) = std::sqrt(J1_.dR2s.at(ord));
-                resolveddRs_.at(2).at(0).at(dRidx) = std::sqrt(J1_.dR2s.at(ord));
+                for(unsigned order=2; order<=maxOrder_; ++order){
+                    resolveddRs_.at(order-2).at(0).at(dRidx) = std::sqrt(J1_.dR2s.at(ord));
+                }
             } else if(M==3){
                 std::vector<double> dRs(3);
                 dRs.at(0) = std::sqrt(J1_.dR2s.at(std::vector<unsigned>({ord.at(0), ord.at(1)})));
                 dRs.at(1) = std::sqrt(J1_.dR2s.at(std::vector<unsigned>({ord.at(0), ord.at(2)})));
                 dRs.at(2) = std::sqrt(J1_.dR2s.at(std::vector<unsigned>({ord.at(1), ord.at(2)})));
                 std::sort(dRs.begin(), dRs.end());
-                resolveddRs_.at(1).at(0).at(dRidx) = dRs.at(2);
-                resolveddRs_.at(1).at(1).at(dRidx) = dRs.at(1);
-                resolveddRs_.at(1).at(2).at(dRidx) = dRs.at(0);
-                resolveddRs_.at(2).at(0).at(dRidx) = dRs.at(2);
-                resolveddRs_.at(2).at(1).at(dRidx) = dRs.at(1);
-                resolveddRs_.at(2).at(2).at(dRidx) = dRs.at(0);
+                for(unsigned order=3; order<=maxOrder_; ++order){
+                    resolveddRs_.at(order-2).at(0).at(dRidx) = dRs.at(2);
+                    resolveddRs_.at(order-2).at(1).at(dRidx) = dRs.at(1);
+                    resolveddRs_.at(order-2).at(2).at(dRidx) = dRs.at(0);
+                }
             } else if(M==4){
                 std::vector<double> dRs(6);
                 dRs.at(0) = std::sqrt(J1_.dR2s.at(std::vector<unsigned>({ord.at(0), ord.at(1)})));
@@ -363,12 +362,14 @@ private:
                 dRs.at(4) = std::sqrt(J1_.dR2s.at(std::vector<unsigned>({ord.at(1), ord.at(3)})));
                 dRs.at(5) = std::sqrt(J1_.dR2s.at(std::vector<unsigned>({ord.at(2), ord.at(3)})));
                 std::sort(dRs.begin(), dRs.end());
-                resolveddRs_.at(2).at(0).at(dRidx) = dRs.at(5);
-                resolveddRs_.at(2).at(1).at(dRidx) = dRs.at(4);
-                resolveddRs_.at(2).at(2).at(dRidx) = dRs.at(3);
-                resolveddRs_.at(2).at(3).at(dRidx) = dRs.at(2);
-                resolveddRs_.at(2).at(4).at(dRidx) = dRs.at(1);
-                resolveddRs_.at(2).at(5).at(dRidx) = dRs.at(0);
+                for(unsigned order=4; order<=maxOrder_; ++order){
+                    resolveddRs_.at(order-2).at(0).at(dRidx) = dRs.at(5);
+                    resolveddRs_.at(order-2).at(1).at(dRidx) = dRs.at(4);
+                    resolveddRs_.at(order-2).at(2).at(dRidx) = dRs.at(3);
+                    resolveddRs_.at(order-2).at(3).at(dRidx) = dRs.at(2);
+                    resolveddRs_.at(order-2).at(4).at(dRidx) = dRs.at(1);
+                    resolveddRs_.at(order-2).at(5).at(dRidx) = dRs.at(0);
+                }
             }
         }
 

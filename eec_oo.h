@@ -315,7 +315,8 @@ private:
                 for(size_t iDR=0; iDR<wts_[order-2].size(); ++iDR){
                     double contrib = -normfact*cov_[order-2](iDR,iPart);
                     double actual = (normfact-1)* wts_[order-2].at(iDR);
-                    cov_[order-2](iDR, iPart) = contrib + actual;
+                    double factor = (J1_.nPart-1)/J1.nPart;
+                    cov_[order-2](iDR, iPart) = factor * (contrib + actual);
                 }
             }
         }

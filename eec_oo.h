@@ -30,9 +30,12 @@ class EECCalculator{
 public:
     EECCalculator() :
         maxOrder_(0), J1_(), PU_(), J2_(), ptrans_(), adj_(), doTrans_(false),
-        comps_() {}
+        comps_(), ran_(false) {
+            printf("made empty EECcalculator\n");
+        }
 
     void setup(const jet& j1, const unsigned maxOrder){
+        printf("making plain EEC calculator\n");
         checkPU<false>();
         checkNonIRC<false>();
         maxOrder_ = maxOrder;
@@ -43,6 +46,7 @@ public:
 
     void setup(const jet& j1, const unsigned maxOrder,
                const std::vector<bool>& PU){
+        printf("making plain EEC calculator with PU\n");
         checkPU<true>();
         checkNonIRC<false>();
         maxOrder_ = maxOrder;
@@ -55,6 +59,7 @@ public:
     void setup(const jet& j1, const unsigned maxOrder,
                const std::vector<bool>& PU,
                const unsigned p1, const unsigned p2){
+        printf("making nonIRC calculator with PU\n");
         checkPU<true>();
         checkNonIRC<true>();
         maxOrder_ = maxOrder;
@@ -68,6 +73,7 @@ public:
 
     void setup(const jet& j1, const unsigned maxOrder,
                const unsigned p1, const unsigned p2){
+        printf("making nonIRC calculator\n");
         checkPU<false>();
         checkNonIRC<true>();
         maxOrder_ = maxOrder;
@@ -80,6 +86,7 @@ public:
 
     void setup(const jet& j1, const unsigned maxOrder,
                const arma::mat& ptrans, const jet& j2){
+        printf("making calculator with transfer\n");
         ptrans_ = arma::mat(ptrans);
         adj_ = adjacency(ptrans);
         J2_ = jetinfo(j2);
@@ -90,6 +97,7 @@ public:
     void setup(const jet& j1, const unsigned maxOrder,
                const arma::mat& ptrans, const jet& j2,
                const unsigned p1, const unsigned p2){
+        printf("making nonIRC calculator with transfer\n");
         ptrans_ = arma::mat(ptrans);
         adj_ = adjacency(ptrans);
         J2_ = jetinfo(j2);
@@ -210,6 +218,7 @@ public:
 
 private:
     void initialize() {
+        printf("top of initialize\n");
         ran_ = false;
 
         if constexpr(K==EECKind::RESOLVED){
@@ -228,9 +237,11 @@ private:
                     offsets_J2_.emplace_back(acc_J2);
                 }
             }
+            printf("made offsets\n");
         }
 
         for(unsigned order=2; order<=maxOrder_; ++order){
+            printf("setting up order = %u\n", order);
             size_t nconfig=0;
             if constexpr(K==EECKind::PROJECTED){
                 nconfig = choose(J1_.nPart, 2);
@@ -239,17 +250,21 @@ private:
             }
             nconfig += 1; //point at zero
             wts_.emplace_back(nconfig, 0.0);
+            printf("added to wts\n");
             if constexpr(K==EECKind::RESOLVED){
                 std::vector<std::vector<double>> next(choose(order,2));
                 for(unsigned i=0; i<choose(order,2); ++i){
                     next.at(i).resize(nconfig, 0.0);
                 }
                 resolveddRs_.push_back(std::move(next));
+                printf("added to resolved\n");
             }
             if constexpr(doPU){
                 wts_noPU_.emplace_back(nconfig);
+                printf("added to wts_noPU\n");
             }
             cov_.emplace_back(nconfig, J1_.nPart, arma::fill::zeros);
+            printf("added to cov\n");
             if(doTrans_){
                 size_t nconfig_J2=0;
                 if constexpr(K==EECKind::PROJECTED){
@@ -263,8 +278,10 @@ private:
                 transfer_.emplace_back(nconfig_J2,
                                       nconfig,
                                       arma::fill::zeros);
+                printf("added to transfer\n");
             }
         }
+        printf("end of initialize\n");
     }
 
     void checkResolved() const{
@@ -303,6 +320,9 @@ private:
     }
 
     void finalizeCovariance(){
+        printf("INSIDE FINALIZE COVARIANCE\n");
+        double factor = std::sqrt((J1_.nPart-1.0)/J1_.nPart);
+        printf("\tfactor = %0.3f\n", factor);
         double normfact;
         for(unsigned order=2; order<=maxOrder_; ++order){
             for(unsigned iPart=0; iPart<J1_.nPart; ++iPart){
@@ -315,8 +335,8 @@ private:
                 for(size_t iDR=0; iDR<wts_[order-2].size(); ++iDR){
                     double contrib = -normfact*cov_[order-2](iDR,iPart);
                     double actual = (normfact-1)* wts_[order-2].at(iDR);
-                    double factor = (J1_.nPart-1)/J1.nPart;
                     cov_[order-2](iDR, iPart) = factor * (contrib + actual);
+                    //printf("\tcovariance[%lu][%u] = %0.3f\n", iDR, iPart, cov_[order-2](iDR,iPart));
                 }
             }
         }

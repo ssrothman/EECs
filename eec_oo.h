@@ -23,19 +23,25 @@ enum EECKind{
     RESOLVED=1,
 };
 
-//can be either nodiagvec or symvec
-//for projected or resolved respectively
 template <enum EECKind K=PROJECTED, bool nonIRC=false, bool doPU=false>
 class EECCalculator{
 public:
     EECCalculator() :
         maxOrder_(0), J1_(), PU_(), J2_(), ptrans_(), adj_(), doTrans_(false),
-        comps_(), ran_(false) {
-            printf("made empty EECcalculator\n");
+        comps_(), ran_(false), verbose_(0) {}
+    
+    EECCalculator(int verbose) : 
+        maxOrder_(0), J1_(), PU_(), J2_(), ptrans_(), adj_(), doTrans_(false),
+        comps_(), ran_(false), verbose_(verbose) {
+            if(verbose_){
+                printf("made empty EECcalculator\n");
+            }
         }
 
     void setup(const jet& j1, const unsigned maxOrder){
-        printf("making plain EEC calculator\n");
+        if(verbose_){
+            printf("making plain EEC calculator\n");
+        }
         checkPU<false>();
         checkNonIRC<false>();
         maxOrder_ = maxOrder;
@@ -46,7 +52,9 @@ public:
 
     void setup(const jet& j1, const unsigned maxOrder,
                const std::vector<bool>& PU){
-        printf("making plain EEC calculator with PU\n");
+        if(verbose_){
+            printf("making plain EEC calculator with PU\n");
+        }
         checkPU<true>();
         checkNonIRC<false>();
         maxOrder_ = maxOrder;
@@ -59,7 +67,9 @@ public:
     void setup(const jet& j1, const unsigned maxOrder,
                const std::vector<bool>& PU,
                const unsigned p1, const unsigned p2){
-        printf("making nonIRC calculator with PU\n");
+        if(verbose_){
+            printf("making nonIRC calculator with PU\n");
+        }
         checkPU<true>();
         checkNonIRC<true>();
         maxOrder_ = maxOrder;
@@ -73,7 +83,9 @@ public:
 
     void setup(const jet& j1, const unsigned maxOrder,
                const unsigned p1, const unsigned p2){
-        printf("making nonIRC calculator\n");
+        if(verbose_){
+            printf("making nonIRC calculator\n");
+        }
         checkPU<false>();
         checkNonIRC<true>();
         maxOrder_ = maxOrder;
@@ -86,7 +98,9 @@ public:
 
     void setup(const jet& j1, const unsigned maxOrder,
                const arma::mat& ptrans, const jet& j2){
-        printf("making calculator with transfer\n");
+        if(verbose_){
+            printf("making calculator with transfer\n");
+        }
         ptrans_ = arma::mat(ptrans);
         adj_ = adjacency(ptrans);
         J2_ = jetinfo(j2);
@@ -97,12 +111,18 @@ public:
     void setup(const jet& j1, const unsigned maxOrder,
                const arma::mat& ptrans, const jet& j2,
                const unsigned p1, const unsigned p2){
-        printf("making nonIRC calculator with transfer\n");
+        if(verbose_){
+            printf("making nonIRC calculator with transfer\n");
+        }
         ptrans_ = arma::mat(ptrans);
         adj_ = adjacency(ptrans);
         J2_ = jetinfo(j2);
         doTrans_ = true;
         setup(j1, maxOrder, p1, p2);
+    }
+
+    void setVerbosity(int verbose){
+        verbose_ = verbose;
     }
 
     void run(){
@@ -218,7 +238,9 @@ public:
 
 private:
     void initialize() {
-        printf("top of initialize\n");
+        if(verbose_){
+            printf("top of initialize\n");
+        }
         ran_ = false;
 
         if constexpr(K==EECKind::RESOLVED){
@@ -237,11 +259,15 @@ private:
                     offsets_J2_.emplace_back(acc_J2);
                 }
             }
-            printf("made offsets\n");
+            if(verbose_){
+                printf("made offsets\n");
+            }
         }
 
         for(unsigned order=2; order<=maxOrder_; ++order){
-            printf("setting up order = %u\n", order);
+            if(verbose_){
+                printf("setting up order = %u\n", order);
+            }
             size_t nconfig=0;
             if constexpr(K==EECKind::PROJECTED){
                 nconfig = choose(J1_.nPart, 2);
@@ -250,21 +276,29 @@ private:
             }
             nconfig += 1; //point at zero
             wts_.emplace_back(nconfig, 0.0);
-            printf("added to wts\n");
+            if(verbose_){
+                printf("added to wts\n");
+            }
             if constexpr(K==EECKind::RESOLVED){
                 std::vector<std::vector<double>> next(choose(order,2));
                 for(unsigned i=0; i<choose(order,2); ++i){
                     next.at(i).resize(nconfig, 0.0);
                 }
                 resolveddRs_.push_back(std::move(next));
-                printf("added to resolved\n");
+                if(verbose_){
+                    printf("added to resolved\n");
+                }
             }
             if constexpr(doPU){
                 wts_noPU_.emplace_back(nconfig);
-                printf("added to wts_noPU\n");
+                if(verbose_){
+                    printf("added to wts_noPU\n");
+                }
             }
             cov_.emplace_back(nconfig, J1_.nPart, arma::fill::zeros);
-            printf("added to cov\n");
+            if(verbose_){
+                printf("added to cov\n");
+            }
             if(doTrans_){
                 size_t nconfig_J2=0;
                 if constexpr(K==EECKind::PROJECTED){
@@ -278,10 +312,14 @@ private:
                 transfer_.emplace_back(nconfig_J2,
                                       nconfig,
                                       arma::fill::zeros);
-                printf("added to transfer\n");
+                if(verbose_){
+                    printf("added to transfer\n");
+                }
             }
         }
-        printf("end of initialize\n");
+        if(verbose_){
+            printf("end of initialize\n");
+        }
     }
 
     void checkResolved() const{
@@ -320,9 +358,13 @@ private:
     }
 
     void finalizeCovariance(){
-        printf("INSIDE FINALIZE COVARIANCE\n");
-        double factor = std::sqrt((J1_.nPart-1.0)/J1_.nPart);
-        printf("\tfactor = %0.3f\n", factor);
+        if(verbose_){
+            printf("INSIDE FINALIZE COVARIANCE\n");
+        }
+        double factor = std::sqrt((J1_.nPart-2.0)/(2.0*J1_.nPart));
+        if(verbose_){
+            printf("\tfactor = %0.3f\n", factor);
+        }
         double normfact;
         for(unsigned order=2; order<=maxOrder_; ++order){
             for(unsigned iPart=0; iPart<J1_.nPart; ++iPart){
@@ -415,13 +457,18 @@ private:
                     }
                 } else {
                     if(hasPU){
-                        printf("this will never happen!\n");
+                        if(verbose_){
+                            printf("this will never happen!\n");
+                        }
                     }
                 }
                 
                 //accumulate covariance
                 for(unsigned i=0; i<M; ++i){
                     cov_[order-2](dRidx, ord.at(i)) += nextWt;
+                    if(verbose_ > 1){
+                        printf("cov(%zu, %u) += %g\n", dRidx, ord.at(i), nextWt);
+                    }
                 }
 
                 //accumulate transfer matrix
@@ -467,6 +514,9 @@ private:
                 
                 //accumulate covariance
                 cov_[order-2](iDR, i) += nextwt; 
+                if(verbose_ > 1){
+                    printf("cov(%zu, %u) += %g\n", iDR, i, nextwt);
+                }
 
                 //accumulate transfer matrix
                 if(doTrans_){
@@ -564,6 +614,8 @@ private:
     std::vector<std::vector<std::vector<double>>> resolveddRs_;
 
     bool ran_;
+
+    int verbose_;
 };
 
 typedef EECCalculator<EECKind::PROJECTED> ProjectedEECCalculator;

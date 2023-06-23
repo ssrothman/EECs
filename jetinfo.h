@@ -6,8 +6,7 @@
 
 #include <armadillo>
 
-#include "toyjets/common.h"
-
+#include "SRothman/SimonTools/src/jets.h"
 #include "SRothman/SimonTools/src/util.h"
 #include "SRothman/SimonTools/src/deltaR.h"
 #include "SRothman/SimonTools/src/vecND.h"

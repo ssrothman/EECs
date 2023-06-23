@@ -8,10 +8,10 @@
 
 #include "toyjets/common.h"
 
-#include "simon_util_cpp/util.h"
-#include "simon_util_cpp/deltaR.h"
-#include "simon_util_cpp/vecND.h"
-#include "simon_util_cpp/combinatorics.h"
+#include "SRothman/SimonTools/src/util.h"
+#include "SRothman/SimonTools/src/deltaR.h"
+#include "SRothman/SimonTools/src/vecND.h"
+#include "SRothman/SimonTools/src/combinatorics.h"
 
 #include "jetinfo.h"
 #include "compositions.h"

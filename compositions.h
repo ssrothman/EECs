@@ -1,7 +1,7 @@
 #ifndef EECs_COMPS_H
 #define EECs_COMPS_H
 
-#include "simon_util_cpp/combinatorics.h"
+#include "SRothman/SimonTools/src/combinatorics.h"
 #include <memory>
 #include <stdio.h>
 

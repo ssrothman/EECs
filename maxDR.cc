@@ -1,5 +1,5 @@
 #include "maxDR.h"
-#include "simon_util_cpp/deltaR.h"
+#include "SRothman/SimonTools/src/deltaR.h"
 
 unsigned getMaxDR(const jetinfo& J,
                   std::vector<unsigned>& ord,

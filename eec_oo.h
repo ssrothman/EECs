@@ -466,9 +466,6 @@ private:
                 //accumulate covariance
                 for(unsigned i=0; i<M; ++i){
                     cov_[order-2](dRidx, ord.at(i)) += nextWt;
-                    if(verbose_ > 1){
-                        printf("cov(%zu, %u) += %g\n", dRidx, ord.at(i), nextWt);
-                    }
                 }
 
                 //accumulate transfer matrix
@@ -514,9 +511,6 @@ private:
                 
                 //accumulate covariance
                 cov_[order-2](iDR, i) += nextwt; 
-                if(verbose_ > 1){
-                    printf("cov(%zu, %u) += %g\n", iDR, i, nextwt);
-                }
 
                 //accumulate transfer matrix
                 if(doTrans_){

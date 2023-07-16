@@ -14,24 +14,64 @@
 
 std::vector<double> normalizePt(const jet& j);
 
-vecND::nodiagvec getdR2s(const jet& j);
+vecND::nodiagvec getdRs(const jet& j);
+
+template <typename Axis>
+vecND::inodiagvec getdRidxs(const vecND::nodiagvec& dRs, 
+                            const Axis& axis){
+    vecND::inodiagvec result(dRs.nPart(), dRs.dim());
+
+    std::vector<unsigned> ord = result.ord0();
+    unsigned i=0;
+    do{
+        result.at(i) = axis.index(dRs.at(i)) + 1; //+1 for underflow bin
+        ++i;
+    } while(result.iterate(ord));
+    return result;
+}     
 
 struct jetinfo{
     unsigned nPart;
     std::vector<double> Es;
-    vecND::nodiagvec dR2s;
+    vecND::nodiagvec dRs;
+    vecND::inodiagvec dRidxs;
 
-    jetinfo(): nPart(0), Es(), dR2s() {}
+    jetinfo(): nPart(0), Es(), dRs(), dRidxs() {}
+
+    jetinfo(unsigned nPart, 
+            const std::vector<double>& Es,
+            const vecND::nodiagvec& dRs, 
+            const vecND::inodiagvec& dRidxs):
+        nPart(nPart), Es(Es), dRs(dRs), 
+        dRidxs(std::move(dRidxs)) {}
+
+    jetinfo(unsigned nPart, 
+            std::vector<double>&& Es,
+            vecND::nodiagvec&& dRs, 
+            vecND::inodiagvec&& dRidxs):
+        nPart(nPart), 
+        Es(std::move(Es)), 
+        dRs(std::move(dRs)), 
+        dRidxs(std::move(dRidxs)) {}
+
+    template <typename Axis>
+    jetinfo(const jet& j, const Axis& axis):
+        nPart(j.nPart), 
+        Es(normalizePt(j)),
+        dRs(getdRs(j)),
+        dRidxs(getdRidxs(dRs, axis)) {}
+
+};
+
+/*    jetinfo(): nPart(0), Es(), dRs() {}
 
     jetinfo(unsigned nPart,
             std::vector<double>&& Es,
-            vecND::nodiagvec&& dR2s):
-        nPart(nPart), Es(std::move(Es)), dR2s(std::move(dR2s)) {}
+            vecND::nodiagvec&& dRs,
+            vecND::inodiagvec&& dRidxs):
+        nPart(nPart), Es(std::move(Es)), dRs(std::move(dRs), 
+                dRidxs(std::move(dRidxs)) {}
 
-    jetinfo(const jet& j):
-        nPart(j.nPart), 
-        Es(normalizePt(j)),
-        dR2s(getdR2s(j)) {}
-};
+    };*/
 
 #endif

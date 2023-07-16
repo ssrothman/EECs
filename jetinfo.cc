@@ -10,7 +10,7 @@ std::vector<double> normalizePt(const jet& j){
     return result;
 }
 
-vecND::nodiagvec getdR2s(const jet& j){
+vecND::nodiagvec getdRs(const jet& j){
     vecND::nodiagvec result(j.nPart, 2u);
 
     std::vector<unsigned> ord = result.ord0();
@@ -18,8 +18,8 @@ vecND::nodiagvec getdR2s(const jet& j){
     do{
         const particle& p1 = j.particles[ord[0]];
         const particle& p2 = j.particles[ord[1]];
-        result.at(i) = dR2(p1.eta, p1.phi,
-                           p2.eta, p2.phi);
+        result.at(i) = std::sqrt(dR2(p1.eta, p1.phi,
+                                     p2.eta, p2.phi));
         ++i;
     } while(result.iterate(ord));
     return result;

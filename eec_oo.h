@@ -12,11 +12,16 @@
 #include "SRothman/SimonTools/src/deltaR.h"
 #include "SRothman/SimonTools/src/vecND.h"
 #include "SRothman/SimonTools/src/combinatorics.h"
+#include <boost/histogram.hpp>
+#include <boost/accumulators/accumulators.hpp>
+
+#include "eecaccu.h"
 
 #include "jetinfo.h"
 #include "compositions.h"
 #include "maxDR.h"
 #include "adj.h"
+
 
 enum EECKind{
     PROJECTED=0,
@@ -38,87 +43,105 @@ public:
             }
         }
 
-    void setup(const jet& j1, const unsigned maxOrder){
+    template<typename Axis>
+    void setup(const jet& j1, const unsigned maxOrder, 
+               const Axis& ax){
         if(verbose_){
             printf("making plain EEC calculator\n");
         }
         checkPU<false>();
         checkNonIRC<false>();
         maxOrder_ = maxOrder;
-        J1_ = jetinfo(j1);
+        J1_ = jetinfo(j1, ax);
         comps_ = getCompositions(maxOrder_);
+        nDRbins_ = ax.size()+2;
         initialize();
     }
 
+    template<typename Axis>
     void setup(const jet& j1, const unsigned maxOrder,
-               const std::vector<bool>& PU){
+               const std::vector<bool>& PU,
+               const Axis& ax){
         if(verbose_){
             printf("making plain EEC calculator with PU\n");
         }
         checkPU<true>();
         checkNonIRC<false>();
         maxOrder_ = maxOrder;
-        J1_ = jetinfo(j1);
-        PU_ = PU;
+        J1_ = jetinfo(j1, ax);
         comps_ = getCompositions(maxOrder_);
+        PU_ = PU;
+        nDRbins_ = ax.size()+2;
         initialize();
     }
 
+    template <typename Axis>
     void setup(const jet& j1, const unsigned maxOrder,
                const std::vector<bool>& PU,
-               const unsigned p1, const unsigned p2){
+               const unsigned p1, const unsigned p2,
+               const Axis& ax){
         if(verbose_){
             printf("making nonIRC calculator with PU\n");
         }
         checkPU<true>();
         checkNonIRC<true>();
         maxOrder_ = maxOrder;
-        J1_ = jetinfo(j1);
+        J1_ = jetinfo(j1, ax);
         PU_ = PU;
         comps_ = getCustomComps(p1, p2);
         p1_ = p1;
         p2_ = p2;
+        nDRbins_ = ax.size()+2;
         initialize();
     }
 
+    template <typename Axis>
     void setup(const jet& j1, const unsigned maxOrder,
-               const unsigned p1, const unsigned p2){
+               const unsigned p1, const unsigned p2,
+               const Axis& ax){
         if(verbose_){
             printf("making nonIRC calculator\n");
         }
         checkPU<false>();
         checkNonIRC<true>();
         maxOrder_ = maxOrder;
-        J1_ = jetinfo(j1);
+        J1_ = jetinfo(j1, ax);
         comps_ = getCustomComps(p1, p2);
         p1_ = p1;
         p2_ = p2;
+        nDRbins_ = ax.size()+2;
         initialize();
     }
 
+    template <typename Axis>
     void setup(const jet& j1, const unsigned maxOrder,
-               const arma::mat& ptrans, const jet& j2){
+               const arma::mat& ptrans, const jet& j2,
+               const Axis& ax){
         if(verbose_){
             printf("making calculator with transfer\n");
         }
         ptrans_ = arma::mat(ptrans);
         adj_ = adjacency(ptrans);
-        J2_ = jetinfo(j2);
+        J2_ = jetinfo(j2, ax);
         doTrans_ = true;
-        setup(j1, maxOrder);
+        nDRbins_ = ax.size()+2;
+        setup(j1, maxOrder, ax);
     }
 
+    template <typename Axis>
     void setup(const jet& j1, const unsigned maxOrder,
                const arma::mat& ptrans, const jet& j2,
-               const unsigned p1, const unsigned p2){
+               const unsigned p1, const unsigned p2,
+               const Axis& ax){
         if(verbose_){
             printf("making nonIRC calculator with transfer\n");
         }
         ptrans_ = arma::mat(ptrans);
         adj_ = adjacency(ptrans);
-        J2_ = jetinfo(j2);
+        J2_ = jetinfo(j2, ax);
         doTrans_ = true;
-        setup(j1, maxOrder, p1, p2);
+        nDRbins_ = ax.size()+2;
+        setup(j1, maxOrder, p1, p2, ax);
     }
 
     void setVerbosity(int verbose){
@@ -126,75 +149,71 @@ public:
     }
 
     void run(){
+        if(verbose_>1){
+            printf("top of run\n");
+        }
         computePointAtZero();
+        if(verbose_>1){
+            printf("computed point at zero\n");
+        }
         for(unsigned M=2; M<=maxOrder_; ++M){
             if(M > J1_.nPart){
                 continue;
             } 
             computeMwayContribution(M);
+            if(verbose_>1){
+                printf("computed %d-way contribution\n", M);
+            }
         }
-
-        finalizeCovariance();
 
         ran_=true;
     }
 
-    const std::vector<double>& getResolvedDRs(unsigned order,
-                                              unsigned n) const {
-        checkRan();
-        checkResolved();
-
-        return resolveddRs_[order-2][n];
-    }
-
-    std::vector<double> getdRs() const{
-        checkRan();
-
-        std::vector<double> result(J1_.dR2s.data());
-        result.emplace_back(0.0);
-        for(unsigned i=0; i<result.size(); ++i){
-            result.at(i) = std::sqrt(result.at(i));
-        }
-        return result;
-    }
-
-    const std::vector<double>& getwts(unsigned order) const{
+    const std::vector<double> getwts(unsigned order) const{
         checkRan();
         checkOrder(order);
         
-        return wts_[order-2];
+        return wts_.data(order);
     }
 
-    const std::vector<double>& getwts_noPU(unsigned order) const{
+    const std::vector<double> getwts_noPU(unsigned order) const{
         checkRan();
         checkOrder(order);
         if constexpr(!doPU){
             throw std::logic_error("Asking for wts_noPU when PU was not run");
         }
         
-        return wts_noPU_[order-2];
+        return wts_noPU_.data(order);
     }
 
-    const arma::mat& getCov(unsigned order) const{
+    const arma::mat getCov(unsigned order) const{
         checkRan();
         checkOrder(order);
 
-        return cov_[order-2];
-    }
-
-    std::vector<double> getdRs_J2() const{
-        checkRan();
-        checkTransfer();
-
-        std::vector<double> result(J2_.dR2s.data());
-        result.emplace_back(0.0);
-        for(unsigned i=0; i<result.size(); ++i){
-            result.at(i) = std::sqrt(result.at(i));
+        arma::mat cov(cov_.nDR(order), cov_.nPart(order));
+        double factor = std::sqrt((J1_.nPart-2.0)/(2.0*J1_.nPart));
+        double normfact;
+        for(unsigned order=2; order<=maxOrder_; ++order){
+            for(unsigned iPart=0; iPart<J1_.nPart; ++iPart){
+                double base = 1/(1-J1_.Es[iPart]);
+                int power; 
+                if constexpr(nonIRC){
+                    power = comps_[order-2][0][0].composition[0];
+                } else {
+                    power = order;
+                }
+                normfact = intPow(base, power);
+                for(size_t iDR=0; iDR<wts_.nDR(order); ++iDR){
+                    double contrib = -normfact * cov_.get(order, iDR, iPart);
+                    double actual = (normfact-1) * wts_.get(order, iDR);
+                    cov.at(iDR, iPart) = factor * (contrib + actual);
+                }
+            }
         }
-        return result;
+        return cov;
     }
 
-    const arma::mat& getTransfer(unsigned order) const {
+    const arma::mat getTransfer(unsigned order) const {
         checkRan();
         checkTransfer();
 
@@ -202,7 +221,7 @@ public:
             throw std::logic_error("need to pass PU calculator for transfer normalization");
         }
 
-        return transfer_[order-2];
+        return transfer_.data(order);
     }
 
     const arma::mat getTransfer(unsigned order, 
@@ -211,13 +230,14 @@ public:
             throw std::logic_error("passing PU calculator only necessary for nonIRC correlators");
         }
 
-        arma::vec recoweights = reco.getwts_noPU(order);
-        arma::vec transsum = arma::sum(transfer_[order-2], 1);
+        arma::vec recoweights(reco.getwts_noPU(order));
+        arma::mat trans = transfer_.data(order);
+        arma::vec transsum = arma::sum(trans, 1);
         transsum.replace(0, 1);
 
-        arma::mat result =transfer_[order-2].each_col()
-                             % (recoweights / transsum);
-        return result;
+        trans = trans.each_col() % (recoweights / transsum);
+
+        return trans;
     }
 
     bool hasRun() const{
@@ -243,80 +263,31 @@ private:
         }
         ran_ = false;
 
-        if constexpr(K==EECKind::RESOLVED){
-            size_t acc=0;
-            offsets_.emplace_back(0);
-            for(unsigned i=2; i<=maxOrder_; ++i){
-                acc += choose(J1_.nPart, i);
-                offsets_.emplace_back(acc);
-            }
-
-            if(doTrans_){
-                size_t acc_J2=0;
-                offsets_J2_.emplace_back(0);
-                for(unsigned i=2; i<=maxOrder_; ++i){
-                    acc_J2 += choose(J2_.nPart, i);
-                    offsets_J2_.emplace_back(acc_J2);
-                }
-            }
-            if(verbose_){
-                printf("made offsets\n");
-            }
-        }
-
+        std::vector<size_t> nDRs;
+        std::vector<size_t> nParts;
         for(unsigned order=2; order<=maxOrder_; ++order){
-            if(verbose_){
-                printf("setting up order = %u\n", order);
-            }
-            size_t nconfig=0;
             if constexpr(K==EECKind::PROJECTED){
-                nconfig = choose(J1_.nPart, 2);
-            } else if constexpr(K==EECKind::RESOLVED){
-                nconfig = offsets_[order-1];
+                nDRs.emplace_back(nDRbins_);
+            } else {
+                //there are (order choose 2) axes
+                printf("for order %d, there are %lu axes\n", order, choose(order, 2));
+                printf("for a total of %lu DR bins\n", intPow(nDRbins_, choose(order, 2)));
+                nDRs.emplace_back(intPow(nDRbins_, choose(order, 2)));
             }
-            nconfig += 1; //point at zero
-            wts_.emplace_back(nconfig, 0.0);
-            if(verbose_){
-                printf("added to wts\n");
-            }
-            if constexpr(K==EECKind::RESOLVED){
-                std::vector<std::vector<double>> next(choose(order,2));
-                for(unsigned i=0; i<choose(order,2); ++i){
-                    next.at(i).resize(nconfig, 0.0);
-                }
-                resolveddRs_.push_back(std::move(next));
-                if(verbose_){
-                    printf("added to resolved\n");
-                }
-            }
-            if constexpr(doPU){
-                wts_noPU_.emplace_back(nconfig);
-                if(verbose_){
-                    printf("added to wts_noPU\n");
-                }
-            }
-            cov_.emplace_back(nconfig, J1_.nPart, arma::fill::zeros);
-            if(verbose_){
-                printf("added to cov\n");
-            }
-            if(doTrans_){
-                size_t nconfig_J2=0;
-                if constexpr(K==EECKind::PROJECTED){
-                    nconfig_J2 = choose(J2_.nPart, 2);
-                } else if constexpr(K==EECKind::RESOLVED){
-                    for(unsigned i=2; i<=order; ++i){
-                        nconfig_J2 += choose(J2_.nPart, i);
-                    }
-                }
-                nconfig_J2+=1; //point at zero
-                transfer_.emplace_back(nconfig_J2,
-                                      nconfig,
-                                      arma::fill::zeros);
-                if(verbose_){
-                    printf("added to transfer\n");
-                }
-            }
+            nParts.emplace_back(J1_.nPart);
         }
+
+
+        unsigned nOrder = maxOrder_-1;
+        wts_ = accu1d(nOrder, nDRs);
+        cov_ = accu2d(nOrder, nDRs, nParts);
+        if constexpr(doPU){
+            wts_noPU_ = accu1d(nOrder, nDRs);
+        }
+        if(doTrans_){
+            transfer_ = accu2d(nOrder, nDRs, nDRs);
+        }
+
         if(verbose_){
             printf("end of initialize\n");
         }
@@ -357,37 +328,16 @@ private:
         }
     }
 
-    void finalizeCovariance(){
-        if(verbose_){
-            printf("INSIDE FINALIZE COVARIANCE\n");
-        }
-        double factor = std::sqrt((J1_.nPart-2.0)/(2.0*J1_.nPart));
-        if(verbose_){
-            printf("\tfactor = %0.3f\n", factor);
-        }
-        double normfact;
-        for(unsigned order=2; order<=maxOrder_; ++order){
-            for(unsigned iPart=0; iPart<J1_.nPart; ++iPart){
-                if constexpr(nonIRC){
-                    normfact = intPow(1/(1-J1_.Es.at(iPart)), 
-                            comps_.at(order-2)[0][0].composition[0]);
-                } else {
-                    normfact = intPow(1/(1-J1_.Es.at(iPart)), order);
-                }
-                for(size_t iDR=0; iDR<wts_[order-2].size(); ++iDR){
-                    double contrib = -normfact*cov_[order-2](iDR,iPart);
-                    double actual = (normfact-1)* wts_[order-2].at(iDR);
-                    cov_[order-2](iDR, iPart) = factor * (contrib + actual);
-                    //printf("\tcovariance[%lu][%u] = %0.3f\n", iDR, iPart, cov_[order-2](iDR,iPart));
-                }
-            }
-        }
-    }
-
     void computeMwayContribution(unsigned M){
         std::vector<unsigned> ord = ord0_nodiag(M);
         size_t ordidx = 0;
         do{
+            if(verbose_>2){
+                printf("accumulating weight for ");
+                printOrd(ord);
+                printf("\n");
+                fflush(stdout);
+            }
             accumulateWt(M, ord, ordidx);
             ++ordidx;
         } while (iterate_nodiag(M, ord, J1_.nPart));
@@ -399,46 +349,30 @@ private:
         size_t dRidx;
         if constexpr(K==EECKind::PROJECTED){
             dRidx = getMaxDR(J1_, ord, false);
-        } else if constexpr(K==EECKind::RESOLVED){
-            dRidx = ordidx + offsets_[M-2];
-            if(M==2){
-                for(unsigned order=2; order<=maxOrder_; ++order){
-                    resolveddRs_.at(order-2).at(0).at(dRidx) = std::sqrt(J1_.dR2s.at(ord));
-                }
-            } else if(M==3){
-                std::vector<double> dRs(3);
-                dRs.at(0) = std::sqrt(J1_.dR2s.at(std::vector<unsigned>({ord.at(0), ord.at(1)})));
-                dRs.at(1) = std::sqrt(J1_.dR2s.at(std::vector<unsigned>({ord.at(0), ord.at(2)})));
-                dRs.at(2) = std::sqrt(J1_.dR2s.at(std::vector<unsigned>({ord.at(1), ord.at(2)})));
-                std::sort(dRs.begin(), dRs.end());
-                for(unsigned order=3; order<=maxOrder_; ++order){
-                    resolveddRs_.at(order-2).at(0).at(dRidx) = dRs.at(2);
-                    resolveddRs_.at(order-2).at(1).at(dRidx) = dRs.at(1);
-                    resolveddRs_.at(order-2).at(2).at(dRidx) = dRs.at(0);
-                }
-            } else if(M==4){
-                std::vector<double> dRs(6);
-                dRs.at(0) = std::sqrt(J1_.dR2s.at(std::vector<unsigned>({ord.at(0), ord.at(1)})));
-                dRs.at(1) = std::sqrt(J1_.dR2s.at(std::vector<unsigned>({ord.at(0), ord.at(2)})));
-                dRs.at(2) = std::sqrt(J1_.dR2s.at(std::vector<unsigned>({ord.at(0), ord.at(3)})));
-                dRs.at(3) = std::sqrt(J1_.dR2s.at(std::vector<unsigned>({ord.at(1), ord.at(2)})));
-                dRs.at(4) = std::sqrt(J1_.dR2s.at(std::vector<unsigned>({ord.at(1), ord.at(3)})));
-                dRs.at(5) = std::sqrt(J1_.dR2s.at(std::vector<unsigned>({ord.at(2), ord.at(3)})));
-                std::sort(dRs.begin(), dRs.end());
-                for(unsigned order=4; order<=maxOrder_; ++order){
-                    resolveddRs_.at(order-2).at(0).at(dRidx) = dRs.at(5);
-                    resolveddRs_.at(order-2).at(1).at(dRidx) = dRs.at(4);
-                    resolveddRs_.at(order-2).at(2).at(dRidx) = dRs.at(3);
-                    resolveddRs_.at(order-2).at(3).at(dRidx) = dRs.at(2);
-                    resolveddRs_.at(order-2).at(4).at(dRidx) = dRs.at(1);
-                    resolveddRs_.at(order-2).at(5).at(dRidx) = dRs.at(0);
-                }
+            if(verbose_>2){
+                printf("got dRidx = %lu\n", dRidx);
+                fflush(stdout);
             }
         }
 
         for(unsigned order=M; order<=maxOrder_; ++order){//for each order
             const comp_t& thiscomps = comps_.at(order-2);
             for(const comp& c : thiscomps[M-1]){//for each composition
+                if(verbose_>2){
+                    printf("doing composition ");
+                    printOrd(c.composition);
+                    printf(" with factor %u\n", c.factor);
+                    fflush(stdout);
+                }
+
+                if constexpr(K==EECKind::RESOLVED){
+                    dRidx = getResolvedDR(J1_, ord, c.composition);
+                    if(verbose_>2){
+                        printf("got dRidx = %lu\n", dRidx);
+                        fflush(stdout);
+                    }
+                }
+
                 double nextWt = c.factor;
                 bool hasPU=false;
                 for(unsigned i=0; i<M; ++i){
@@ -450,10 +384,14 @@ private:
                     }
                 }
                 //accumulate weight
-                wts_[order-2].at(dRidx) += nextWt;
+                wts_.accumulate(order, dRidx, nextWt);
+                if(verbose_>2){
+                    printf("got wt = %f\n", nextWt);
+                    fflush(stdout);
+                }
                 if constexpr(doPU){
                     if(!hasPU){
-                        wts_noPU_[order-2].at(dRidx) += nextWt;
+                        wts_noPU_.accumulate(order, dRidx, nextWt);
                     }
                 } else {
                     if(hasPU){
@@ -465,7 +403,11 @@ private:
                 
                 //accumulate covariance
                 for(unsigned i=0; i<M; ++i){
-                    cov_[order-2](dRidx, ord.at(i)) += nextWt;
+                    cov_.accumulate(order, dRidx, ord.at(i), nextWt);
+                }
+                if(verbose_>2){
+                    printf("accumulated covariance\n");
+                    fflush(stdout);
                 }
 
                 //accumulate transfer matrix
@@ -482,6 +424,10 @@ private:
 
                     accumulateTransfer(ord_J1, dRidx, nextWt, order, 
                                        c.composition);
+                    if(verbose_>2){
+                        printf("accumulated transfer\n");
+                        fflush(stdout);
+                    }
                 }
             }
         }
@@ -489,7 +435,6 @@ private:
 
     void computePointAtZero(){
         for(unsigned order=2; order<=maxOrder_; ++order){
-            size_t iDR = wts_[order-2].size()-1;
             for(unsigned i=0; i<J1_.nPart; ++i){
                 double nextwt;
                 double rawwt;
@@ -502,15 +447,15 @@ private:
                 }
 
                 //accumulate weight
-                wts_[order-2].at(iDR) += nextwt;
+                wts_.accumulate(order, 0, nextwt);
                 if constexpr(doPU){
                     if(!PU_.at(i)){
-                        wts_noPU_[order-2].at(iDR) += nextwt;
+                        wts_noPU_.accumulate(order, 0, nextwt);
                     }
                 }
                 
                 //accumulate covariance
-                cov_[order-2](iDR, i) += nextwt; 
+                cov_.accumulate(order, 0, i, nextwt); 
 
                 //accumulate transfer matrix
                 if(doTrans_){
@@ -518,14 +463,14 @@ private:
                     if constexpr(nonIRC){
                         for(unsigned M=2; M<=order; ++M){
                             for(const comp& c : comps_.at(order-2)[M-1]){
-                                accumulateTransfer(ord, iDR, 
+                                accumulateTransfer(ord, 0, 
                                                    rawwt, 
                                                    order, c.composition);
 
                             }
                         }
                     } else {
-                        accumulateTransfer(ord, iDR, nextwt, order);
+                        accumulateTransfer(ord, 0, nextwt, order);
                     }
                 }
             }
@@ -536,7 +481,7 @@ private:
                             const size_t dRidx_J1,
                             const double nextWt,
                             const unsigned order,
-                            const std::vector<unsigned>& comp = {}){
+                            const std::vector<unsigned>& nircWts = {}){
 
         std::vector<unsigned> nadj(order);
         for(unsigned i=0; i<order; ++i){
@@ -553,7 +498,7 @@ private:
             for(unsigned i=0; i<order; ++i){
                 ord_J2.at(i) = adj_.data.at(ord_J1.at(i))[ord_iter.at(i)];
                 if constexpr(nonIRC){
-                    tfact *= intPow(ptrans_.at(ord_J2.at(i), ord_J1.at(i)), comp.at(i));
+                    tfact *= intPow(ptrans_.at(ord_J2.at(i), ord_J1.at(i)), nircWts.at(i));
                 } else {
                     tfact *= ptrans_.at(ord_J2.at(i), ord_J1.at(i));
                 }
@@ -562,21 +507,15 @@ private:
             if constexpr(K==EECKind::PROJECTED){
                 dRidx_J2 = getMaxDR(J2_, ord_J2, true);
             } else if constexpr(K==EECKind::RESOLVED){
-                std::sort(ord_J2.begin(), ord_J2.end());
-                auto end = std::unique(ord_J2.begin(), ord_J2.end());
-                unsigned M_J2 = std::distance(ord_J2.begin(), end);
-                if(M_J2==1){
-                    dRidx_J2 = offsets_J2_[order-1];
-                } else {
-                    dRidx_J2 = getNodiagIdx(ord_J2, J2_.nPart, M_J2) 
-                             + offsets_J2_[M_J2-2];
-                }
+                dRidx_J2 = getResolvedDR(J2_, ord_J2, std::vector<unsigned>(order, 1));
             }
-            transfer_[order-2].at(dRidx_J2, dRidx_J1) += nextWt * tfact;
+            transfer_.accumulate(order, dRidx_J2, dRidx_J1, nextWt * tfact);
         } while (iterate_awkward(nadj, ord_iter));
     }
 
     unsigned maxOrder_;
+
+    size_t nDRbins_;
 
     //the jet to do
     struct jetinfo J1_;
@@ -594,18 +533,13 @@ private:
     std::vector<comp_t> comps_; //indexed by [order, M] -> vector<composition>
     unsigned p1_, p2_;
 
-    std::vector<size_t> offsets_;    //offsets into wts array for M-way
-    std::vector<size_t> offsets_J2_; //contributions to resolved EEC
-
-
     //quantities to compute
-    std::vector<std::vector<double>> wts_;      
-    std::vector<arma::mat> cov_;
-    std::vector<arma::mat> transfer_;
-                       
-    std::vector<std::vector<double>> wts_noPU_; 
+    accu1d wts_;      
+    accu2d cov_;
 
-    std::vector<std::vector<std::vector<double>>> resolveddRs_;
+    //optional
+    accu2d transfer_;
+    accu1d wts_noPU_;
 
     bool ran_;
 

@@ -3,9 +3,10 @@
 
 unsigned getResolvedDR(const jetinfo& J,
                        std::vector<unsigned>& ord,
-                       const std::vector<unsigned>& comp){
+                       const std::vector<unsigned>& comp,
+                       unsigned binAtZero){
     if(uniform(ord)){
-        return 0;
+        return binAtZero;
     }
     std::vector<unsigned> ord_full;
     for(unsigned i=0; i<ord.size(); ++i){
@@ -26,7 +27,7 @@ unsigned getResolvedDR(const jetinfo& J,
         ord_test[1] = ord_full[ord2[1]];
 
         if(uniform(ord_test)){
-            idx=0;
+            idx=binAtZero;
         } else {
             idx = J.dRidxs.at(ord_test);
         }
@@ -45,7 +46,8 @@ unsigned getResolvedDR(const jetinfo& J,
 
 unsigned getMaxDR(const jetinfo& J,
                   std::vector<unsigned>& ord,
-                  bool uniqify){
+                  bool uniqify,
+                  unsigned binAtZero){
     unsigned M = ord.size();
     if(uniqify){
         std::sort(ord.begin(), ord.end());
@@ -53,7 +55,7 @@ unsigned getMaxDR(const jetinfo& J,
         M = std::distance(ord.begin(), end);
     }
     if(uniform(ord)){
-        return 0;
+        return binAtZero;
     }
 
     double maxDR=0;

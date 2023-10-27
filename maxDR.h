@@ -5,10 +5,12 @@
 
 unsigned getMaxDR(const jetinfo& J,
                   std::vector<unsigned>& ord,
-                  bool uniqify = false);
+                  bool uniqify,
+                  unsigned binAtZero);
 
 unsigned getResolvedDR(const jetinfo& J,
                        std::vector<unsigned>& ord,
-                       const std::vector<unsigned>& comp);
+                       const std::vector<unsigned>& comp,
+                       unsigned binAtZero);
 
 #endif

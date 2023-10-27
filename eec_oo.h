@@ -28,16 +28,18 @@ enum EECKind{
     RESOLVED=1,
 };
 
-template <enum EECKind K=PROJECTED, bool nonIRC=false, bool doPU=false>
+template <enum EECKind K=PROJECTED, bool nonIRC=false>
 class EECCalculator{
 public:
     EECCalculator() :
-        maxOrder_(0), J1_(), PU_(), J2_(), ptrans_(), adj_(), doTrans_(false),
-        comps_(), ran_(false), verbose_(0) {}
+        maxOrder_(0), J1_(), PU_(), J2_(),
+        ptrans_(), adj_(), doTrans_(false),
+        comps_(), ran_(false), verbose_(0), doPU_(false) {}
     
     EECCalculator(int verbose) : 
-        maxOrder_(0), J1_(), PU_(), J2_(), ptrans_(), adj_(), doTrans_(false),
-        comps_(), ran_(false), verbose_(verbose) {
+        maxOrder_(0), J1_(), PU_(), J2_(), 
+        ptrans_(), adj_(), doTrans_(false),
+        comps_(), ran_(false), verbose_(verbose), doPU_(false) {
             if(verbose_){
                 printf("made empty EECcalculator\n");
             }
@@ -49,12 +51,12 @@ public:
         if(verbose_){
             printf("making plain EEC calculator\n");
         }
-        checkPU<false>();
         checkNonIRC<false>();
         maxOrder_ = maxOrder;
         J1_ = jetinfo(j1, ax);
         comps_ = getCompositions(maxOrder_);
         nDRbins_ = ax.size()+2;
+        binAtZero_ = ax.index(0.0) + 1;
         initialize();
     }
 
@@ -65,13 +67,13 @@ public:
         if(verbose_){
             printf("making plain EEC calculator with PU\n");
         }
-        checkPU<true>();
         checkNonIRC<false>();
         maxOrder_ = maxOrder;
         J1_ = jetinfo(j1, ax);
         comps_ = getCompositions(maxOrder_);
         PU_ = PU;
         nDRbins_ = ax.size()+2;
+        binAtZero_ = ax.index(0.0) + 1;
         initialize();
     }
 
@@ -83,7 +85,6 @@ public:
         if(verbose_){
             printf("making nonIRC calculator with PU\n");
         }
-        checkPU<true>();
         checkNonIRC<true>();
         maxOrder_ = maxOrder;
         J1_ = jetinfo(j1, ax);
@@ -92,6 +93,7 @@ public:
         p1_ = p1;
         p2_ = p2;
         nDRbins_ = ax.size()+2;
+        binAtZero_ = ax.index(0.0) + 1;
         initialize();
     }
 
@@ -102,7 +104,6 @@ public:
         if(verbose_){
             printf("making nonIRC calculator\n");
         }
-        checkPU<false>();
         checkNonIRC<true>();
         maxOrder_ = maxOrder;
         J1_ = jetinfo(j1, ax);
@@ -110,6 +111,7 @@ public:
         p1_ = p1;
         p2_ = p2;
         nDRbins_ = ax.size()+2;
+        binAtZero_ = ax.index(0.0) + 1;
         initialize();
     }
 
@@ -125,8 +127,27 @@ public:
         J2_ = jetinfo(j2, ax);
         doTrans_ = true;
         nDRbins_ = ax.size()+2;
+        binAtZero_ = ax.index(0.0) + 1;
         setup(j1, maxOrder, ax);
     }
+
+    template <typename Axis>
+    void setup(const jet& j1, const unsigned maxOrder,
+               const std::vector<bool>& PU,
+               const arma::mat& ptrans, const jet& j2,
+               const Axis& ax){
+        if(verbose_){
+            printf("making calculator with transfer\n");
+        }
+        ptrans_ = arma::mat(ptrans);
+        adj_ = adjacency(ptrans);
+        J2_ = jetinfo(j2, ax);
+        doTrans_ = true;
+        nDRbins_ = ax.size()+2;
+        binAtZero_ = ax.index(0.0) + 1;
+        setup(j1, maxOrder, PU, ax);
+    }
+
 
     template <typename Axis>
     void setup(const jet& j1, const unsigned maxOrder,
@@ -141,8 +162,28 @@ public:
         J2_ = jetinfo(j2, ax);
         doTrans_ = true;
         nDRbins_ = ax.size()+2;
+        binAtZero_ = ax.index(0.0) + 1;
         setup(j1, maxOrder, p1, p2, ax);
     }
+
+    template <typename Axis>
+    void setup(const jet& j1, const unsigned maxOrder,
+               const std::vector<bool>& PU,
+               const arma::mat& ptrans, const jet& j2,
+               const unsigned p1, const unsigned p2,
+               const Axis& ax){
+        if(verbose_){
+            printf("making nonIRC calculator with transfer\n");
+        }
+        ptrans_ = arma::mat(ptrans);
+        adj_ = adjacency(ptrans);
+        J2_ = jetinfo(j2, ax);
+        doTrans_ = true;
+        nDRbins_ = ax.size()+2;
+        binAtZero_ = ax.index(0.0) + 1;
+        setup(j1, maxOrder, PU, p1, p2, ax);
+    }
+
 
     void setVerbosity(int verbose){
         verbose_ = verbose;
@@ -176,14 +217,11 @@ public:
         return wts_.data(order);
     }
 
-    const std::vector<double> getwts_noPU(unsigned order) const{
+    const std::vector<double> getwts_PU(unsigned order) const{
         checkRan();
         checkOrder(order);
-        if constexpr(!doPU){
-            throw std::logic_error("Asking for wts_noPU when PU was not run");
-        }
         
-        return wts_noPU_.data(order);
+        return wts_PU_.data(order);
     }
 
     const arma::mat getCov(unsigned order) const{
@@ -225,12 +263,12 @@ public:
     }
 
     const arma::mat getTransfer(unsigned order, 
-                         const EECCalculator<K, true, true>& reco) const{
+                 const EECCalculator<K, true>& reco) const{
         if constexpr(!nonIRC){
             throw std::logic_error("passing PU calculator only necessary for nonIRC correlators");
         }
 
-        arma::vec recoweights(reco.getwts_noPU(order));
+        arma::vec recoweights(reco.getwts_PU(order));
         arma::mat trans = transfer_.data(order);
         arma::vec transsum = arma::sum(trans, 1);
         transsum.replace(0, 1);
@@ -260,8 +298,15 @@ private:
     void initialize() {
         if(verbose_){
             printf("top of initialize\n");
+            printf("nDRbins = %lu\n", nDRbins_);
         }
         ran_ = false;
+
+        if(PU_.size()){
+            doPU_ = true;
+        } else {
+            doPU_ = false;
+        }
 
         std::vector<size_t> nDRs;
         std::vector<size_t> nParts;
@@ -281,9 +326,10 @@ private:
         unsigned nOrder = maxOrder_-1;
         wts_ = accu1d(nOrder, nDRs);
         cov_ = accu2d(nOrder, nDRs, nParts);
-        if constexpr(doPU){
-            wts_noPU_ = accu1d(nOrder, nDRs);
+        if(doPU_){
+            wts_PU_ = accu1d(nOrder, nDRs);
         }
+
         if(doTrans_){
             transfer_ = accu2d(nOrder, nDRs, nDRs);
         }
@@ -295,11 +341,6 @@ private:
 
     void checkResolved() const{
         static_assert(K == EECKind::RESOLVED, "Asking for resolved quantities on projected EEC");
-    }
-
-    template <bool havePU>
-    void checkPU(){
-        static_assert(doPU == havePU, "Can only call setup with PU for PU calculators");
     }
 
     template <bool haveNonIRC>
@@ -348,7 +389,7 @@ private:
                       const size_t ordidx){ //ord actually is const I promise
         size_t dRidx;
         if constexpr(K==EECKind::PROJECTED){
-            dRidx = getMaxDR(J1_, ord, false);
+            dRidx = getMaxDR(J1_, ord, false, binAtZero_);
             if(verbose_>2){
                 printf("got dRidx = %lu\n", dRidx);
                 fflush(stdout);
@@ -366,7 +407,7 @@ private:
                 }
 
                 if constexpr(K==EECKind::RESOLVED){
-                    dRidx = getResolvedDR(J1_, ord, c.composition);
+                    dRidx = getResolvedDR(J1_, ord, c.composition, binAtZero_);
                     if(verbose_>2){
                         printf("got dRidx = %lu\n", dRidx);
                         fflush(stdout);
@@ -377,10 +418,8 @@ private:
                 bool hasPU=false;
                 for(unsigned i=0; i<M; ++i){
                     nextWt *= intPow(J1_.Es.at(ord.at(i)), c.composition.at(i));
-                    if constexpr(doPU){
-                        if(PU_[ord.at(i)]){
-                            hasPU = true;
-                        }
+                    if (doPU_ && PU_[ord.at(i)]){
+                        hasPU = true;
                     }
                 }
                 //accumulate weight
@@ -389,16 +428,8 @@ private:
                     printf("got wt = %f\n", nextWt);
                     fflush(stdout);
                 }
-                if constexpr(doPU){
-                    if(!hasPU){
-                        wts_noPU_.accumulate(order, dRidx, nextWt);
-                    }
-                } else {
-                    if(hasPU){
-                        if(verbose_){
-                            printf("this will never happen!\n");
-                        }
-                    }
+                if (hasPU){
+                    wts_PU_.accumulate(order, dRidx, nextWt);
                 }
                 
                 //accumulate covariance
@@ -447,15 +478,13 @@ private:
                 }
 
                 //accumulate weight
-                wts_.accumulate(order, 0, nextwt);
-                if constexpr(doPU){
-                    if(!PU_.at(i)){
-                        wts_noPU_.accumulate(order, 0, nextwt);
-                    }
+                wts_.accumulate(order, binAtZero_, nextwt);
+                if (doPU_ && PU_.at(i)){
+                    wts_PU_.accumulate(order, 0, nextwt);
                 }
                 
                 //accumulate covariance
-                cov_.accumulate(order, 0, i, nextwt); 
+                cov_.accumulate(order, binAtZero_, i, nextwt); 
 
                 //accumulate transfer matrix
                 if(doTrans_){
@@ -463,14 +492,14 @@ private:
                     if constexpr(nonIRC){
                         for(unsigned M=2; M<=order; ++M){
                             for(const comp& c : comps_.at(order-2)[M-1]){
-                                accumulateTransfer(ord, 0, 
+                                accumulateTransfer(ord, binAtZero_, 
                                                    rawwt, 
                                                    order, c.composition);
 
                             }
                         }
                     } else {
-                        accumulateTransfer(ord, 0, nextwt, order);
+                        accumulateTransfer(ord, binAtZero_, nextwt, order);
                     }
                 }
             }
@@ -505,9 +534,16 @@ private:
             }
             size_t dRidx_J2;
             if constexpr(K==EECKind::PROJECTED){
-                dRidx_J2 = getMaxDR(J2_, ord_J2, true);
+                dRidx_J2 = getMaxDR(J2_, ord_J2, true, binAtZero_);
             } else if constexpr(K==EECKind::RESOLVED){
-                dRidx_J2 = getResolvedDR(J2_, ord_J2, std::vector<unsigned>(order, 1));
+                dRidx_J2 = getResolvedDR(J2_, ord_J2, 
+                                        std::vector<unsigned>(order, 1), 
+                                        binAtZero_);
+            }
+            if(verbose_>1 && nextWt*tfact > 0.0){
+                printf("transfer[%u] %lu -> %lu += %0.2g\n",
+                        order, dRidx_J2, dRidx_J1, 
+                        nextWt * tfact);
             }
             transfer_.accumulate(order, dRidx_J2, dRidx_J1, nextWt * tfact);
         } while (iterate_awkward(nadj, ord_iter));
@@ -516,11 +552,12 @@ private:
     unsigned maxOrder_;
 
     size_t nDRbins_;
+    unsigned binAtZero_;
 
     //the jet to do
     struct jetinfo J1_;
 
-    //optionally track the PU-free component
+    //optionally track the PU component
     std::vector<bool> PU_;
 
     //only present if also doing unfolding
@@ -539,17 +576,19 @@ private:
 
     //optional
     accu2d transfer_;
-    accu1d wts_noPU_;
+    accu1d wts_PU_;
 
     bool ran_;
 
     int verbose_;
+
+    bool doPU_;
 };
 
-typedef EECCalculator<EECKind::PROJECTED> ProjectedEECCalculator;
-typedef EECCalculator<EECKind::RESOLVED> ResolvedEECCalculator;
+typedef EECCalculator<EECKind::PROJECTED, false> ProjectedEECCalculator;
+typedef EECCalculator<EECKind::RESOLVED, false> ResolvedEECCalculator;
 
-template <bool PU>
-using NonIRCEECCalculator = EECCalculator<EECKind::PROJECTED, true, PU>;
+typedef EECCalculator<EECKind::PROJECTED, true> NonIRCEECCalculator;
+
 
 #endif

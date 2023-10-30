@@ -1,11 +1,15 @@
 #include "jetinfo.h"
 
-std::vector<double> normalizePt(const jet& j){
+std::vector<double> normalizePt(const jet& j, bool toRaw){
     std::vector<double> result;
     result.reserve(j.nPart);
     
     for(const particle& part: j.particles){
-        result.emplace_back(part.pt/j.sumpt);
+        if (toRaw){
+            result.emplace_back(part.pt/j.sumpt);
+        } else {
+            result.emplace_back(part.pt/j.pt);
+        }
     }
     return result;
 }

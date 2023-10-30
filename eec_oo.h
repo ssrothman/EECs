@@ -47,13 +47,13 @@ public:
 
     template<typename Axis>
     void setup(const jet& j1, const unsigned maxOrder, 
-               const Axis& ax){
+               const Axis& ax, bool normToRaw){
         if(verbose_){
             printf("making plain EEC calculator\n");
         }
         checkNonIRC<false>();
         maxOrder_ = maxOrder;
-        J1_ = jetinfo(j1, ax);
+        J1_ = jetinfo(j1, ax, normToRaw);
         comps_ = getCompositions(maxOrder_);
         nDRbins_ = ax.size()+2;
         binAtZero_ = ax.index(0.0) + 1;
@@ -63,13 +63,13 @@ public:
     template<typename Axis>
     void setup(const jet& j1, const unsigned maxOrder,
                const std::vector<bool>& PU,
-               const Axis& ax){
+               const Axis& ax, bool normToRaw){
         if(verbose_){
             printf("making plain EEC calculator with PU\n");
         }
         checkNonIRC<false>();
         maxOrder_ = maxOrder;
-        J1_ = jetinfo(j1, ax);
+        J1_ = jetinfo(j1, ax, normToRaw);
         comps_ = getCompositions(maxOrder_);
         PU_ = PU;
         nDRbins_ = ax.size()+2;
@@ -81,13 +81,13 @@ public:
     void setup(const jet& j1, const unsigned maxOrder,
                const std::vector<bool>& PU,
                const unsigned p1, const unsigned p2,
-               const Axis& ax){
+               const Axis& ax, bool normToRaw){
         if(verbose_){
             printf("making nonIRC calculator with PU\n");
         }
         checkNonIRC<true>();
         maxOrder_ = maxOrder;
-        J1_ = jetinfo(j1, ax);
+        J1_ = jetinfo(j1, ax, normToRaw);
         PU_ = PU;
         comps_ = getCustomComps(p1, p2);
         p1_ = p1;
@@ -100,13 +100,13 @@ public:
     template <typename Axis>
     void setup(const jet& j1, const unsigned maxOrder,
                const unsigned p1, const unsigned p2,
-               const Axis& ax){
+               const Axis& ax, bool normToRaw){
         if(verbose_){
             printf("making nonIRC calculator\n");
         }
         checkNonIRC<true>();
         maxOrder_ = maxOrder;
-        J1_ = jetinfo(j1, ax);
+        J1_ = jetinfo(j1, ax, normToRaw);
         comps_ = getCustomComps(p1, p2);
         p1_ = p1;
         p2_ = p2;
@@ -118,52 +118,51 @@ public:
     template <typename Axis>
     void setup(const jet& j1, const unsigned maxOrder,
                const arma::mat& ptrans, const jet& j2,
-               const Axis& ax){
+               const Axis& ax, bool normToRaw){
         if(verbose_){
             printf("making calculator with transfer\n");
         }
         ptrans_ = arma::mat(ptrans);
         adj_ = adjacency(ptrans);
-        J2_ = jetinfo(j2, ax);
+        J2_ = jetinfo(j2, ax, normToRaw);
         doTrans_ = true;
         nDRbins_ = ax.size()+2;
         binAtZero_ = ax.index(0.0) + 1;
-        setup(j1, maxOrder, ax);
+        setup(j1, maxOrder, ax, normToRaw);
     }
 
     template <typename Axis>
     void setup(const jet& j1, const unsigned maxOrder,
                const std::vector<bool>& PU,
                const arma::mat& ptrans, const jet& j2,
-               const Axis& ax){
+               const Axis& ax, bool normToRaw){
         if(verbose_){
             printf("making calculator with transfer\n");
         }
         ptrans_ = arma::mat(ptrans);
         adj_ = adjacency(ptrans);
-        J2_ = jetinfo(j2, ax);
+        J2_ = jetinfo(j2, ax, normToRaw);
         doTrans_ = true;
         nDRbins_ = ax.size()+2;
         binAtZero_ = ax.index(0.0) + 1;
-        setup(j1, maxOrder, PU, ax);
+        setup(j1, maxOrder, PU, ax, normToRaw);
     }
-
 
     template <typename Axis>
     void setup(const jet& j1, const unsigned maxOrder,
                const arma::mat& ptrans, const jet& j2,
                const unsigned p1, const unsigned p2,
-               const Axis& ax){
+               const Axis& ax, bool normToRaw){
         if(verbose_){
             printf("making nonIRC calculator with transfer\n");
         }
         ptrans_ = arma::mat(ptrans);
         adj_ = adjacency(ptrans);
-        J2_ = jetinfo(j2, ax);
+        J2_ = jetinfo(j2, ax, normToRaw);
         doTrans_ = true;
         nDRbins_ = ax.size()+2;
         binAtZero_ = ax.index(0.0) + 1;
-        setup(j1, maxOrder, p1, p2, ax);
+        setup(j1, maxOrder, p1, p2, ax, normToRaw);
     }
 
     template <typename Axis>
@@ -171,19 +170,18 @@ public:
                const std::vector<bool>& PU,
                const arma::mat& ptrans, const jet& j2,
                const unsigned p1, const unsigned p2,
-               const Axis& ax){
+               const Axis& ax, bool normToRaw){
         if(verbose_){
             printf("making nonIRC calculator with transfer\n");
         }
         ptrans_ = arma::mat(ptrans);
         adj_ = adjacency(ptrans);
-        J2_ = jetinfo(j2, ax);
+        J2_ = jetinfo(j2, ax, normToRaw);
         doTrans_ = true;
         nDRbins_ = ax.size()+2;
         binAtZero_ = ax.index(0.0) + 1;
-        setup(j1, maxOrder, PU, p1, p2, ax);
+        setup(j1, maxOrder, PU, p1, p2, ax, normToRaw);
     }
-
 
     void setVerbosity(int verbose){
         verbose_ = verbose;

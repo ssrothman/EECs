@@ -12,7 +12,7 @@
 #include "SRothman/SimonTools/src/vecND.h"
 #include "SRothman/SimonTools/src/combinatorics.h"
 
-std::vector<double> normalizePt(const jet& j);
+std::vector<double> normalizePt(const jet& j, bool toRaw);
 
 vecND::nodiagvec getdRs(const jet& j);
 
@@ -55,9 +55,9 @@ struct jetinfo{
         dRidxs(std::move(dRidxs)) {}
 
     template <typename Axis>
-    jetinfo(const jet& j, const Axis& axis):
+    jetinfo(const jet& j, const Axis& axis, bool normToRaw):
         nPart(j.nPart), 
-        Es(normalizePt(j)),
+        Es(normalizePt(j, normToRaw)),
         dRs(getdRs(j)),
         dRidxs(getdRidxs(dRs, axis)) {}
 

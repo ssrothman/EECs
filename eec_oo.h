@@ -117,13 +117,13 @@ public:
 
     template <typename Axis>
     void setup(const jet& j1, const unsigned maxOrder,
-               const arma::mat& ptrans, const jet& j2,
+               const arma::mat& rawmat, const jet& j2,
                const Axis& ax, bool normToRaw){
         if(verbose_){
             printf("making calculator with transfer\n");
         }
-        ptrans_ = arma::mat(ptrans);
-        adj_ = adjacency(ptrans);
+        ptrans_ = makePtrans(j1, j2, rawmat, normToRaw);
+        adj_ = adjacency(ptrans_);
         J2_ = jetinfo(j2, ax, normToRaw);
         doTrans_ = true;
         nDRbins_ = ax.size()+2;
@@ -134,13 +134,13 @@ public:
     template <typename Axis>
     void setup(const jet& j1, const unsigned maxOrder,
                const std::vector<bool>& PU,
-               const arma::mat& ptrans, const jet& j2,
+               const arma::mat& rawmat, const jet& j2,
                const Axis& ax, bool normToRaw){
         if(verbose_){
             printf("making calculator with transfer\n");
         }
-        ptrans_ = arma::mat(ptrans);
-        adj_ = adjacency(ptrans);
+        ptrans_ = makePtrans(j1, j2, rawmat, normToRaw);
+        adj_ = adjacency(ptrans_);
         J2_ = jetinfo(j2, ax, normToRaw);
         doTrans_ = true;
         nDRbins_ = ax.size()+2;
@@ -150,14 +150,14 @@ public:
 
     template <typename Axis>
     void setup(const jet& j1, const unsigned maxOrder,
-               const arma::mat& ptrans, const jet& j2,
+               const arma::mat& rawmat, const jet& j2,
                const unsigned p1, const unsigned p2,
                const Axis& ax, bool normToRaw){
         if(verbose_){
             printf("making nonIRC calculator with transfer\n");
         }
-        ptrans_ = arma::mat(ptrans);
-        adj_ = adjacency(ptrans);
+        ptrans_ = makePtrans(j1, j2, rawmat, normToRaw);
+        adj_ = adjacency(ptrans_);
         J2_ = jetinfo(j2, ax, normToRaw);
         doTrans_ = true;
         nDRbins_ = ax.size()+2;
@@ -168,14 +168,14 @@ public:
     template <typename Axis>
     void setup(const jet& j1, const unsigned maxOrder,
                const std::vector<bool>& PU,
-               const arma::mat& ptrans, const jet& j2,
+               const arma::mat& rawmat, const jet& j2,
                const unsigned p1, const unsigned p2,
                const Axis& ax, bool normToRaw){
         if(verbose_){
             printf("making nonIRC calculator with transfer\n");
         }
-        ptrans_ = arma::mat(ptrans);
-        adj_ = adjacency(ptrans);
+        ptrans_ = makePtrans(j1, j2, rawmat, normToRaw);
+        adj_ = adjacency(ptrans_);
         J2_ = jetinfo(j2, ax, normToRaw);
         doTrans_ = true;
         nDRbins_ = ax.size()+2;
@@ -293,6 +293,31 @@ public:
     }
 
 private:
+    arma::mat makePtrans(const jet& genjet, const jet& recojet,
+                         const arma::mat& rawmat, bool normToRaw) {
+        arma::mat ans(rawmat);
+
+        arma::vec genpt = genjet.ptvec();
+        arma::vec recopt = recojet.ptvec();
+        if(normToRaw){
+            genpt/=genjet.sumpt;
+            recopt/=recojet.sumpt;
+        } else {
+            genpt/=genjet.pt;
+            recopt/=recojet.pt;
+        }
+
+        arma::vec predpt = ans * genpt;
+
+        for(unsigned iGen=0; iGen < genjet.nPart; ++iGen){
+            for(unsigned iReco=0; iReco < recojet.nPart; ++iReco){
+                ans.at(iReco, iGen) *= recopt[iReco] / predpt[iGen];
+            }
+        }
+
+        return ans;
+    }
+
     void initialize() {
         if(verbose_){
             printf("top of initialize\n");

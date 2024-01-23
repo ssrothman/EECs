@@ -311,8 +311,21 @@ private:
 
         for(unsigned iGen=0; iGen < genjet.nPart; ++iGen){
             for(unsigned iReco=0; iReco < recojet.nPart; ++iReco){
-                ans.at(iReco, iGen) *= recopt[iReco] / predpt[iGen];
+                if (predpt[iReco] > 0){
+                    ans.at(iReco, iGen) *= recopt[iReco]/predpt[iReco];
+                }
             }
+        }
+
+        if (verbose_ > 1){
+            printf("ptrans:\n");
+            std::cout << ans << std::endl;
+            printf("GEN\n");
+            std::cout << genpt.t() << std::endl;
+            printf("RECO\n");
+            std::cout << recopt.t() << std::endl;
+            printf("PRED\n");
+            std::cout << (ans * genpt).t() << std::endl;
         }
 
         return ans;

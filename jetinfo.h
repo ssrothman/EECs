@@ -20,6 +20,9 @@ template <typename Axis>
 vecND::inodiagvec getdRidxs(const vecND::nodiagvec& dRs, 
                             const Axis& axis){
     vecND::inodiagvec result(dRs.nPart(), dRs.dim());
+    if(dRs.nPart()<2){
+        return result;
+    }
 
     std::vector<unsigned> ord = result.ord0();
     unsigned i=0;

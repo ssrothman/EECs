@@ -16,6 +16,9 @@ std::vector<double> normalizePt(const jet& j, bool toRaw){
 
 vecND::nodiagvec getdRs(const jet& j){
     vecND::nodiagvec result(j.nPart, 2u);
+    if(j.nPart<2){
+        return result;
+    }
 
     std::vector<unsigned> ord = result.ord0();
     unsigned i=0;

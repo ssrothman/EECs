@@ -21,6 +21,22 @@ public:
         data.clear();
     }
 
+    const std::vector<unsigned>& at(unsigned i) const{
+        return data.at(i);
+    }
+
+    std::vector<unsigned> nadj(const std::vector<unsigned>& ord) const {
+        std::vector<unsigned> ans(ord.size(), 0);
+        for(unsigned i=0; i<ord.size(); ++i){
+            ans[i] = at(ord[i]).size();
+            if(ans[i] == 0){
+                return {};
+            }
+        }
+        return ans;
+    }
+
+private:
     std::vector<std::vector<unsigned>> data;
 };
 

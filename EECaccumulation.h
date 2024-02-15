@@ -2,7 +2,7 @@
 #define SROTHMAN_EECS_RESOLVEDCOORDS_H
 
 #include "SRothman/SimonTools/src/jets.h"
-#include "jetinfo.h"
+#include "SRothman/SimonTools/src/vecND.h"
 #include "adj.h"
 
 #include <vector>

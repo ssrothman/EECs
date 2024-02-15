@@ -1,4 +1,6 @@
 #include "EECaccumulation.h"
+#include "SRothman/SimonTools/src/util.h"
+#include "SRothman/SimonTools/src/deltaR.h"
 
 /*
  * Generic delta-R handler
@@ -672,14 +674,16 @@ void EECtransferAccumulator::accumulate(const uvec& ordGen,
                                         const arma::mat& ptrans,
                                         double nextwt,
                                         unsigned iAcc){
-    uvec nadj = adj.nadj(ordGen); 
-    if (nadj.empty()){
-        return; //break early if any have no neighbors
-    } 
+    printf("accumulating transfer\n");
     uvec indexGen = indexerGen_->getIndex(ordGen, compGen);
 
     uvec ord_J1 = fullOrd(ordGen, compGen);
     unsigned order = ord_J1.size();
+    uvec nadj = adj.nadj(ord_J1); 
+    if (nadj.empty()){
+        printf("breaking early\n");
+        return; //break early if any have no neighbors
+    } 
 
     uvec ord_iter = ord0_full(order);
     do{
@@ -690,12 +694,19 @@ void EECtransferAccumulator::accumulate(const uvec& ordGen,
             unsigned p2 = adj.at(p1)[ord_iter[i]];
             ord_J2[i] = p2;
 
+            printf("\tadj: ");
+            printOrd(adj.at(p1));
+            printf("\n");
+            printf("\tord_iter[i] = %u\n", ord_iter[i]);
+            printf("\tnadj[i] = %u\n", nadj[i]);
+            printf("\tp1: %u, p2: %u\n", p1, p2);
             tfact *= ptrans(p2, p1);
         }
         uvec index = indexerReco_->getIndex(ord_J2);
         index.insert(index.end(), indexGen.begin(), indexGen.end());
         accus_.at(iAcc).at(index)(nextwt * tfact);
     } while(iterate_awkward(nadj, ord_iter));
+    printf("done\n");
 }
 
 double EECtransferAccumulator::get(unsigned iAcc, const uvec& ord) const{

@@ -15,11 +15,7 @@
 #include <boost/histogram.hpp>
 #include <boost/accumulators/accumulators.hpp>
 
-#include "eecaccu.h"
-
-#include "jetinfo.h"
 #include "compositions.h"
-#include "maxDR.h"
 #include "adj.h"
 #include "EECaccumulation.h"
 
@@ -33,21 +29,48 @@ public:
     using wtaccptr = std::shared_ptr<EECweightAccumulator>;
     using transaccptr = std::shared_ptr<EECtransferAccumulator>;
 
+    /*
+     * enum for how to normalize the jet pTs
+     * RAWPT: normalize to raw pT = sum of all constituents in the jet
+     *            including those that fail any particle selections
+     *            (e.g. charged-only, fromPV, etc)
+     * CORRPT: normalize to JEC-corrected pT
+     * SUMPT: normalize to sum pT(constituents)
+     *            including only those that pass particle selections
+     */
+    enum normType {
+        RAWPT, 
+        CORRPT,
+        SUMPT, 
+    };
+
     EECCalculator(int verbose=0);
 
+    //set up simple projected calculation
     void setupProjected(const jet& j1, const unsigned maxOrder,
-                        const axisptr& RLaxis);
-    void addPU(const std::vector<bool>& PU);
-    void addTransfer(const jet& j1, 
-                     const jet& j2, 
-                     const arma::mat& rawmat);
+                        const axisptr& RLaxis, 
+                        const normType& norm);
+    //setup third-order resolved calculation
     void enableRes3(const axisptr& xi3axis, 
                     const axisptr& phi3axis);
+    //setup fourth-order resolved calculation
     void enableRes4(const axisptr& RM4axis,
-                    const axisptr& phi4axis);
+                    const axisptr& phi4axis,
+                    struct trianglespec trispec);
+    //add parallel calculation of unmatched contribution
+    void addPU(const std::vector<bool>& PU);
+    //add parallel calculation of transfer matrix
+    void addTransfer(const jet& j2, 
+                     const arma::mat& rawmat,
+                     const normType& norm);
 
+    //setup all internal variables and prepare for calculation
+    void initialize();
+
+    //run the calculation
     void run();
 
+    //get results
     const std::vector<double> getproj(unsigned order) const;
     const std::vector<double> getproj_PU(unsigned order) const;
     const std::vector<double> getres3() const;
@@ -58,14 +81,20 @@ public:
     const arma::mat getTransferres3() const;
     const arma::mat getTransferres4() const;
 
+    //very simple getters
     bool hasRun() const;
     unsigned getMaxOrder() const;
 
-    void initialize();
 private:
+    //renormalize particle transfer matrix appropriately 
     arma::mat makePtrans(const jet& genjet, const jet& recojet,
-                         const arma::mat& rawmat, bool normToRaw);
+                         const arma::mat& rawmat, 
+                         const normType& norm);
+    //normalize jet pTs
+    std::vector<double> normalizePt(const jet& j, const normType& norm);
+    double getNormFact(const jet& j, const normType& norm);
 
+    //throw errors if you try to access results that don't exist
     void checkPU() const;
     void checkRes3() const;
     void checkRes4() const;
@@ -73,28 +102,39 @@ private:
     void checkRan() const;
     void checkTransfer() const;
 
+    //actually run the EEC calculation
     void computeMwayContribution(unsigned M);
     void accumulateWt(const unsigned M,
                       const uvec& ord);
     void computePointAtZero();
 
+    //parameters
     unsigned maxOrder_;
     bool doRes3_;
     bool doRes4_;
+    bool doTrans_;
+    bool doPU_;
+    int verbose_;
+
+    //binning axes
+    axisptr RLaxis_, xi3axis_, phi3axis_, RM4axis_, phi4axis_;
+    struct trianglespec trispec_; //triangle for fourth order resolved
 
     //the jet to do
-    struct jetinfo J1_;
-    jet J1_J_;
+    jet J1_;
+    std::vector<double> J1E_;
 
     //optionally track the PU component
     std::vector<bool> PU_;
 
-    //only present if also doing unfolding
-    struct jetinfo J2_; 
-    jet J2_J_;
+    //reco jet for unfolding onto
+    jet J2_;
+    std::vector<double> J2E_;
+
+    //particle-level transfer matrix
+    //and adjacency list
     arma::mat ptrans_;
     adjacency adj_;
-    bool doTrans_;
 
     //precomputed quantities
     std::vector<comp_t> comps_; //indexed by [order, M] -> vector<composition>
@@ -104,22 +144,16 @@ private:
     wtaccptr res3wts_;
     wtaccptr res4wts_;
 
-    //optional
-    transaccptr projtrans_;
-    transaccptr res3trans_;
-    transaccptr res4trans_;
-
     wtaccptr projwts_PU_;
     wtaccptr res3wts_PU_;
     wtaccptr res4wts_PU_;
 
+    transaccptr projtrans_;
+    transaccptr res3trans_;
+    transaccptr res4trans_;
+
+    //did we actually run?
     bool ran_;
-
-    int verbose_;
-
-    bool doPU_;
-
-    axisptr RLaxis_, xi3axis_, phi3axis_, RM4axis_, phi4axis_;
 };
 
 #endif

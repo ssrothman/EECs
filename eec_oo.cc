@@ -15,13 +15,13 @@ EECCalculator::EECCalculator(int verbose) {
 
 void EECCalculator::setupProjected(const jet& j1, 
                                    const unsigned maxOrder,
-                                   const axisptr& RLaxis){
+                                   const axisptr& RLaxis,
+                                   const normType& norm){
     RLaxis_ = RLaxis;
     maxOrder_ = maxOrder;
     
-    //TODO: normToRaw
-    J1_ = jetinfo(j1, *RLaxis, true);
-    J1_J_ = j1;
+    J1_ = j1;
+    J1E_ = normalizePt(j1, norm);
     comps_ = getCompositions(maxOrder_);
 }
 
@@ -30,15 +30,16 @@ void EECCalculator::addPU(const std::vector<bool>& PU){
     doPU_ = true;
 }
 
-void EECCalculator::addTransfer(const jet& j1, 
+void EECCalculator::addTransfer(
                  const jet& j2, 
-                 const arma::mat& rawmat){
-    //TODO: normToRaw
-    ptrans_ = makePtrans(j1, j2, rawmat, true);
+                 const arma::mat& rawmat,
+                 const normType& norm){
+    ptrans_ = makePtrans(J1_, j2, rawmat, norm);
     adj_ = adjacency(ptrans_);
-    //TODO: normToRaw
-    J2_ = jetinfo(j2, *RLaxis_, true);
-    J2_J_ = j2;
+
+    J2_ = j2;
+    J2E_ = normalizePt(j2, norm);
+
     doTrans_ = true;
 }
 
@@ -50,10 +51,12 @@ void EECCalculator::enableRes3(const axisptr& xi3axis,
 }
 
 void EECCalculator::enableRes4(const axisptr& RM4axis,
-                const axisptr& phi4axis){
+                               const axisptr& phi4axis,
+                               struct trianglespec trispec){
     doRes4_ = true;
     RM4axis_ = RM4axis;
     phi4axis_ = phi4axis;
+    trispec_ = trispec;
 }
 
 void EECCalculator::run(){
@@ -225,7 +228,7 @@ void EECCalculator::initialize(){
 
     unsigned Nacc = maxOrder_ - 1;
     projwts_ = std::make_shared<EECweightAccumulator>(Nacc, *RLaxis_);
-    projwts_->setupMaxDRIndexer(J1_J_);
+    projwts_->setupMaxDRIndexer(J1_);
     if(verbose_>2){
         printf("initialized projwts\n");
     }
@@ -233,7 +236,7 @@ void EECCalculator::initialize(){
     if(doRes3_){
         res3wts_ = std::make_shared<EECweightAccumulator>(1, axisvec({*RLaxis_, *xi3axis_, 
                                                                         *phi3axis_}));
-        res3wts_->setupThirdOrderIndexer(J1_J_);
+        res3wts_->setupThirdOrderIndexer(J1_);
     }
     if(verbose_>2){
         printf("initialized res3wts\n");
@@ -242,8 +245,7 @@ void EECCalculator::initialize(){
     if(doRes4_){
         res4wts_ = std::make_shared<EECweightAccumulator>(1, axisvec({*RLaxis_, *RM4axis_, 
                                                                         *phi4axis_}));
-        res4wts_->setupFourthOrderIndexer(J1_J_, 
-                trianglespec(0,0,0));
+        res4wts_->setupFourthOrderIndexer(J1_, trispec_);
     }
     if(verbose_>2){
         printf("initialized res4\n");
@@ -251,21 +253,20 @@ void EECCalculator::initialize(){
 
     if(doPU_){
         projwts_PU_ = std::make_shared<EECweightAccumulator>(Nacc, *RLaxis_);
-        projwts_PU_->setupMaxDRIndexer(J1_J_);
+        projwts_PU_->setupMaxDRIndexer(J1_);
 
         if(doRes3_){
             res3wts_PU_ = std::make_shared<EECweightAccumulator>(1, axisvec({*RLaxis_, 
                                                                             *xi3axis_, 
                                                                             *phi3axis_}));
-            res3wts_PU_->setupThirdOrderIndexer(J1_J_);
+            res3wts_PU_->setupThirdOrderIndexer(J1_);
         }
 
         if(doRes4_){
             res4wts_PU_ = std::make_shared<EECweightAccumulator>(1, axisvec({*RLaxis_, 
                                                                             *RM4axis_, 
                                                                         *phi4axis_}));
-            res4wts_PU_->setupFourthOrderIndexer(J1_J_, 
-                    trianglespec(0,0,0));
+            res4wts_PU_->setupFourthOrderIndexer(J1_, trispec_);
         }
     }
     if(verbose_>2){
@@ -274,21 +275,20 @@ void EECCalculator::initialize(){
 
     if(doTrans_){
         projtrans_ = std::make_shared<EECtransferAccumulator>(Nacc, *RLaxis_);
-        projtrans_->setupMaxDRIndexers(J2_J_, J1_J_);
+        projtrans_->setupMaxDRIndexers(J2_, J1_);
 
         if(doRes3_){
             res3trans_ = std::make_shared<EECtransferAccumulator>(1, axisvec({*RLaxis_,
                                                                             *xi3axis_,
                                                                             *phi3axis_}));
-            res3trans_->setupThirdOrderIndexers(J2_J_, J1_J_);
+            res3trans_->setupThirdOrderIndexers(J2_, J1_);
         }
 
         if(doRes4_){
             res4trans_ = std::make_shared<EECtransferAccumulator>(1, axisvec({*RLaxis_, 
                                                                             *RM4axis_,
                                                                         *phi4axis_}));
-            res4trans_->setupFourthOrderIndexers(J2_J_, J1_J_, 
-                    trianglespec(0,0,0));
+            res4trans_->setupFourthOrderIndexers(J2_, J1_, trispec_);
         }
     }
     if(verbose_>2){
@@ -300,19 +300,18 @@ void EECCalculator::initialize(){
     }
 }
 
-arma::mat EECCalculator::makePtrans(const jet& genjet, const jet& recojet,
-                     const arma::mat& rawmat, bool normToRaw) {
+arma::mat EECCalculator::makePtrans(const jet& genjet, 
+                                    const jet& recojet,
+                                    const arma::mat& rawmat, 
+                                    const normType& norm) {
     arma::mat ans(rawmat);
 
     arma::vec genpt = genjet.ptvec();
     arma::vec recopt = recojet.ptvec();
-    if(normToRaw){
-        genpt/=genjet.sumpt;
-        recopt/=recojet.sumpt;
-    } else {
-        genpt/=genjet.pt;
-        recopt/=recojet.pt;
-    }
+    double normfactorG = getNormFact(genjet, norm);
+    double normfactorR = getNormFact(recojet, norm);
+    genpt/=normfactorG;
+    recopt/=normfactorR;
 
     arma::vec predpt = ans * genpt;
 
@@ -418,7 +417,7 @@ void EECCalculator::accumulateWt(const unsigned M,
             bool hasPU=false;
             for(unsigned i=0; i<M; ++i){
                 unsigned iP = ord.at(i);
-                nextWt *= intPow(J1_.Es.at(iP), c.composition.at(i));
+                nextWt *= intPow(J1E_.at(iP), c.composition.at(i));
                 if (doPU_ && PU_[ord.at(i)]){
                     hasPU = true;
                 }
@@ -470,7 +469,7 @@ void EECCalculator::computePointAtZero(){
         }
         for(unsigned order=2; order<=maxOrder_; ++order){//for each order
             double nextwt;
-            nextwt = intPow(J1_.Es.at(i), order);
+            nextwt = intPow(J1E_.at(i), order);
 
             //accumulate weight
             wts.push_back(nextwt); 
@@ -515,4 +514,26 @@ void EECCalculator::computePointAtZero(){
     }//end for each particle
 }
 
+std::vector<double> EECCalculator::normalizePt(const jet& j,
+                                               const normType& norm){
+    std::vector<double> ans;
+    ans.reserve(j.nPart);
+    double normFact = getNormFact(j, norm);
+    for(unsigned i=0; i<j.nPart; ++i){
+        ans.push_back(j.particles.at(i).pt/normFact);
+    }
+    return ans;
+}
 
+double EECCalculator::getNormFact(const jet& j, const normType& norm){
+    switch (norm){
+        case RAWPT:
+            return j.rawpt;
+        case SUMPT:
+            return j.sumpt;
+        case CORRPT:
+            return j.pt;
+        default:
+            throw std::invalid_argument("Invalid normType");
+    }
+}

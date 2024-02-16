@@ -410,10 +410,6 @@ class FourthOrderFixedTriangle : public DoubleDR{
             double RL=-1, RM=-1, RS=-1, R2=-1, R2L = -1;
             find_ijkl(distances, i, j, k, l, RL, RM, RS, R2, R2L);
 
-            printf("Found triangle:\n");
-            printf("\ti=%d, j=%d, k=%d, l=%d\n", i, j, k, l);
-            printf("\tRL=%f, RM=%f, RS=%f, R2=%f, R2L=%f\n", RL, RM, RS, R2, R2L);
-
             if(std::abs(RM/RL - spec_.RMoRL) > spec_.tol ||
                     std::abs(RS/RL - spec_.RSoRL) > spec_.tol){
                 return {};
@@ -530,6 +526,9 @@ void EECweightAccumulator::accumulate(const uvec& ord, const uvec& comp,
 
 void EECweightAccumulator::accumulate(const uvec& idx,
         const std::vector<double>& wts, unsigned offset){
+    if(idx.empty()){
+        return;
+    }
     for(unsigned i=offset; i<wts.size(); ++i){
         accus_.at(i).at(idx)(wts[i]);
     }
@@ -539,6 +538,9 @@ void EECweightAccumulator::accumulate(const uvec& ord,
         const uvec& comp, double wt, unsigned iAcc){
 
     uvec idx = indexer_->getIndex(ord, comp);
+    if(idx.empty()){
+        return;
+    }
     accus_.at(iAcc).at(idx)(wt);
 }
 
@@ -663,6 +665,9 @@ void EECtransferAccumulator::accumulate(const uvec& ordReco,
     uvec indexGen = indexerGen_->getIndex(ordGen, compGen);
     uvec index = indexReco;
     index.insert(index.end(), indexGen.begin(), indexGen.end());
+    if (indexReco.empty() || indexGen.empty()){
+        return; 
+    }
     for(unsigned i=0; i<weights.size(); ++i){
         accus_.at(i).at(index)(weights[i]);
     }
@@ -674,14 +679,15 @@ void EECtransferAccumulator::accumulate(const uvec& ordGen,
                                         const arma::mat& ptrans,
                                         double nextwt,
                                         unsigned iAcc){
-    printf("accumulating transfer\n");
     uvec indexGen = indexerGen_->getIndex(ordGen, compGen);
+    if(indexGen.empty()){
+        return;
+    }
 
     uvec ord_J1 = fullOrd(ordGen, compGen);
     unsigned order = ord_J1.size();
     uvec nadj = adj.nadj(ord_J1); 
     if (nadj.empty()){
-        printf("breaking early\n");
         return; //break early if any have no neighbors
     } 
 
@@ -694,19 +700,15 @@ void EECtransferAccumulator::accumulate(const uvec& ordGen,
             unsigned p2 = adj.at(p1)[ord_iter[i]];
             ord_J2[i] = p2;
 
-            printf("\tadj: ");
-            printOrd(adj.at(p1));
-            printf("\n");
-            printf("\tord_iter[i] = %u\n", ord_iter[i]);
-            printf("\tnadj[i] = %u\n", nadj[i]);
-            printf("\tp1: %u, p2: %u\n", p1, p2);
             tfact *= ptrans(p2, p1);
         }
         uvec index = indexerReco_->getIndex(ord_J2);
+        if(index.empty()){
+            continue;
+        }
         index.insert(index.end(), indexGen.begin(), indexGen.end());
         accus_.at(iAcc).at(index)(nextwt * tfact);
     } while(iterate_awkward(nadj, ord_iter));
-    printf("done\n");
 }
 
 double EECtransferAccumulator::get(unsigned iAcc, const uvec& ord) const{

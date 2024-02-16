@@ -8,7 +8,7 @@ EECCalculator::EECCalculator(int verbose) {
     doRes3_ = false;
     doRes4_ = false;
     verbose_ = verbose;
-    if(verbose_){
+    if(verbose_>1){
         printf("made empty calculator\n");
     }
 }
@@ -23,11 +23,17 @@ void EECCalculator::setupProjected(const jet& j1,
     J1_ = j1;
     J1E_ = normalizePt(j1, norm);
     comps_ = getCompositions(maxOrder_);
+    if(verbose_>1){
+        printf("set up projected\n");
+    }
 }
 
 void EECCalculator::addPU(const std::vector<bool>& PU){
     PU_ = PU;
     doPU_ = true;
+    if(verbose_>1){
+        printf("added PU\n");
+    }
 }
 
 void EECCalculator::addTransfer(
@@ -41,6 +47,9 @@ void EECCalculator::addTransfer(
     J2E_ = normalizePt(j2, norm);
 
     doTrans_ = true;
+    if(verbose_>1){
+        printf("added transfer\n");
+    }
 }
 
 void EECCalculator::enableRes3(const axisptr& xi3axis, 
@@ -48,6 +57,9 @@ void EECCalculator::enableRes3(const axisptr& xi3axis,
     doRes3_ = true;
     xi3axis_ = xi3axis;
     phi3axis_ = phi3axis;
+    if(verbose_>1){
+        printf("enabled res3\n");
+    }
 }
 
 void EECCalculator::enableRes4(const axisptr& RM4axis,
@@ -57,6 +69,9 @@ void EECCalculator::enableRes4(const axisptr& RM4axis,
     RM4axis_ = RM4axis;
     phi4axis_ = phi4axis;
     trispec_ = trispec;
+    if(verbose_>1){
+        printf("enabled res4\n");
+    }
 }
 
 void EECCalculator::run(){
@@ -134,8 +149,6 @@ const arma::mat EECCalculator::getTransferproj(unsigned order) const {
     checkTransfer();
     checkOrder(order);
 
-    printf("getting transfer proj\n");
-
     ArbitraryMatrix<double> AM = projtrans_->data(order-2);
     uvec dims = AM.dims();
     unsigned ndim = dims.size()/2;
@@ -151,7 +164,6 @@ const arma::mat EECCalculator::getTransferproj(unsigned order) const {
             result(i, j) = data[k++];
         }
     }
-    printf("done\n");
     return result;
     //TODO: check if this is correct
 }
@@ -161,8 +173,6 @@ const arma::mat EECCalculator::getTransferres3() const {
     checkTransfer();
     checkOrder(3);
     checkRes3();
-
-    printf("getting transfer res3\n");
 
     ArbitraryMatrix<double> AM = res3trans_->data(0);
     uvec dims = AM.dims();
@@ -179,7 +189,6 @@ const arma::mat EECCalculator::getTransferres3() const {
             result(i, j) = data[k++];
         }
     }
-    printf("done\n");
     return result;
     //TODO: check if this is correct
 }
@@ -189,8 +198,6 @@ const arma::mat EECCalculator::getTransferres4() const {
     checkTransfer();
     checkOrder(4);
     checkRes4();
-
-    printf("getting transfer res4\n");
 
     ArbitraryMatrix<double> AM = res4trans_->data(0);
     uvec dims = AM.dims();
@@ -207,7 +214,6 @@ const arma::mat EECCalculator::getTransferres4() const {
             result(i, j) = data[k++];
         }
     }
-    printf("done\n");
     return result;
     //TODO: check if this is correct
 }
@@ -439,9 +445,11 @@ void EECCalculator::accumulateWt(const unsigned M,
                 }
                 if (doTrans_){
                     res3trans_->accumulate(ord, c.composition,
-                            adj_, ptrans_, nextWt, order-2);
+                            adj_, ptrans_, nextWt, 0);
                 }
-            } else if(doRes4_ && order==4){
+            } 
+
+            if(doRes4_ && order==4){
                 res4wts_->accumulate(ord, c.composition, {nextWt});
                 if(hasPU){
                     res4wts_PU_->accumulate(ord, c.composition,
@@ -449,7 +457,7 @@ void EECCalculator::accumulateWt(const unsigned M,
                 }
                 if (doTrans_){
                     res4trans_->accumulate(ord, c.composition,
-                            adj_, ptrans_, nextWt, order-2);
+                            adj_, ptrans_, nextWt, 0);
                 }
             }
         }//end for each composition
@@ -479,21 +487,21 @@ void EECCalculator::computePointAtZero(){
         }//end for each order
         projwts_->accumulate(uvec({i}), uvec({1}), wts);
         if(doRes3_){
-            res3wts_->accumulate(uvec({i}), uvec({1}), 
+            res3wts_->accumulate(uvec({i}), uvec({3}), 
                                  std::vector<double>({wts[1]}));
         }
         if(doRes4_){
-            res4wts_->accumulate(uvec({i}), uvec({1}), 
+            res4wts_->accumulate(uvec({i}), uvec({4}), 
                                  std::vector<double>({wts[2]}));
         }
         if(doPU_){
             projwts_PU_->accumulate(uvec({i}), uvec({1}), wts_PU);
             if(doRes3_){
-                res3wts_PU_->accumulate(uvec({i}), uvec({1}),
+                res3wts_PU_->accumulate(uvec({i}), uvec({3}),
                                         std::vector<double>({wts_PU[1]}));
             }
             if(doRes4_){
-                res4wts_PU_->accumulate(uvec({i}), uvec({1}), 
+                res4wts_PU_->accumulate(uvec({i}), uvec({4}), 
                                         std::vector<double>({wts_PU[2]}));
             }
         }

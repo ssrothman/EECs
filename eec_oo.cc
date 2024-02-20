@@ -11,6 +11,13 @@ EECCalculator::EECCalculator(int verbose) {
     if(verbose_>1){
         printf("made empty calculator\n");
     }
+
+    duration_total_ = 0;
+    duration_transferproj_ = 0;
+    duration_res3_ = 0;
+    duration_res4_ = 0;
+    duration_transferres3_ = 0;
+    duration_transferres4_ = 0;
 }
 
 void EECCalculator::setupProjected(const jet& j1, 
@@ -92,6 +99,17 @@ void EECCalculator::run(){
         }
     }
 
+    if(verbose_){
+        printf("TIME STATISTICS\n");
+        long proj = duration_total_ - duration_transferproj_ - duration_res3_ - duration_res4_ - duration_transferres3_ - duration_transferres4_;
+        printf("total: %0.3f\n", std::log10(duration_total_));
+        printf("\tproj:         %0.3f\n", std::log10(proj));
+        printf("\ttransferproj: %0.3f\n", std::log10(duration_transferproj_));
+        printf("\tres3:         %0.3f\n", std::log10(duration_res3_));
+        printf("\ttransferres3: %0.3f\n", std::log10(duration_transferres3_));
+        printf("\tres4:         %0.3f\n", std::log10(duration_res4_));
+        printf("\ttransferres4: %0.3f\n", std::log10(duration_transferres4_));
+    }
     ran_=true;
 }
 
@@ -230,6 +248,15 @@ void EECCalculator::initialize(){
     if(verbose_){
         printf("top of initialize\n");
     }
+
+    //double sum=0;
+    //printf("particle momenta:\n");
+    //for(const auto& p : J1E_){
+    //    printf("%0.5g\n", p);
+    //    sum += p;
+    //}
+    //printf("sumpt: %0.5g\n", sum);
+
     ran_ = false;
 
     unsigned Nacc = maxOrder_ - 1;
@@ -398,6 +425,7 @@ void EECCalculator::computeMwayContribution(unsigned M){
 void EECCalculator::accumulateWt(const unsigned M,
                   const uvec& ord){
 
+    auto start = std::chrono::high_resolution_clock::now();
     //wait to accumulate projected weights till end of loop
     //we can do this becase the maxDR binning is indep of 
     //composition
@@ -429,46 +457,76 @@ void EECCalculator::accumulateWt(const unsigned M,
                 }
             }
             wts[order-M] += nextWt;
+            //if(order==5){
+            //    printf("Weight for ");
+            //    printOrd(ord);
+            //    printf(" is %0.5g\n", nextWt);
+            //}
             if (hasPU){
                 wts_PU[order-M] += nextWt;
             }
 
+
             if (doTrans_){
+                auto beforetrans = std::chrono::high_resolution_clock::now();
                 projtrans_->accumulate(ord, c.composition, 
                         adj_, ptrans_, nextWt, order-2);
+                auto aftertrans = std::chrono::high_resolution_clock::now();
+                duration_transferproj_ += std::chrono::duration_cast<std::chrono::nanoseconds>(aftertrans-beforetrans).count();
             }
             if(doRes3_ && order==3){
+                auto beforeres3 = std::chrono::high_resolution_clock::now();
                 res3wts_->accumulate(ord, c.composition, {nextWt});
                 if(hasPU){
                     res3wts_PU_->accumulate(ord, c.composition, 
                             {nextWt});
                 }
+                auto afterres3 = std::chrono::high_resolution_clock::now();
+                duration_res3_ += std::chrono::duration_cast<std::chrono::nanoseconds>(afterres3-beforeres3).count();
                 if (doTrans_){
+                    auto beforeres3trans = std::chrono::high_resolution_clock::now();
                     res3trans_->accumulate(ord, c.composition,
                             adj_, ptrans_, nextWt, 0);
+                    auto afterres3trans = std::chrono::high_resolution_clock::now();
+                    duration_transferres3_ += std::chrono::duration_cast<std::chrono::nanoseconds>(afterres3trans-beforeres3trans).count();
                 }
             } 
 
             if(doRes4_ && order==4){
+                auto beforeres4 = std::chrono::high_resolution_clock::now();
                 res4wts_->accumulate(ord, c.composition, {nextWt});
                 if(hasPU){
                     res4wts_PU_->accumulate(ord, c.composition,
                             {nextWt});
                 }
+                auto afterres4 = std::chrono::high_resolution_clock::now();
+                duration_res4_ += std::chrono::duration_cast<std::chrono::nanoseconds>(afterres4-beforeres4).count();
                 if (doTrans_){
+                    auto beforeres4trans = std::chrono::high_resolution_clock::now();
                     res4trans_->accumulate(ord, c.composition,
                             adj_, ptrans_, nextWt, 0);
+                    auto afterres4trans = std::chrono::high_resolution_clock::now();
+                    duration_transferres4_ += std::chrono::duration_cast<std::chrono::nanoseconds>(afterres4trans-beforeres4trans).count();
                 }
             }
         }//end for each composition
     }//end for each order
+    //if(M<=5){
+    //    printf("wtsvec: \n");
+    //    for(auto w : wts){
+    //        printf("\t%0.5g \n", w);
+    //    }
+    //}
     projwts_->accumulate(ord, uvec(M, 1), wts, M-2); 
     if(doPU_){
         projwts_PU_->accumulate(ord, uvec(M, 1), wts_PU, M-2);
     }
+    auto end = std::chrono::high_resolution_clock::now();
+    duration_total_ += std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
 }
 
 void EECCalculator::computePointAtZero(){
+    auto start = std::chrono::high_resolution_clock::now();
     for(unsigned i=0; i<J1_.nPart; ++i){//for each particle
         std::vector<double> wts, wts_PU;
         wts.reserve(maxOrder_-1);
@@ -486,40 +544,59 @@ void EECCalculator::computePointAtZero(){
             }
         }//end for each order
         projwts_->accumulate(uvec({i}), uvec({1}), wts);
-        if(doRes3_){
-            res3wts_->accumulate(uvec({i}), uvec({3}), 
-                                 std::vector<double>({wts[1]}));
-        }
-        if(doRes4_){
-            res4wts_->accumulate(uvec({i}), uvec({4}), 
-                                 std::vector<double>({wts[2]}));
-        }
         if(doPU_){
             projwts_PU_->accumulate(uvec({i}), uvec({1}), wts_PU);
+        }
+
+        if(doRes3_){
+            auto beforeres3 = std::chrono::high_resolution_clock::now();
+            res3wts_->accumulate(uvec({i}), uvec({3}), 
+                                 std::vector<double>({wts[1]}));
             if(doRes3_){
                 res3wts_PU_->accumulate(uvec({i}), uvec({3}),
                                         std::vector<double>({wts_PU[1]}));
             }
+            auto afterres3 = std::chrono::high_resolution_clock::now();
+            duration_res3_ += std::chrono::duration_cast<std::chrono::nanoseconds>(afterres3-beforeres3).count();
+        }
+        if(doRes4_){
+            auto beforeres4 = std::chrono::high_resolution_clock::now();
+            res4wts_->accumulate(uvec({i}), uvec({4}), 
+                                 std::vector<double>({wts[2]}));
             if(doRes4_){
                 res4wts_PU_->accumulate(uvec({i}), uvec({4}), 
                                         std::vector<double>({wts_PU[2]}));
             }
+            auto afterres4 = std::chrono::high_resolution_clock::now();
+            duration_res4_ += std::chrono::duration_cast<std::chrono::nanoseconds>(afterres4-beforeres4).count();
         }
         if(doTrans_){
+            auto beforetrans = std::chrono::high_resolution_clock::now();
             for(unsigned order=2; order<=maxOrder_; ++order){
                 projtrans_->accumulate(uvec({i}), uvec({order}), adj_, ptrans_,
                                        wts[order-2], order-2);
             }
+            auto aftertrans = std::chrono::high_resolution_clock::now();
+            duration_transferproj_ = std::chrono::duration_cast<std::chrono::nanoseconds>(aftertrans-beforetrans).count();
             if(doRes3_){
+                auto beforetrans3 = std::chrono::high_resolution_clock::now();
                 res3trans_->accumulate(uvec({i}), uvec({3}), adj_, ptrans_,
                                       wts[1], 0);
+                auto aftertrans3 = std::chrono::high_resolution_clock::now();
+                duration_transferres3_ = std::chrono::duration_cast<std::chrono::nanoseconds>(aftertrans3-beforetrans3).count();
+
             }
             if(doRes4_){
+                auto beforetrans4 = std::chrono::high_resolution_clock::now();
                 res4trans_->accumulate(uvec({i}), uvec({4}), adj_, ptrans_,
                                       wts[2], 0);
+                auto aftertrans4 = std::chrono::high_resolution_clock::now();
+                duration_transferres4_ = std::chrono::duration_cast<std::chrono::nanoseconds>(aftertrans4-beforetrans4).count();
             }
         }
     }//end for each particle
+    auto end = std::chrono::high_resolution_clock::now();
+    duration_total_ += std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
 }
 
 std::vector<double> EECCalculator::normalizePt(const jet& j,

@@ -154,6 +154,13 @@ private:
 
     //did we actually run?
     bool ran_;
+
+    long duration_total_;
+    long duration_transferproj_;
+    long duration_res3_;
+    long duration_res4_;
+    long duration_transferres3_;
+    long duration_transferres4_;
 };
 
 #endif

@@ -207,20 +207,22 @@ class ThirdOrderCoords : public DoubleDR{
 
         uvec getIndex(const uvec& ord,
                       const uvec& comp) const {
-            valvec sorted = sortedDRs(ord, comp);
+            double RL, xi, phi;
 
-            if(sorted.size() < 3){
-                throw std::invalid_argument(
-                        "ThirdOrderCoords::getIndex "
-                        "requires ord.size() >= 3");
+            if(ord.size()==1){
+                RL = 0;
+                xi = 0; //undefined
+                phi = 0;//undefined
+            } else if(ord.size() == 2){
+                RL = dRs_.at(ord);
+                xi = 0;
+                phi = 0;//undefined
+            } else {
+                auto sorted = sortedDRs(ord, comp);
+                RL = sorted[0];
+                xi = sorted[1]/sorted[0];
+                phi = std::asin(std::sqrt(1 - square((sorted[0]-sorted[1])/sorted[2])));
             }
-
-            double RL = sorted[0];
-            double RM = sorted[1];
-            double RS = sorted[2];
-
-            double xi = RS/RM;
-            double phi = std::asin(std::sqrt(1 - square((RL-RM)/RS)));
 
             return {unsigned(axes_[0].index(RL) + 1),
                     unsigned(axes_[1].index(xi) + 1),
@@ -529,8 +531,11 @@ void EECweightAccumulator::accumulate(const uvec& idx,
     if(idx.empty()){
         return;
     }
-    for(unsigned i=offset; i<wts.size(); ++i){
-        accus_.at(i).at(idx)(wts[i]);
+    for(unsigned i=0; i<wts.size(); ++i){
+        //if(i+offset==3){
+        //    printf("\tAccumulating weight %0.5g\n", wts[i]);
+        //}
+        accus_.at(i+offset).at(idx)(wts[i]);
     }
 }
 

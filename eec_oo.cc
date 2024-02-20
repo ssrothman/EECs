@@ -477,9 +477,12 @@ void EECCalculator::accumulateWt(const unsigned M,
             if(doRes3_ && order==3){
                 auto beforeres3 = std::chrono::high_resolution_clock::now();
                 res3wts_->accumulate(ord, c.composition, {nextWt});
+                printf("accumulating weight for ");
+                printOrd(ord);
+                printf(" = %0.5g\n", nextWt);
                 if(hasPU){
-                    res3wts_PU_->accumulate(ord, c.composition, 
-                            {nextWt});
+                    res3wts_PU_->accumulate(ord, c.composition, {nextWt});
+                    printf("\tPU weight = %0.5g\n", nextWt);
                 }
                 auto afterres3 = std::chrono::high_resolution_clock::now();
                 duration_res3_ += std::chrono::duration_cast<std::chrono::nanoseconds>(afterres3-beforeres3).count();
@@ -541,6 +544,8 @@ void EECCalculator::computePointAtZero(){
             wts.push_back(nextwt); 
             if (doPU_ && PU_.at(i)){
                 wts_PU.push_back(nextwt);
+            }else {
+                wts_PU.push_back(0);
             }
         }//end for each order
         projwts_->accumulate(uvec({i}), uvec({1}), wts);
@@ -550,9 +555,11 @@ void EECCalculator::computePointAtZero(){
 
         if(doRes3_){
             auto beforeres3 = std::chrono::high_resolution_clock::now();
+            printf("accumulating zero-point weight = %0.5g\n", wts[1]);
             res3wts_->accumulate(uvec({i}), uvec({3}), 
                                  std::vector<double>({wts[1]}));
-            if(doRes3_){
+            if(doPU_){
+                printf("\tPU weight = %0.5g\n", wts_PU[1]);
                 res3wts_PU_->accumulate(uvec({i}), uvec({3}),
                                         std::vector<double>({wts_PU[1]}));
             }
@@ -563,7 +570,7 @@ void EECCalculator::computePointAtZero(){
             auto beforeres4 = std::chrono::high_resolution_clock::now();
             res4wts_->accumulate(uvec({i}), uvec({4}), 
                                  std::vector<double>({wts[2]}));
-            if(doRes4_){
+            if(doPU_){
                 res4wts_PU_->accumulate(uvec({i}), uvec({4}), 
                                         std::vector<double>({wts_PU[2]}));
             }

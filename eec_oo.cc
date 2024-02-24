@@ -1,4 +1,5 @@
 #include "eec_oo.h"
+#include "SRothman/SimonTools/src/deltaR.h"
 
 EECCalculator::EECCalculator(int verbose) {
     maxOrder_ = 0;
@@ -407,6 +408,303 @@ void EECCalculator::checkTransfer() const {
     if(!doTrans_){
         throw std::logic_error("Error! Asking for EEC transfer results when no second jet was supplied!");
     }
+}
+
+ArbitraryMatrix<unsigned> EECCalculator::getDRs(){
+    ArbitraryMatrix<unsigned> ans({J1_.nPart, J1_.nPart});
+    for(unsigned i0=0; i0<J1_.nPart; ++i0){
+        for(unsigned i1=i0+1; i1<J1_.nPart; ++i1){
+            double deltaR = dR(J1_.particles[i0], J1_.particles[i1]);
+            ans.at({i0, i1}) = static_cast<unsigned>(RLaxis_->index(deltaR) + 1);
+        }
+    }
+    return ans;
+}
+
+std::vector<double> EECCalculator::fastSecondOrder(){
+    auto dRs = getDRs();
+    std::vector<double> wts(boost::histogram::axis::traits::extent(*RLaxis_), 0.0);
+
+    double weight = 1;
+    for(unsigned i0=0; i0<J1_.nPart; ++i0){
+        double partial0 = J1E_[i0];
+        unsigned DR0 = 0;
+
+        weight = square(partial0); //case i0==i1
+        wts[DR0] += weight;
+        for(unsigned i1=i0+1; i1<J1_.nPart; ++i1){
+            weight = partial0 * J1E_[i1] * 2; 
+            unsigned DR1 = dRs.at({i0, i1});
+            wts[DR1] += weight;
+        }
+    }
+    return wts;
+}
+
+std::vector<double> EECCalculator::fastThirdOrder(){
+    auto dRs = getDRs();
+    std::vector<double> wts(boost::histogram::axis::traits::extent(*RLaxis_), 0.0);
+
+    double weight = 1;
+    for(unsigned i0=0; i0<J1_.nPart; ++i0){
+        double E0 = J1E_[i0];
+        double partial0 = E0;
+
+        unsigned DR0 = 0;
+        weight = partial0 * square(partial0); //case i0==i1==i2
+        wts[DR0] += weight;
+
+        for(unsigned i1=i0+1; i1<J1_.nPart; ++i1){
+            double E1 = J1E_[i1];
+            double partial1 = partial0 * E1;
+
+            unsigned DR1 = dRs.at({i0, i1});
+            weight = 3 * partial1 * (E0 + E1);//case i1==i2
+            wts[DR1] += weight;
+
+            for(unsigned i2=i1+1; i2<J1_.nPart; ++i2){
+                weight = partial1 * J1E_[i2] * 6;
+                unsigned DR2 = std::max({DR1, dRs.at({i0, i2}), 
+                                             dRs.at({i1, i2})});
+                wts[DR2] += weight;
+            }
+        }
+    }
+    return wts;
+}
+
+std::vector<double> EECCalculator::fastFourthOrder(){
+    auto dRs = getDRs();
+    std::vector<double> wts(boost::histogram::axis::traits::extent(*RLaxis_), 0.0);
+
+    double weight = 1;
+    for(unsigned i0=0; i0<J1_.nPart; ++i0){
+        double E0 = J1E_[i0];
+        double sqE0 = square(E0);
+        double partial0 = E0;
+
+        //case i0==i1==i2==i3
+        unsigned DR0 = 0;
+        weight = square(sqE0);
+        wts[DR0] += weight;
+
+        for(unsigned i1=i0+1; i1<J1_.nPart; ++i1){
+            double E1 = J1E_[i1];
+            double partial1 = partial0 * E1;
+            
+            //case i0==i2; i1==i3
+            unsigned DR1 = dRs.at({i0, i1});
+            weight = 6 * square(partial1);
+            weight += 4 * partial1 * (sqE0 + square(E1));
+            wts[DR1] += weight;
+
+            for(unsigned i2=i1+1; i2<J1_.nPart; ++i2){
+                double E2 = J1E_[i2];
+                double partial2 = partial1 * E2;
+
+                //case i2==i3
+                unsigned DR2 = std::max({DR1, dRs.at({i0, i2}), 
+                                             dRs.at({i1, i2})});
+                weight = 12 * partial2 * (E0 + E1 + E2);
+                wts[DR2] += weight;
+
+                for(unsigned i3=i2+1; i3<J1_.nPart; ++i3){
+                    //case i0!=i1!=i2!=i3
+                    weight = partial2 * J1E_[i3] * 24;
+                    unsigned DR3 = std::max({DR2, dRs.at({i0, i3}),
+                                                 dRs.at({i1, i3}), 
+                                                 dRs.at({i2, i3})});
+                    wts[DR3] += weight;
+                }
+            }
+        }
+    }
+    return wts;
+}
+
+std::vector<double> EECCalculator::fastFifthOrder(){
+    auto dRs = getDRs();
+    std::vector<double> wts(boost::histogram::axis::traits::extent(*RLaxis_), 0.0);
+
+    double weight = 1;
+    for(unsigned i0=0; i0<J1_.nPart; ++i0){
+        double E0 = J1E_[i0];
+        double sqE0 = square(E0);
+
+        double partial0 = E0;
+
+        //case i0==i1==i2==i3==i4
+        unsigned DR0 = 0;
+        weight = square(sqE0) * E0;
+        wts[DR0] += weight;
+
+        for(unsigned i1=i0+1; i1<J1_.nPart; ++i1){
+            double E1 = J1E_[i1];
+            double sqE1 = square(E1);
+
+            double partial1 = partial0 * E1;
+
+            //case two distinct values
+            unsigned DR1 = dRs.at({i0, i1});
+            
+            //partition (4, 1)
+            weight = 5 * partial1 * (sqE1 * E1 +
+                                     sqE0 * E0);
+            //partition (3, 2)
+            weight += 10 * square(partial1) * (E0 + E1);
+            wts[DR1] += weight;
+
+            for(unsigned i2=i1+1; i2<J1_.nPart; ++i2){
+                double E2 = J1E_[i2];
+                double sqE2 = square(E2);
+
+                double partial2 = partial1 * E2;
+
+                //case three distinct values
+                unsigned DR2 = std::max({DR1, dRs.at({i0, i2}), 
+                                             dRs.at({i1, i2})});
+                //partition (3, 1, 1)
+                weight = 20 * partial2 * (sqE0 + sqE1 + sqE2);
+                //partition (2, 2, 1)
+                weight += 30 * partial2 * (E0 * E1 +
+                                           E0 * E2 +
+                                           E1 * E2);
+                wts[DR2] += weight;
+
+                for(unsigned i3=i2+1; i3<J1_.nPart; ++i3){
+                    double E3 = J1E_[i3];
+
+                    double partial3 = partial2 * E3;
+
+                    //case four distinct values
+                    unsigned DR3 = std::max({DR2, dRs.at({i0, i3}), 
+                                                 dRs.at({i1, i3}), 
+                                                 dRs.at({i2, i3})});
+                    //partition (2, 1, 1, 1)
+                    weight = 60 * partial3 * (E0 + E1 + E2 + E3);
+                    wts[DR3] += weight;
+
+                    for(unsigned i4=i3+1; i4<J1_.nPart; ++i4){
+                        //case five distinct values
+                        weight = partial3 * J1E_[i4] * 120;
+                        unsigned DR4 = std::max({DR3, dRs.at({i0, i4}), 
+                                                     dRs.at({i1, i4}), 
+                                                     dRs.at({i2, i4}),
+                                                     dRs.at({i3, i4})});
+                        wts[DR4] += weight;
+                    }
+                }
+            }
+        }
+    }
+    return wts;
+}
+
+std::vector<double> EECCalculator::fastSixthOrder(){
+    auto dRs = getDRs();
+    std::vector<double> wts(boost::histogram::axis::traits::extent(*RLaxis_), 0.0);
+
+    double weight=1;
+    for(unsigned i0=0; i0<J1_.nPart; ++i0){
+        double E0 = J1E_[i0]; 
+        double sqE0 = square(E0);
+
+        double partial0 = E0;
+
+        unsigned DR0 = 0;
+        weight = square(sqE0) * sqE0;
+        wts[DR0] += weight;
+
+        for(unsigned i1=i0+1; i1<J1_.nPart; ++i1){
+            double E1 = J1E_[i1];
+            double sqE1 = square(E1);
+
+            double partial1 = partial0 * E1;
+
+            unsigned DR1 = dRs.at({i0, i1});
+
+            //partition (5, 1)
+            weight = 6 * partial1 * (sqE1 * sqE1 + 
+                                     sqE0 * sqE0);
+            //partition (4, 2)
+            weight = 15 * square(partial1) * (sqE0 + sqE1);
+            wts[DR1] += weight;
+
+            for(unsigned i2=i1+1; i2<J1_.nPart; ++i2){
+                double E2 = J1E_[i2];
+                double sqE2 = square(E2);
+
+                double partial2 = partial1 * E2;
+
+                unsigned DR2 = std::max({DR1, dRs.at({i0, i2}), 
+                                             dRs.at({i1, i2})});
+
+                //partition (4, 1, 1)
+                weight = 30 * partial2 * (sqE0 * E0 + 
+                                          sqE1 * E1 + 
+                                          sqE2 * E2);
+                //partition (3, 2, 1)
+                weight += 60 * partial2 * (sqE0 * E1 +
+                                           sqE0 * E2 + 
+                                           sqE1 * E2);
+                //partition (2, 2, 2)
+                weight += 90 * square(partial2);
+                wts[DR2] += weight;
+
+                for(unsigned i3=i2+1; i3<J1_.nPart; ++i3){
+                    double E3 = J1E_[i3];
+                    double sqE3 = square(E3);
+
+                    double partial3 = partial2 * E3;
+
+                    unsigned DR3 = std::max({DR2, dRs.at({i0, i3}), 
+                                                 dRs.at({i1, i3}), 
+                                                 dRs.at({i2, i3})});
+
+                    //partition (3, 1, 1, 1)
+                    weight = 120 * partial3 * (sqE0 +
+                                               sqE1 +
+                                               sqE2 +
+                                               sqE3);
+                    //partition (2, 2, 1, 1)
+                    weight += 180 * partial3 * (E0 * E1 +
+                                                E0 * E2 +
+                                                E0 * E3 +
+                                                E1 * E2 +
+                                                E1 * E3 +
+                                                E2 * E3);
+                    wts[DR3] += weight;
+
+                    for(unsigned i4=i3+1; i4<J1_.nPart; ++i4){
+                        double E4 = J1E_[i4];
+
+                        double partial4 = partial3 * E4;
+
+                        unsigned DR4 = std::max({DR3, dRs.at({i0, i4}), 
+                                                     dRs.at({i1, i4}), 
+                                                     dRs.at({i2, i4}),
+                                                     dRs.at({i3, i4})});
+
+
+                        //partition (2, 1, 1, 1, 1)
+                        weight = 360 * partial4 * (E0 + E1 + E2 + E3 + E4);
+                        wts[DR4] += weight;
+
+                        for(unsigned i5=i4+1; i5<J1_.nPart; ++i5){
+                            weight = partial4 * J1E_[i5] * 720;
+                            unsigned DR5 = std::max({DR4, dRs.at({i0, i5}), 
+                                                         dRs.at({i1, i5}), 
+                                                         dRs.at({i2, i5}),
+                                                         dRs.at({i3, i5}),
+                                                         dRs.at({i4, i5})});
+                            wts[DR5] += weight;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return wts;
 }
 
 void EECCalculator::computeMwayContribution(unsigned M){

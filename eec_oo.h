@@ -86,6 +86,14 @@ public:
     unsigned getMaxOrder() const;
 
 private:
+    ArbitraryMatrix<unsigned> getDRs();
+
+    std::vector<double> fastSecondOrder();
+    std::vector<double> fastThirdOrder();
+    std::vector<double> fastFourthOrder();
+    std::vector<double> fastFifthOrder();
+    std::vector<double> fastSixthOrder();
+
     //renormalize particle transfer matrix appropriately 
     arma::mat makePtrans(const jet& genjet, const jet& recojet,
                          const arma::mat& rawmat, 

@@ -532,9 +532,6 @@ void EECweightAccumulator::accumulate(const uvec& idx,
         return;
     }
     for(unsigned i=0; i<wts.size(); ++i){
-        //if(i+offset==3){
-        //    printf("\tAccumulating weight %0.5g\n", wts[i]);
-        //}
         accus_.at(i+offset).at(idx)(wts[i]);
     }
 }

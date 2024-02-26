@@ -1,3 +1,5 @@
+#ifndef EECS_FAST_H
+
 #include <boost/histogram.hpp>
 #include "boost/multi_array.hpp"
 
@@ -5,43 +7,15 @@
 
 #include "SRothman/SimonTools/src/jets.h"
 
+#include "fastStructs.h"
+#include "fastTransfer6_1.h"
+#include "fastTransfer6_2.h"
+#include "fastTransfer6_3.h"
+#include "fastTransfer6_4.h"
+#include "fastTransfer6_5.h"
+#include "fastTransfer6_6.h"
+
 namespace fastEEC{
-    using namespace boost;
-    using namespace std;
-
-    using axis_t = histogram::axis::variable<double>;
-    using axisptr = std::shared_ptr<axis_t>;
-
-    using umat = multi_array<unsigned, 2>;
-    using umatptr = std::shared_ptr<umat>;
-    
-    template <typename T>
-    struct result{
-        vector<T> wts2;
-        vector<T> wts3;
-        vector<T> wts4;
-        vector<T> wts5;
-        vector<T> wts6;
-
-        vector<T> wts2_PU;
-        vector<T> wts3_PU;
-        vector<T> wts4_PU;
-        vector<T> wts5_PU;
-        vector<T> wts6_PU;
-
-        multi_array<T, 2> transfer2;
-        multi_array<T, 2> transfer3;
-        multi_array<T, 2> transfer4;
-        multi_array<T, 2> transfer5;
-        multi_array<T, 2> transfer6;
-    };
-
-    enum normType {
-        RAWPT, 
-        CORRPT,
-        SUMPT, 
-    };
-
     double getNormFact(const jet& J, const normType& nt){
         switch (nt){
             case RAWPT:
@@ -80,220 +54,20 @@ namespace fastEEC{
         return ans;
     }
 
-    template <typename T>
-    void fastTransfer2(const T wt,
-                       const unsigned i0,
-                       const unsigned i1,
-                       const unsigned DR_Gen,
-                       const unsigned maxOrder,
-                       const umat* dRs_Reco, 
-                       const adjacency* adj,
-                       const multi_array<T, 2>* const ptrans,
-                       result<T>& ans){
-        const auto& adj0 = adj->at(i0);
-        const auto& adj1 = adj->at(i1);
-
-        T weight0, weight1;
-        for (const auto& j0 : adj0){
-            weight0 = wt * (*ptrans)[i0][j0];
-            for(const auto& j1 : adj1){
-                weight1 = weight0 * (*ptrans)[i1][j1];
-                unsigned DR_Reco = (*dRs_Reco)[j0][j1];
-                ans.transfer2[DR_Gen][DR_Reco] += weight1;
-            }
-        }
+    adjacency getAdj(const arma::mat& ptrans){
+        return adjacency(ptrans);
     }
 
     template <typename T>
-    void fastTransfer3(const T wt,
-                       const unsigned i0,
-                       const unsigned i1,
-                       const unsigned i2,
-                       const unsigned DR_Gen,
-                       const unsigned maxOrder,
-                       const umat* dRs_Reco, 
-                       const adjacency* adj,
-                       const multi_array<T, 2>* const ptrans,
-                       result<T>& ans){
-        const auto& adj0 = adj->at(i0);
-        const auto& adj1 = adj->at(i1);
-        const auto& adj2 = adj->at(i2);
-
-        T weight0, weight1, weight2;
-        for (const auto& j0 : adj0){
-            weight0 = wt * (*ptrans)[i0][j0];
-            for(const auto& j1 : adj1){
-                weight1 = weight0 * (*ptrans)[i1][j1];
-                unsigned DR1 = (*dRs_Reco)[j0][j1];
-                for(const auto& j2 : adj2){
-                    weight2 = weight1 * (*ptrans)[i2][j2];
-                    unsigned DR_Reco = max(DR1, (*dRs_Reco)[j0][j2],
-                                                (*dRs_Reco)[j1][j2]);
-                    ans.transfer3[DR_Gen][DR_Reco] += weight2;
-                }
+    multi_array<T, 2> getPtrans(const arma::mat& ptrans){//NB we transpose for faster iteration
+        multi_array<T, 2> ans(extents[ptrans.n_cols][ptrans.n_rows]);
+        for(unsigned i=0; i<ptrans.n_rows; ++i){
+            for(unsigned j=0; j<ptrans.n_cols; ++j){
+                ans[j][i] = ptrans(i,j);
             }
         }
+        return ans;
     }
-
-    template <typename T>
-    void fastTransfer4(const T wt,
-                       const unsigned i0,
-                       const unsigned i1,
-                       const unsigned i2,
-                       const unsigned i3,
-                       const unsigned DR_Gen,
-                       const unsigned maxOrder,
-                       const umat* dRs_Reco, 
-                       const adjacency* adj,
-                       const multi_array<T, 2>* const ptrans,
-                       result<T>& ans){
-        const auto& adj0 = adj->at(i0);
-        const auto& adj1 = adj->at(i1);
-        const auto& adj2 = adj->at(i2);
-        const auto& adj3 = adj->at(i3);
-
-        T weight0, weight1, weight2, weight3;
-        for (const auto& j0 : adj0){
-            weight0 = wt * (*ptrans)[i0][j0];
-            for(const auto& j1 : adj1){
-                weight1 = weight0 * (*ptrans)[i1][j1];
-                unsigned DR1 = (*dRs_Reco)[j0][j1];
-                for(const auto& j2 : adj2){
-                    weight2 = weight1 * (*ptrans)[i2][j2];
-                    unsigned DR2 = max(DR1, (*dRs_Reco)[j0][j2],
-                                            (*dRs_Reco)[j1][j2]);
-                    for(const auto& j3 : adj3){
-                        weight3 = weight2 * (*ptrans)[i3][j3];
-                        unsigned DR_Reco = max(DR2, (*dRs_Reco)[j0][j3],
-                                                    (*dRs_Reco)[j1][j3],
-                                                    (*dRs_Reco)[j2][j3]);
-                        ans.transfer4[DR_Gen][DR_Reco] += weight3;
-                    }
-                }
-            }
-        }
-    }
-
-    template <typename T>
-    void fastTransfer5(const T wt,
-                       const unsigned i0,
-                       const unsigned i1,
-                       const unsigned i2,
-                       const unsigned i3,
-                       const unsigned i4,
-                       const unsigned DR_Gen,
-                       const unsigned maxOrder,
-                       const umat* dRs_Reco, 
-                       const adjacency* adj,
-                       const multi_array<T, 2>* const ptrans,
-                       result<T>& ans){
-        const auto& adj0 = adj->at(i0);
-        const auto& adj1 = adj->at(i1);
-        const auto& adj2 = adj->at(i2);
-        const auto& adj3 = adj->at(i3);
-        const auto& adj4 = adj->at(i4);
-
-        T weight0, weight1, weight2, weight3, weight4;
-        for (const auto& j0 : adj0){
-            weight0 = wt * (*ptrans)[i0][j0];
-            for(const auto& j1 : adj1){
-                weight1 = weight0 * (*ptrans)[i1][j1];
-                unsigned DR1 = (*dRs_Reco)[j0][j1];
-                for(const auto& j2 : adj2){
-                    weight2 = weight1 * (*ptrans)[i2][j2];
-                    unsigned DR2 = max(DR1, (*dRs_Reco)[j0][j2],
-                                            (*dRs_Reco)[j1][j2]);
-                    for(const auto& j3 : adj3){
-                        weight3 = weight2 * (*ptrans)[i3][j3];
-                        unsigned DR3 = max(DR2, (*dRs_Reco)[j0][j3],
-                                                (*dRs_Reco)[j1][j3],
-                                                (*dRs_Reco)[j2][j3]);
-                        for(const auto& j4 : adj4){
-                            weight4 = weight3 * (*ptrans)[i4][j4];
-                            unsigned DR_Reco = max(DR3, (*dRs_Reco)[j0][j4],
-                                                        (*dRs_Reco)[j1][j4],
-                                                        (*dRs_Reco)[j2][j4],
-                                                        (*dRs_Reco)[j3][j4]);
-                            ans.transfer5[DR_Gen][DR_Reco] += weight4;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    template <typename T>
-    void fastTransfer6(const T wt,
-                       const unsigned i0,
-                       const unsigned i1,
-                       const unsigned i2,
-                       const unsigned i3,
-                       const unsigned i4,
-                       const unsigned i5,
-                       const unsigned DR_Gen,
-                       const unsigned maxOrder,
-                       const umat* dRs_Reco, 
-                       const adjacency* adj,
-                       const multi_array<T, 2>* const ptrans,
-                       result<T>& ans){
-        const auto& adj0 = adj->at(i0);
-        const auto& adj1 = adj->at(i1);
-        const auto& adj2 = adj->at(i2);
-        const auto& adj3 = adj->at(i3);
-        const auto& adj4 = adj->at(i4);
-        const auto& adj5 = adj->at(i5);
-
-        T weight0, weight1, weight2, weight3, weight4, weight5;
-        for (const auto& j0 : adj0){
-            weight0 = wt * (*ptrans)[i0][j0];
-            for(const auto& j1 : adj1){
-                weight1 = weight0 * (*ptrans)[i1][j1];
-                unsigned DR1 = (*dRs_Reco)[j0][j1];
-                for(const auto& j2 : adj2){
-                    weight2 = weight1 * (*ptrans)[i2][j2];
-                    unsigned DR2 = max(DR1, (*dRs_Reco)[j0][j2],
-                                            (*dRs_Reco)[j1][j2]);
-                    for(const auto& j3 : adj3){
-                        weight3 = weight2 * (*ptrans)[i3][j3];
-                        unsigned DR3 = max(DR2, (*dRs_Reco)[j0][j3],
-                                                (*dRs_Reco)[j1][j3],
-                                                (*dRs_Reco)[j2][j3]);
-                        for(const auto& j4 : adj4){
-                            weight4 = weight3 * (*ptrans)[i4][j4];
-                            unsigned DR4 = max(DR3, (*dRs_Reco)[j0][j4],
-                                                    (*dRs_Reco)[j1][j4],
-                                                    (*dRs_Reco)[j2][j4],
-                                                    (*dRs_Reco)[j3][j4]);
-                            for(const auto& j5 : adj5){
-                                weight5 = weight4 * (*ptrans)[i5][j5];
-                                unsigned DR_Reco = max(DR4, (*dRs_Reco)[j0][j5],
-                                                            (*dRs_Reco)[j1][j5],
-                                                            (*dRs_Reco)[j2][j5],
-                                                            (*dRs_Reco)[j3][j5],
-                                                            (*dRs_Reco)[j4][j5]);
-                                ans.transfer6[DR_Gen][DR_Reco] += weight5;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /*
-     * Idea for tomorrow
-     *
-     *  1. implement helper functions for each partition
-     *      eg parittion (4,2) for that particular case of 6th order 
-     *  2. do transfer inside the helper functions,
-     *      a) compute prefactor 
-     *      b) handle each permutation separately 
-     *      c) test the overhead of this when not doing transfer
-     *  3. need to think a bit more about the resolved case. 
-     *      Should have the same amount of symmetry as transfer calculations
-     *      So maybe we can also do an if constexpr in the helpers? 
-     *      Need to make sure everything has a nice uniform interface
-     */
 
     template <typename T, bool doPU>
     void fastSecondOrder(const umat& dRs, 
@@ -310,11 +84,11 @@ namespace fastEEC{
 
         const unsigned nPart = Es.size();
 
-        double weight = 1;
+        T weight = 1;
         bool isPU=false;
 
         for(unsigned i0=0; i0<nPart; ++i0){
-            double partial0 = Es[i0];
+            T partial0 = Es[i0];
             unsigned DR0 = 0;
 
             //partition (2)
@@ -364,11 +138,11 @@ namespace fastEEC{
 
         const unsigned nPart = Es.size();
 
-        double weight2, weight3;
+        T weight2, weight3;
         bool isPU=false;
         for(unsigned i0=0; i0<nPart; ++i0){
-            double E0 = Es[i0];
-            double partial0 = E0;
+            T E0 = Es[i0];
+            T partial0 = E0;
 
             unsigned DR0 = 0;
 
@@ -388,8 +162,8 @@ namespace fastEEC{
             }
 
             for(unsigned i1=i0+1; i1<nPart; ++i1){
-                double E1 = Es[i1];
-                double partial1 = partial0 * E1;
+                T E1 = Es[i1];
+                T partial1 = partial0 * E1;
 
                 unsigned DR1 = dRs[i0][i1];
 
@@ -450,13 +224,13 @@ namespace fastEEC{
 
         const unsigned nPart = Es.size();
 
-        double weight2, weight3, weight4;
+        T weight2, weight3, weight4;
         bool isPU=false;
 
         for(unsigned i0=0; i0<nPart; ++i0){
-            double E0 = Es[i0];
-            double sqE0 = square(E0);
-            double partial0 = E0;
+            T E0 = Es[i0];
+            T sqE0 = square(E0);
+            T partial0 = E0;
 
             unsigned DR0 = 0;
 
@@ -480,8 +254,8 @@ namespace fastEEC{
             }
 
             for(unsigned i1=i0+1; i1<nPart; ++i1){
-                double E1 = Es[i1];
-                double partial1 = partial0 * E1;
+                T E1 = Es[i1];
+                T partial1 = partial0 * E1;
                 
                 unsigned DR1 = dRs[i0][i1];
 
@@ -507,8 +281,8 @@ namespace fastEEC{
                 }
 
                 for(unsigned i2=i1+1; i2<nPart; ++i2){
-                    double E2 = Es[i2];
-                    double partial2 = partial1 * E2;
+                    T E2 = Es[i2];
+                    T partial2 = partial1 * E2;
 
                     unsigned DR2 = max({DR1, dRs[i0][i2], 
                                              dRs[i1][i2]});
@@ -577,14 +351,14 @@ namespace fastEEC{
 
         const unsigned nPart = Es.size();
 
-        double weight2, weight3, weight4, weight5;
+        T weight2, weight3, weight4, weight5;
         bool isPU=false;
 
         for(unsigned i0=0; i0<nPart; ++i0){
-            double E0 = Es[i0];
-            double sqE0 = square(E0);
+            T E0 = Es[i0];
+            T sqE0 = square(E0);
 
-            double partial0 = E0;
+            T partial0 = E0;
 
             unsigned DR0 = 0;
             //partition (2)
@@ -611,10 +385,10 @@ namespace fastEEC{
             }
 
             for(unsigned i1=i0+1; i1<nPart; ++i1){
-                double E1 = Es[i1];
-                double sqE1 = square(E1);
+                T E1 = Es[i1];
+                T sqE1 = square(E1);
 
-                double partial1 = partial0 * E1;
+                T partial1 = partial0 * E1;
 
                 //case two distinct values
                 unsigned DR1 = dRs[i0][i1];
@@ -651,10 +425,10 @@ namespace fastEEC{
                 }
 
                 for(unsigned i2=i1+1; i2<nPart; ++i2){
-                    double E2 = Es[i2];
-                    double sqE2 = square(E2);
+                    T E2 = Es[i2];
+                    T sqE2 = square(E2);
 
-                    double partial2 = partial1 * E2;
+                    T partial2 = partial1 * E2;
 
                     unsigned DR2 = max({DR1, dRs[i0][i2], 
                                              dRs[i1][i2]});
@@ -683,9 +457,9 @@ namespace fastEEC{
                     }
 
                     for(unsigned i3=i2+1; i3<nPart; ++i3){
-                        double E3 = Es[i3];
+                        T E3 = Es[i3];
 
-                        double partial3 = partial2 * E3;
+                        T partial3 = partial2 * E3;
 
                         //case four distinct values
                         unsigned DR3 = max({DR2, dRs[i0][i3], 
@@ -728,13 +502,14 @@ namespace fastEEC{
             }
         }
     }
- 
-    template <typename T, bool doPU>
+
+    template <typename T, bool doPU, bool doTransfer>
     void fastSixthOrder(const umat& dRs,
                         const vector<T>& Es,
                         const unsigned NDR,
                         result<T>& ans,
-                         const vector<bool>* const PU = nullptr){
+                        const vector<bool>* const PU = nullptr,
+                        const transferInputs<T>* const tin = nullptr){
         ans.wts2.resize(NDR);
         ans.wts3.resize(NDR);
         ans.wts4.resize(NDR);
@@ -761,16 +536,34 @@ namespace fastEEC{
             fill(ans.wts6_PU.begin(), ans.wts6_PU.end(), 0);
         }
 
+        if constexpr (doTransfer){
+            ans.transfer2.resize(extents[NDR][NDR]);
+            ans.transfer3.resize(extents[NDR][NDR]);
+            ans.transfer4.resize(extents[NDR][NDR]);
+            ans.transfer5.resize(extents[NDR][NDR]);
+            ans.transfer6.resize(extents[NDR][NDR]);
+
+            for(unsigned i=0; i<NDR; ++i){
+                for(unsigned j=0; j<NDR; ++j){
+                    ans.transfer2[i][j] = 0;
+                    ans.transfer3[i][j] = 0;
+                    ans.transfer4[i][j] = 0;
+                    ans.transfer5[i][j] = 0;
+                    ans.transfer6[i][j] = 0;
+                }
+            }
+        }
+
         const unsigned nPart = Es.size();
 
-        double weight2, weight3, weight4, weight5, weight6;
+        T weight2, weight3, weight4, weight5, weight6;
         bool isPU=false;
 
         for(unsigned i0=0; i0<nPart; ++i0){
-            double E0 = Es[i0]; 
-            double sqE0 = square(E0);
+            T E0 = Es[i0]; 
+            T sqE0 = square(E0);
 
-            double partial0 = E0;
+            T partial0 = E0;
 
             unsigned DR0 = 0;
 
@@ -791,53 +584,92 @@ namespace fastEEC{
             ans.wts6[DR0] += weight6;
 
             if constexpr (doPU){
-                if(PU->at(i0)){
+                isPU = PU->at(i0);
+                if(isPU){
                     ans.wts2_PU[DR0] += weight2;
                     ans.wts3_PU[DR0] += weight3;
                     ans.wts4_PU[DR0] += weight4;
                     ans.wts5_PU[DR0] += weight5;
                     ans.wts6_PU[DR0] += weight6;
                 }
+            }//end if doPU
+            
+            if constexpr (doTransfer){
+                transfer6_1(i0, DR0, 
+                            weight2, 
+                            weight3, 
+                            weight4,
+                            weight5,
+                            weight6,
+                            tin, ans);
             }
 
             for(unsigned i1=i0+1; i1<nPart; ++i1){
-                double E1 = Es[i1];
-                double sqE1 = square(E1);
+                T E1 = Es[i1];
+                T sqE1 = square(E1);
 
-                double partial1 = partial0 * E1;
-                double sqpartial1 = square(partial1);
+                T partial1 = partial0 * E1;
+                T sqpartial1 = square(partial1);
 
                 unsigned DR1 = dRs[i0][i1];
 
-                //partition (1,1)
-                weight2 = 2 * partial1;
+                //(1, 1)
+                T weight2_11 = 2 * partial1;
+                weight2 = weight2_11;
                 ans.wts2[DR1] += weight2;
-                //partition (2, 1)
-                weight3 = 3 * partial1 * (E0 + E1);
+
+                T weight3_prefac = 3*partial1;
+                //(2, 1)
+                T weight3_21 = weight3_prefac * E0;
+                //(1, 2)
+                T weight3_12 = weight3_prefac * E1;
+                weight3 = weight3_12 + weight3_21;
                 ans.wts3[DR1] += weight3;
-                //partition (2, 2)
-                weight4 = 6 * sqpartial1;
-                //partition (3, 1)
-                weight4 += 4 * partial1 * (sqE0 + sqE1);
+
+                T weight4_prefac = 4*partial1;
+                //(3, 1)
+                T weight4_31 = weight4_prefac * sqE0;
+                //(1, 3)
+                T weight4_13 = weight4_prefac * sqE1;
+                //(2, 2)
+                T weight4_22 = 6*sqpartial1;
+                weight4 = weight4_13 + weight4_31 + weight4_22;
                 ans.wts4[DR1] += weight4;
-                //partition (4, 1)
-                weight5 = 5 * partial1 * (sqE1 * E1 +
-                                          sqE0 * E0);
-                //partition (3, 2)
-                weight5 += 10 * sqpartial1 * (E0 + E1);
+
+                T weight5_prefac_1 = 5 * partial1;
+                //(4, 1)
+                T weight5_41 = weight5_prefac_1 * (sqE0 * E0);
+                //(1, 4)
+                T weight5_14 = weight5_prefac_1 * (sqE1 * E1);
+                T weight5_prefac_2 = 10 * sqpartial1;
+                //(3, 2)
+                T weight5_32 = weight5_prefac_2 * E0;
+                //(2, 3)
+                T weight5_23 = weight5_prefac_2 * E1;
+                weight5 = weight5_14 + weight5_41 + 
+                          weight5_23 + weight5_32;
                 ans.wts5[DR1] += weight5;
 
-                //partition (5, 1)
-                weight6 = 6 * partial1 * (sqE1 * sqE1 + 
-                                          sqE0 * sqE0);
-                //partition (4, 2)
-                weight6 += 15 * sqpartial1 * (sqE0 + sqE1);
-                //partition (3,3)
-                weight6 += 20 * sqpartial1 * partial1;
+                T weight6_prefac_1 = 6 * partial1;
+                //(5, 1)
+                T weight6_51 = weight6_prefac_1 * (sqE0 * sqE0);
+                //(1, 5)
+                T weight6_15 = weight6_prefac_1 * (sqE1 * sqE1);
+                T weight6_prefac_2 = 15 * sqpartial1;
+                //(4, 2)
+                T weight6_42 = weight6_prefac_2 * sqE0;
+                //(2, 4)
+                T weight6_24 = weight6_prefac_2 * sqE1;
+                //(3, 3)
+                T weight6_33 = 20 * sqpartial1 * partial1;
+                weight6 = weight6_15 + weight6_51 + 
+                          weight6_24 + weight6_42 + 
+                          weight6_33;
                 ans.wts6[DR1] += weight6;
 
                 if constexpr (doPU){
-                    if(PU->at(i1)){
+                    isPU = isPU || PU->at(i1);
+                    if(isPU){
                         ans.wts2_PU[DR1] += weight2;
                         ans.wts3_PU[DR1] += weight3;
                         ans.wts4_PU[DR1] += weight4;
@@ -846,45 +678,107 @@ namespace fastEEC{
                     }
                 }
 
-                for(unsigned i2=i1+1; i2<nPart; ++i2){
-                    double E2 = Es[i2];
-                    double sqE2 = square(E2);
+                if constexpr (doTransfer){
+                    transfer6_2(i0, i1, DR1,
+                                weight2_11,
 
-                    double partial2 = partial1 * E2;
+                                weight3_21, 
+                                weight3_12,
+
+                                weight4_31,
+                                weight4_22,
+                                weight4_13,
+
+                                weight5_41,
+                                weight5_32,
+                                weight5_23,
+                                weight5_14,
+
+                                weight6_51,
+                                weight6_42,
+                                weight6_33,
+                                weight6_24,
+                                weight6_15,
+
+                                tin, ans);
+                }
+
+                for(unsigned i2=i1+1; i2<nPart; ++i2){
+                    T E2 = Es[i2];
+                    T sqE2 = square(E2);
+
+                    T partial2 = partial1 * E2;
 
                     unsigned DR2 = max({DR1, dRs[i0][i2], 
                                              dRs[i1][i2]});
 
-                    //partition (1,1,1)
+                    //(1, 1, 1)
                     weight3 = 6 * partial2;
                     ans.wts3[DR2] += weight3;
-                    //partition (2, 1, 1)
-                    weight4 = 12 * partial2 * (E0 + E1 + E2);
+
+                    T weight4_prefac = 12 * partial2;
+                    //(2, 1, 1)
+                    T weight4_211 = weight4_prefac * E0;
+                    //(1, 2, 1)
+                    T weight4_121 = weight4_prefac * E1;
+                    //(1, 1, 2)
+                    T weight4_112 = weight4_prefac * E2;
+                    weight4 = weight4_211 + 
+                              weight4_121 +
+                              weight4_112;
                     ans.wts4[DR2] += weight4;
-                    //partition (3, 1, 1)
-                    weight5 = 20 * partial2 * (sqE0 + sqE1 + sqE2);
-                    //partition (2, 2, 1)
-                    weight5 += 30 * partial2 * (E0 * E1 + 
-                                                E0 * E2 + 
-                                                E1 * E2);
+
+                    T weight5_prefac_1 = 20 * partial2;
+                    //(3, 1, 1)
+                    T weight5_311 = weight5_prefac_1 * sqE0;
+                    //(1, 3, 1)
+                    T weight5_131 = weight5_prefac_1 * sqE1;
+                    //(1, 1, 3)
+                    T weight5_113 = weight5_prefac_1 * sqE2;
+                    T weight5_prefac_2 = 30 * partial2;
+                    //(2, 2, 1)
+                    T weight5_221 = weight5_prefac_2 * (E0 * E1);
+                    //(2, 1, 2)
+                    T weight5_212 = weight5_prefac_2 * (E0 * E2);
+                    //(1, 2, 2)
+                    T weight5_122 = weight5_prefac_2 * (E1 * E2);
+                    weight5 = weight5_311 + weight5_131 + 
+                              weight5_113 + weight5_221 + 
+                              weight5_212 + weight5_122;
                     ans.wts5[DR2] += weight5;
-                    //partition (4, 1, 1)
-                    weight6 = 30 * partial2 * (sqE0 * E0 + 
-                                              sqE1 * E1 + 
-                                              sqE2 * E2);
-                    //partition (3, 2, 1)
-                    weight6 += 60 * partial2 * (sqE0 * E1 +
-                                               sqE0 * E2 + 
-                                               sqE1 * E2 +
-                                               sqE1 * E0 +
-                                               sqE2 * E0 +
-                                               sqE2 * E1);
-                    //partition (2, 2, 2)
-                    weight6 += 90 * square(partial2);
+
+                    T weight6_prefac_1 = 30 * partial2;
+                    //(4, 1, 1)
+                    T weight6_411 = weight6_prefac_1 * (sqE0 * E0);
+                    //(1, 4, 1)
+                    T weight6_141 = weight6_prefac_1 * (sqE1 * E1);
+                    //(1, 1, 4)
+                    T weight6_114 = weight6_prefac_1 * (sqE2 * E2);
+                    T weight6_prefac_2 = 60 * partial2;
+                    //(3, 2, 1)
+                    T weight6_321 = weight6_prefac_2 * (sqE0 * E1);
+                    //(3, 1, 2)
+                    T weight6_312 = weight6_prefac_2 * (sqE0 * E2);
+                    //(1, 3, 2)
+                    T weight6_132 = weight6_prefac_2 * (sqE1 * E2);
+                    //(2, 3, 1)
+                    T weight6_231 = weight6_prefac_2 * (E0 * sqE1);
+                    //(2, 1, 3)
+                    T weight6_213 = weight6_prefac_2 * (E0 * sqE2);
+                    //(1, 2, 3)
+                    T weight6_123 = weight6_prefac_2 * (E1 * sqE2);
+                    //(2, 2, 2)
+                    T weight6_222 = 90 * square(partial2);
+                    weight6 = weight6_411 + weight6_141 + 
+                              weight6_114 + weight6_321 + 
+                              weight6_312 + weight6_132 + 
+                              weight6_231 + weight6_213 + 
+                              weight6_123 + weight6_222;
                     ans.wts6[DR2] += weight6;
 
                     if constexpr (doPU){
-                        if(PU->at(i2)){
+                        isPU = isPU || PU->at(i2);
+                        if(isPU){
                             ans.wts3_PU[DR2] += weight3;
                             ans.wts4_PU[DR2] += weight4;
                             ans.wts5_PU[DR2] += weight5;
@@ -892,71 +786,174 @@ namespace fastEEC{
                         }
                     }
 
-                    for(unsigned i3=i2+1; i3<nPart; ++i3){
-                        double E3 = Es[i3];
-                        double sqE3 = square(E3);
+                    if constexpr (doTransfer){
+                        transfer6_3(i0, i1, i2, DR2,
+                                     weight3,
 
-                        double partial3 = partial2 * E3;
+                                     weight4_211,
+                                     weight4_121,
+                                     weight4_112,
+
+                                     weight5_311,
+                                     weight5_131,
+                                     weight5_113,
+                                     weight5_221,
+                                     weight5_212,
+                                     weight5_122,
+
+                                     weight6_411,
+                                     weight6_141,
+                                     weight6_114,
+                                     weight6_321,
+                                     weight6_312,
+                                     weight6_231,
+                                     weight6_132,
+                                     weight6_213,
+                                     weight6_123,
+                                     weight6_222,
+
+                                     tin, ans);
+                    }
+
+                    for(unsigned i3=i2+1; i3<nPart; ++i3){
+                        T E3 = Es[i3];
+                        T sqE3 = square(E3);
+
+                        T partial3 = partial2 * E3;
 
                         unsigned DR3 = max({DR2, dRs[i0][i3], 
                                                  dRs[i1][i3], 
                                                  dRs[i2][i3]});
 
-                        //partition (1, 1, 1, 1)
+                        //(1, 1, 1, 1)
                         weight4 = 24 * partial3;
                         ans.wts4[DR3] += weight4;
-                        //partition (2, 1, 1, 1)
-                        weight5 = 60 * partial3 * (E0 + E1 + E2 + E3);
+
+                        T weight5_prefac = 60 * partial3;
+                        //(2, 1, 1, 1)
+                        T weight5_2111 = weight5_prefac * E0;
+                        //(1, 2, 1, 1)
+                        T weight5_1211 = weight5_prefac * E1;
+                        //(1, 1, 2, 1)
+                        T weight5_1121 = weight5_prefac * E2;
+                        //(1, 1, 1, 2)
+                        T weight5_1112 = weight5_prefac * E3;
+                        weight5 = weight5_2111 + weight5_1211 + 
+                                  weight5_1121 + weight5_1112;
                         ans.wts5[DR3] += weight5;
-                        //partition (3, 1, 1, 1)
-                        weight6 = 120 * partial3 * (sqE0 +
-                                                    sqE1 +
-                                                    sqE2 +
-                                                    sqE3);
-                        //partition (2, 2, 1, 1)
-                        weight6 += 180 * partial3 * (E0 * E1 +
-                                                     E0 * E2 +
-                                                     E0 * E3 +
-                                                     E1 * E2 +
-                                                     E1 * E3 +
-                                                     E2 * E3);
+
+                        T weight6_prefac_1 = 120 * partial3;
+                        //(3, 1, 1, 1)
+                        T weight6_3111 = weight6_prefac_1 * sqE0;
+                        //(1, 3, 1, 1)
+                        T weight6_1311 = weight6_prefac_1 * sqE1;
+                        //(1, 1, 3, 1)
+                        T weight6_1131 = weight6_prefac_1 * sqE2;
+                        //(1, 1, 1, 3)
+                        T weight6_1113 = weight6_prefac_1 * sqE3;
+                        T weight6_prefac_2 = 180 * partial3;
+                        //(2, 2, 1, 1)
+                        T weight6_2211 = weight6_prefac_2 * E0 * E1;
+                        //(2, 1, 2, 1)
+                        T weight6_2121 = weight6_prefac_2 * E0 * E2;
+                        //(2, 1, 1, 2)
+                        T weight6_2112 = weight6_prefac_2 * E0 * E3;
+                        //(1, 2, 2, 1)
+                        T weight6_1221 = weight6_prefac_2 * E1 * E2;
+                        //(1, 2, 1, 2)
+                        T weight6_1212 = weight6_prefac_2 * E1 * E3;
+                        //(1, 1, 2, 2)
+                        T weight6_1122 = weight6_prefac_2 * E2 * E3;
+                        weight6 = weight6_3111 + weight6_1311 + 
+                                  weight6_1131 + weight6_1113 + 
+                                  weight6_2211 + weight6_2121 + 
+                                  weight6_2112 + weight6_1221 + 
+                                  weight6_1212 + weight6_1122;
                         ans.wts6[DR3] += weight6;
 
                         if constexpr (doPU){
-                            if(PU->at(i3)){
+                            isPU = isPU || PU->at(i3);
+                            if(isPU){
                                 ans.wts4_PU[DR3] += weight4;
                                 ans.wts5_PU[DR3] += weight5;
                                 ans.wts6_PU[DR3] += weight6;
                             }
                         }
 
-                        for(unsigned i4=i3+1; i4<nPart; ++i4){
-                            double E4 = Es[i4];
+                        if constexpr (doTransfer){
+                            transfer6_4(i0, i1, i2, i3, DR3,
 
-                            double partial4 = partial3 * E4;
+                                        weight4,
+
+                                        weight5_2111,
+                                        weight5_1211,
+                                        weight5_1121,
+                                        weight5_1112,
+
+                                        weight6_3111,
+                                        weight6_1311,
+                                        weight6_1131,
+                                        weight6_1113,
+                                        weight6_2211,
+                                        weight6_2121,
+                                        weight6_2112,
+                                        weight6_1221,
+                                        weight6_1212,
+                                        weight6_1122,
+
+                                        tin, ans);
+                        }
+
+                        for(unsigned i4=i3+1; i4<nPart; ++i4){
+                            T E4 = Es[i4];
+
+                            T partial4 = partial3 * E4;
 
                             unsigned DR4 = max({DR3, dRs[i0][i4], 
                                                      dRs[i1][i4], 
                                                      dRs[i2][i4],
                                                      dRs[i3][i4]});
 
-                            //partition (1, 1, 1, 1, 1)
+                            //(1, 1, 1, 1, 1)
                             weight5 = 120 * partial4;
                             ans.wts5[DR4] += weight5;
 
-                            //partition (2, 1, 1, 1, 1)
-                            weight6 = 360 * partial4 * (E0 + 
-                                                        E1 + 
-                                                        E2 + 
-                                                        E3 + 
-                                                        E4);
+                            T weight6_prefac = 360 * partial4;
+                            //(2, 1, 1, 1, 1)
+                            T weight6_21111 = weight6_prefac * E0;
+                            //(1, 2, 1, 1, 1)
+                            T weight6_12111 = weight6_prefac * E1;
+                            //(1, 1, 2, 1, 1)
+                            T weight6_11211 = weight6_prefac * E2;
+                            //(1, 1, 1, 2, 1)
+                            T weight6_11121 = weight6_prefac * E3;
+                            //(1, 1, 1, 1, 2)
+                            T weight6_11112= weight6_prefac * E4;
+                            weight6 = weight6_21111 + weight6_12111 + 
+                                      weight6_11211 + weight6_11121 + 
+                                      weight6_11112;
                             ans.wts6[DR4] += weight6;
 
                             if constexpr (doPU){
-                                if(PU->at(i4)){
+                                isPU = isPU || PU->at(i4);
+                                if(isPU){
                                     ans.wts5_PU[DR4] += weight5;
                                     ans.wts6_PU[DR4] += weight6;
                                 }
+                            }
+
+                            if constexpr (doTransfer){
+                                transfer6_5(i0, i1, i2, i3, i4, DR4,
+                                            
+                                            weight5,
+
+                                            weight6_21111,
+                                            weight6_12111,
+                                            weight6_11211,
+                                            weight6_11121,
+                                            weight6_11112,
+
+                                            tin, ans);
                             }
 
                             for(unsigned i5=i4+1; i5<nPart; ++i5){
@@ -970,9 +967,18 @@ namespace fastEEC{
                                 ans.wts6[DR5] += weight6;
 
                                 if constexpr (doPU){
-                                    if(PU->at(i5)){
+                                    isPU = isPU || PU->at(i5);
+                                    if(isPU){
                                         ans.wts6_PU[DR5] += weight6;
                                     }
+                                }
+
+                                if constexpr (doTransfer){
+                                    transfer6_6(i0, i1, i2, i3, i4, i5, DR5,
+                                                
+                                                weight6,
+
+                                                tin, ans);
                                 }
                             }
                         }
@@ -982,10 +988,12 @@ namespace fastEEC{
         }
     }   
 
-    template <typename T, bool doPU>
+    template <typename T, bool doPU, bool doTransfer>
     result<T> fastEEC(const jet& J, const axisptr& ax, 
                       const int order, const normType nt,
-                      const std::vector<bool>* const PU = nullptr){
+                      const std::vector<bool>* const PU = nullptr,
+                      const jet * const J_Reco = nullptr,
+                      const arma::mat* ptrans = nullptr){
 
         assert(order >= 2 && order <= 6);
 
@@ -994,6 +1002,13 @@ namespace fastEEC{
         umat dRs = getDRs(J, ax);
         std::vector<T> Es = getEs<T>(J, nt);
         unsigned NDR = histogram::axis::traits::extent(*ax);
+
+        struct transferInputs<T> tin;
+        if constexpr (doTransfer){
+            tin.dRs = getDRs(*J_Reco, ax);
+            tin.adj = getAdj(*ptrans);
+            tin.ptrans = getPtrans<T>(*ptrans);
+        }
 
         if(order == 2){
             fastSecondOrder<T, doPU>(dRs, Es, NDR, ans, PU); 
@@ -1004,8 +1019,10 @@ namespace fastEEC{
         } else if(order == 5){
             fastFifthOrder<T, doPU>(dRs, Es, NDR, ans, PU);
         } else if(order == 6){
-            fastSixthOrder<T, doPU>(dRs, Es, NDR, ans, PU);
+            fastSixthOrder<T, doPU, doTransfer>(dRs, Es, NDR, ans, PU, &tin);
         }
         return ans;
     }
 };
+
+#endif

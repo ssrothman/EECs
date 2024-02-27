@@ -15,6 +15,8 @@
 #include "fastTransfer6_5.h"
 #include "fastTransfer6_6.h"
 
+#include "faststart.h"
+
 namespace fastEEC{
     double getNormFact(const jet& J, const normType& nt){
         switch (nt){
@@ -30,20 +32,18 @@ namespace fastEEC{
     }
 
     template <typename T>
-    vector<T> getEs(const jet& J, const normType nt){
-        vector<T> ans;
+    void getEs(vector<T>& ans, const jet& J, const normType nt){
+        ans.clear();
         ans.reserve(J.nPart);
 
         double normFact = getNormFact(J, nt);
         for(unsigned i=0; i<J.nPart; ++i){
             ans.push_back(J.particles.at(i).pt/normFact);
         }
-        return ans;
     }
 
-    umat getDRs(const jet& J, const axisptr& ax){
-        umat ans(extents[J.nPart][J.nPart]);
-
+    void getDRs(umat& ans, const jet& J, const axisptr& ax){
+        ans.resize(extents[J.nPart][J.nPart]);
         for (unsigned i0=0; i0<J.nPart; ++i0){
             for (unsigned i1=0; i1<J.nPart; ++i1){
                 double deltaR = dR(J.particles[i0], J.particles[i1]);
@@ -51,22 +51,16 @@ namespace fastEEC{
                 ans[i0][i1] = idx;
             }
         }
-        return ans;
-    }
-
-    adjacency getAdj(const arma::mat& ptrans){
-        return adjacency(ptrans);
     }
 
     template <typename T>
-    multi_array<T, 2> getPtrans(const arma::mat& ptrans){//NB we transpose for faster iteration
-        multi_array<T, 2> ans(extents[ptrans.n_cols][ptrans.n_rows]);
+    void getPtrans(multi_array<T, 2>& ans, const arma::mat& ptrans){//NB we transpose for faster iteration
+        ans.resize(extents[ptrans.n_cols][ptrans.n_rows]);
         for(unsigned i=0; i<ptrans.n_rows; ++i){
             for(unsigned j=0; j<ptrans.n_cols; ++j){
                 ans[j][i] = ptrans(i,j);
             }
         }
-        return ans;
     }
 
     template <typename T, bool doPU>
@@ -502,6 +496,240 @@ namespace fastEEC{
             }
         }
     }
+
+    template <typename T, bool doPU, bool doTransfer>
+    void fastSixthOrder2(const umat& dRs,
+                         const vector<T>& Es,
+                         const unsigned NDR,
+                         result<T>& ans,
+                         const vector<bool>* const PU = nullptr,
+                         const transferInputs<T>* const tin = nullptr){
+        //clear<T, doPU, doTransfer, 6>(NDR, ans);
+
+        unsigned nPart = Es.size();
+
+        T weight2, weight3, weight4, weight5, weight6;
+        bool isPU;
+
+        for(unsigned i0=0; i0<nPart; ++i0){
+            T E0 = Es[i0];
+            if constexpr (doPU){
+                isPU = PU->at(i0);
+            }
+
+            for(unsigned i1=i0; i1<nPart; ++i1){
+                T E1 = Es[i1];
+
+                T partial2 = E0 * E1;
+                unsigned DR2 = dRs[i0][i1];
+
+                T symfac = (i0==i1) ? 1 : 2;
+                weight2 = symfac * partial2;
+                ans.wts2[DR2] += weight2;
+
+                if constexpr(doPU){
+                    isPU = isPU || PU->at(i1);
+                    if(isPU){
+                        ans.wts2_PU[DR2] += weight2;
+                    }
+                }
+
+                for(unsigned i2=i1; i2<nPart; ++i2){
+                    T E2 = Es[i2];
+
+                    T partial3 = partial2 * E2;
+                    unsigned DR3 = max({DR2, dRs[i0][i2],
+                                             dRs[i1][i2]});
+
+                    T symfac;
+                    if(i0==i1){
+                        symfac = (i1==i2) ? 1 : 3;
+                    } else{
+                        symfac = (i1==i2) ? 3 : 6;
+                    }
+
+                    weight3 = symfac * partial3;
+                    ans.wts3[DR3] += weight3;
+
+                    if constexpr (doPU){
+                        isPU = isPU || PU->at(i2);
+                        if(isPU){
+                            ans.wts3_PU[DR3] += weight3;
+                        }
+                    }
+
+                    for(unsigned i3=i2; i3<nPart; ++i3){
+                        T E3 = Es[i3];
+
+                        T partial4 = partial3 * E3;
+                        unsigned DR4 = max({DR3, dRs[i0][i3],
+                                                 dRs[i1][i3],
+                                                 dRs[i2][i3]});
+
+                        T symfac;
+                        if (i0==i1){
+                            if(i1==i2){
+                                symfac = (i2==i3) ? 1 : 4; //(4) vs (3, 1)
+                            } else {
+                                symfac = (i2==i3) ? 6 : 12; //(2, 2) vs (2, 1, 1)
+                            }
+                        } else {
+                            if(i1==i2){
+                                symfac = (i2==i3) ? 4 : 12; //(1, 3) vs (1, 2, 1)
+                            } else {
+                                symfac = (i2==i3) ? 12 : 24; //(1, 1, 2) vs (1, 1, 1, 1)
+                            }
+                        }
+                        weight4 = symfac * partial4;
+                        ans.wts4[DR4] += weight4;
+
+                        if constexpr (doPU){
+                            isPU = isPU || PU->at(i3);
+                            if(isPU){
+                                ans.wts4_PU[DR4] += weight4;
+                            }
+                        }
+
+                        for(unsigned i4=i3; i4<nPart; ++i4){
+                            T E4 = Es[i4];
+
+                            T partial5 = partial4 * E4;
+                            unsigned DR5 = max({DR4, dRs[i0][i4],
+                                                     dRs[i1][i4],
+                                                     dRs[i2][i4],
+                                                     dRs[i3][i4]});
+
+                            T symfac;
+                            if (i0==i1){
+                                if(i1==i2){
+                                    if(i2==i3){
+                                        symfac = (i3==i4) ? 1 : 5; //(5) vs (4, 1)
+                                    } else {
+                                        symfac = (i3==i4) ? 10 : 20; //(3, 2) vs (3, 1, 1)
+                                    }
+                                } else {
+                                    if(i2==i3){
+                                        symfac = (i3==i4) ? 10 : 30; //(2, 3) vs (2, 2, 1)
+                                    } else {
+                                        symfac = (i3==i4) ? 30 : 60; //(2, 1, 2) vs (2, 1, 1, 1)
+                                    }
+                                }
+                            } else {
+                                if(i1==i2){
+                                    if(i2==i3){
+                                        symfac = (i3==i4) ? 5 : 20; //(1, 4) vs (1, 3, 1)
+                                    } else{
+                                        symfac = (i3==i4) ? 30 : 60; //(1, 2, 2) vs (1, 2, 1, 1)
+                                    }
+                                } else {
+                                    if(i2==i3){
+                                        symfac = (i3==i4) ? 20 : 60; //(1, 1, 3) vs (1, 1, 2, 1)
+                                    } else {
+                                        symfac = (i3==i4) ? 60 : 120; //(1, 1, 1, 2) vs (1, 1, 1, 1, 1)
+                                    }
+                                }
+                            }
+                            weight5 = symfac * partial5;
+                            ans.wts5[DR5] += weight5;
+
+                            if constexpr (doPU){
+                                isPU = isPU || PU->at(i4);
+                                if(isPU){
+                                    ans.wts5_PU[DR5] += weight5;
+                                }
+                            }
+
+                            for(unsigned i5=i4; i5<nPart; ++i5){
+                                T E5 = Es[i5];
+
+                                T partial6 = partial5 * E5;
+                                unsigned DR6 = max({DR5, dRs[i0][i5],
+                                                         dRs[i1][i5],
+                                                         dRs[i2][i5],
+                                                         dRs[i3][i5],
+                                                         dRs[i4][i5]});
+
+                                T symfac;
+                                if (i0==i1){
+                                    if(i1==i2){
+                                        if(i2==i3){
+                                            if(i3==i4){
+                                                symfac = (i4==i5) ? 1 : 6; //(6) vs (5, 1)
+                                            } else {
+                                                symfac = (i4==i5) ? 15 : 30; //(4, 2) vs (4, 1, 1)
+                                            }
+                                        } else {
+                                            if(i3==i4){
+                                                symfac = (i4==i5) ? 20 : 60; //(3, 3) vs (3, 2, 1)
+                                            } else {
+                                                symfac = (i4==i5) ? 60 : 120; //(3, 1, 2) vs (3, 1, 1, 1)
+                                            }
+                                        }
+                                    } else {
+                                        if(i2==i3){
+                                            if(i3==i4){
+                                                symfac = (i4==i5) ? 15 : 60; //(2, 4) vs (2, 3, 1)
+                                            } else {
+                                                symfac = (i4==i5) ? 90 : 180; //(2, 2, 2) vs (2, 2, 1, 1)
+                                            }
+                                        } else {
+                                            if(i3==i4){
+                                                symfac = (i4==i5) ? 60 : 180; //(2, 1, 3) vs (2, 1, 2, 1)
+                                            } else {
+                                                symfac = (i4==i5) ? 180 : 360; //(2, 1, 1, 2) vs (2, 1, 1, 1, 1)
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    if(i1==i2){
+                                        if(i2==i3){
+                                            if(i3==i4){
+                                                symfac = (i4==i5) ? 6 : 30; //(1, 5) vs (1, 4, 1)
+                                            } else {
+                                                symfac = (i4==i5) ? 60 : 120; //(1, 3, 2) vs (1, 3, 1, 1)
+                                            }
+                                        } else {
+                                            if(i3==i4){
+                                                symfac = (i4==i5) ? 60 : 180; //(1, 2, 3) vs (1, 2, 2, 1)
+                                            } else {
+                                                symfac = (i4==i5) ? 180 : 360; //(1, 2, 1, 2) vs (1, 2, 1, 1, 1)
+                                            }
+                                        }
+                                    } else {
+                                        if(i2==i3){
+                                            if(i3==i4){
+                                                symfac = (i4==i5) ? 30 : 120; //(1, 1, 4) vs (1, 1, 3, 1)
+                                            } else {
+                                                symfac = (i4==i5) ? 180 : 360; //(1, 1, 2, 2) vs (1, 1, 2, 1, 1)
+                                            }
+                                        } else {
+                                            if(i3==i4){
+                                                symfac = (i4==i5) ? 120 : 360; //(1, 1, 1, 3) vs (1, 1, 1, 2, 1)
+                                            } else {
+                                                symfac = (i4==i5) ? 360 : 720; //(1, 1, 1, 1, 2) vs (1, 1, 1, 1, 1, 1)
+                                            }
+                                        }
+                                    }
+                                }
+
+                                weight6 = symfac * partial6;
+                                ans.wts6[DR6] += weight6;
+
+                                if constexpr (doPU){
+                                    isPU = isPU || PU->at(i5);
+                                    if(isPU){
+                                        ans.wts6_PU[DR6] += weight6;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
 
     template <typename T, bool doPU, bool doTransfer>
     void fastSixthOrder(const umat& dRs,
@@ -999,28 +1227,33 @@ namespace fastEEC{
 
         result<T> ans;
 
-        umat dRs = getDRs(J, ax);
-        std::vector<T> Es = getEs<T>(J, nt);
+        umat dRs; 
+        std::vector<T> Es;
+
+        getDRs(dRs, J, ax);
+        getEs<T>(Es, J, nt);
+
         unsigned NDR = histogram::axis::traits::extent(*ax);
 
         struct transferInputs<T> tin;
         if constexpr (doTransfer){
-            tin.dRs = getDRs(*J_Reco, ax);
-            tin.adj = getAdj(*ptrans);
-            tin.ptrans = getPtrans<T>(*ptrans);
+            getDRs(tin.dRs, *J_Reco, ax);
+            tin.adj = adjacency(*ptrans);
+            getPtrans<T>(tin.ptrans, *ptrans);
         }
 
-        if(order == 2){
-            fastSecondOrder<T, doPU>(dRs, Es, NDR, ans, PU); 
+        if (order == 2){
+            start<T, doPU, doTransfer, 2>(dRs, Es, NDR, ans, PU, &tin);
         } else if(order == 3){
-            fastThirdOrder<T, doPU>(dRs, Es, NDR, ans, PU);
+            start<T, doPU, doTransfer, 3>(dRs, Es, NDR, ans, PU, &tin);
         } else if(order == 4){
-            fastFourthOrder<T, doPU>(dRs, Es, NDR, ans, PU);
+            start<T, doPU, doTransfer, 4>(dRs, Es, NDR, ans, PU, &tin);
         } else if(order == 5){
-            fastFifthOrder<T, doPU>(dRs, Es, NDR, ans, PU);
+            start<T, doPU, doTransfer, 5>(dRs, Es, NDR, ans, PU, &tin);
         } else if(order == 6){
-            fastSixthOrder<T, doPU, doTransfer>(dRs, Es, NDR, ans, PU, &tin);
+            start<T, doPU, doTransfer, 6>(dRs, Es, NDR, ans, PU, &tin);
         }
+
         return ans;
     }
 };

@@ -8,6 +8,7 @@ namespace fastEEC{
     void do1(const umat& dRs, 
              const vector<T>& Es,
              const unsigned nPart,
+             const resolvedInputs<T>& rin,
              result<T>& ans,
              const vector<bool>* const PU = nullptr,
              const transferInputs<T>* const tin = nullptr) {
@@ -24,7 +25,7 @@ namespace fastEEC{
                 const uvec& adj0 = tin->adj.at(i0);
                 if (adj0.empty()){
                     do2<T, doPU, doTransfer, maxOrder, true>(
-                        dRs, Es, nPart, ans,
+                        dRs, Es, nPart, rin, ans,
                         i0, partial0, isPU,
                         0, 0,
                         PU, tin
@@ -33,7 +34,7 @@ namespace fastEEC{
                     unsigned j0 = adj0[0];
                     T partialtrans0 = tin->ptrans[i0][j0];
                     do2<T, doPU, doTransfer, maxOrder, true>(
-                        dRs, Es, nPart, ans,
+                        dRs, Es, nPart, rin, ans,
                         i0, partial0, isPU,
                         j0, partialtrans0,
                         PU, tin
@@ -42,7 +43,7 @@ namespace fastEEC{
                         j0 = adj0[j];
                         partialtrans0 = tin->ptrans[i0][j0];
                         do2<T, doPU, doTransfer, maxOrder, false>(
-                            dRs, Es, nPart, ans,
+                            dRs, Es, nPart, rin, ans,
                             i0, partial0, isPU,
                             j0, partialtrans0,
                             PU, tin
@@ -51,7 +52,7 @@ namespace fastEEC{
                 }
             } else {
                 do2<T, doPU, doTransfer, maxOrder, true>(
-                    dRs, Es, nPart, ans,
+                    dRs, Es, nPart, rin, ans,
                     i0, partial0, isPU,
                     0, 0,
                     PU, tin

@@ -8,6 +8,7 @@ namespace fastEEC{
     void do2(const umat& dRs,
              const vector<T>& Es,
              const unsigned nPart,
+             const resolvedInputs<T>& rin,
              result<T>& ans,
 
              const unsigned i0,
@@ -45,7 +46,7 @@ namespace fastEEC{
                 if(adj1.empty() || partialtrans0 == 0){
                     if constexpr (maxOrder >=3 && nontransfer){
                         do3<T, doPU, doTransfer, maxOrder, nontransfer>(
-                            dRs, Es, nPart, ans,
+                            dRs, Es, nPart, rin, ans,
                             i0, i1, partial1, DR1, isPU1,
                             0, 0, 0, 0,
                             PU, tin
@@ -59,7 +60,7 @@ namespace fastEEC{
 
                     if constexpr (maxOrder >=3){
                         do3<T, doPU, doTransfer, maxOrder, nontransfer>(
-                            dRs, Es, nPart, ans,
+                            dRs, Es, nPart, rin, ans,
                             i0, i1, partial1, DR1, isPU1,
                             j0, j1, partialtrans1, DR1_Reco,
                             PU, tin
@@ -74,7 +75,7 @@ namespace fastEEC{
 
                         if constexpr (maxOrder >= 3){
                             do3<T, doPU, doTransfer, maxOrder, false>(
-                                dRs, Es, nPart, ans,
+                                dRs, Es, nPart, rin, ans,
                                 i0, i1, partial1, DR1, isPU1,
                                 j0, j1, partialtrans1, DR1_Reco,
                                 PU, tin
@@ -85,7 +86,7 @@ namespace fastEEC{
             } else {
                 if constexpr(maxOrder >= 3){
                     do3<T, doPU, doTransfer, maxOrder, true>(
-                        dRs, Es, nPart, ans,
+                        dRs, Es, nPart, rin, ans,
                         i0, i1, partial1, DR1, isPU1,
                         0, 0, 0, 0,
                         PU, tin

@@ -16,6 +16,9 @@ namespace fastEEC{
     
     template <typename T>
     struct result{
+        /*
+         * Projected weights for orders 2-6
+         */
         vector<T> wts2;
         vector<T> wts3;
         vector<T> wts4;
@@ -33,6 +36,54 @@ namespace fastEEC{
         multi_array<T, 2> transfer4;
         multi_array<T, 2> transfer5;
         multi_array<T, 2> transfer6;
+        
+        /*
+         * shape [RL, xi, phi]
+         *
+         * where RL = longest side
+         *       xi = shortest side/medium side
+         *       phi = arcsin(1 - square(RL-RM)/square(RS))
+         *
+         * cf 2201.07800
+         *    2205.02857
+         */
+        multi_array<T, 3> resolved3; 
+        multi_array<T, 3> resolved3_PU;
+        multi_array<T, 6> transfer_res3;
+
+        /*
+         * shape [shapeindex, Rl, r, theta]
+         *
+         * where shapeindex is:
+         *      0: no special shape
+         *         in this case r, theta are both zero
+         *      1: dipole
+         *         in this case theta is the cross angle, r is the short distance over the long distance
+         *      2: tee
+         *         in this case r is the short distance over the long distance , theta is the angle at the top of the T
+         *      3: triangle
+         *         in this case r is the distance from the top of the triangle to the point, over RL
+         *         theta is the angle between that vertex and the point
+         */
+        multi_array<T, 4> resolved4_shapes; 
+        multi_array<T, 4> resolved4_shapes_PU;
+        multi_array<T, 8> transfer_res4_shapes;
+
+        /*
+         * Some fixed shapes for 4th order and 5th order
+         * shape [shapeindex, RL]
+         * where shapeindex is:
+         *     0: no special shape
+         *     1: square
+         *     2: triangle (for fourth-order) or pentagon (for fifth-order)
+         */
+        multi_array<T, 2> resolved4_fixed;
+        multi_array<T, 2> resolved4_fixed_PU;
+        multi_array<T, 4> transfer_res4_fixed;
+
+        //multi_array<T, 2> resolved5_fixed;
+        //multi_array<T, 2> resolved5_fixed_PU;
+        //multi_array<T, 4> transfer_res5_fixed;
     };
 
     enum normType {
@@ -42,10 +93,35 @@ namespace fastEEC{
     };
 
     template <typename T>
+    struct resolvedInputs{
+        multi_array<T, 2> floatDRs;
+        std::vector<T> etas;
+        std::vector<T> phis;
+
+        axisptr coarseRL;
+        axisptr xi;
+        axisptr phi;
+
+        axisptr r_dipole;
+        axisptr ct_dipole;
+
+        axisptr r_tee;
+        axisptr ct_tee;
+
+        axisptr r_triangle;
+        axisptr ct_triangle;
+
+        T shapetol;
+    };
+
+    template <typename T>
     struct transferInputs{
         umat dRs;
+
         adjacency adj;
         multi_array<T, 2> ptrans;
+
+        resolvedInputs<T> rin;
     };
 };
 

@@ -6,6 +6,7 @@ namespace fastEEC{
     void do6(const umat& dRs,
              const vector<T>& Es,
              const unsigned nPart,
+             const resolvedInputs<T>& rin,
              result<T>& ans,
 
              const unsigned i0,

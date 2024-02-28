@@ -42,6 +42,20 @@ namespace fastEEC{
         }
     }
 
+    template <typename T>
+    void getEtasPhis(vector<T>& etas, vector<T>& phis, const jet& J){
+        etas.clear();
+        phis.clear();
+
+        etas.reserve(J.nPart);
+        phis.reserve(J.nPart);
+
+        for(unsigned i=0; i<J.nPart; ++i){
+            etas.push_back(J.particles.at(i).eta);
+            phis.push_back(J.particles.at(i).phi);
+        }
+    }
+
     void getDRs(umat& ans, const jet& J, const axisptr& ax){
         ans.resize(extents[J.nPart][J.nPart]);
         for (unsigned i0=0; i0<J.nPart; ++i0){
@@ -49,6 +63,17 @@ namespace fastEEC{
                 double deltaR = dR(J.particles[i0], J.particles[i1]);
                 unsigned idx = static_cast<unsigned>(ax->index(deltaR) + 1);
                 ans[i0][i1] = idx;
+            }
+        }
+    }
+
+    template <typename T>
+    void getFloatDRs(multi_array<T, 2>& ans, const jet& J){
+        ans.resize(extents[J.nPart][J.nPart]);
+        for (unsigned i0=0; i0<J.nPart; ++i0){
+            for (unsigned i1=0; i1<J.nPart; ++i1){
+                T deltaR = dR(J.particles[i0], J.particles[i1]);
+                ans[i0][i1] = deltaR;
             }
         }
     }
@@ -1219,6 +1244,21 @@ namespace fastEEC{
     template <typename T, bool doPU, bool doTransfer>
     result<T> fastEEC(const jet& J, const axisptr& ax, 
                       const int order, const normType nt,
+
+                      axisptr& coarseRLax,
+                      axisptr& xiax,
+                      axisptr& phiax,
+
+                      axisptr& rax_dipole,
+                      axisptr& ctax_dipole,
+
+                      axisptr& rax_tee,
+                      axisptr& ctax_tee,
+
+                      axisptr& rax_triangle,
+                      axisptr& ctax_triangle,
+                      T shapetol,
+
                       const std::vector<bool>* const PU = nullptr,
                       const jet * const J_Reco = nullptr,
                       const arma::mat* ptrans = nullptr){
@@ -1240,18 +1280,56 @@ namespace fastEEC{
             getDRs(tin.dRs, *J_Reco, ax);
             tin.adj = adjacency(*ptrans);
             getPtrans<T>(tin.ptrans, *ptrans);
+
+            getFloatDRs(tin.rin.floatDRs, *J_Reco);
+            getEtasPhis(tin.rin.etas, tin.rin.phis, *J_Reco);
+
+            tin.rin.coarseRL = coarseRLax;
+
+            tin.rin.xi = xiax;
+            tin.rin.phi = phiax;
+
+            tin.rin.r_dipole = rax_dipole;
+            tin.rin.ct_dipole = ctax_dipole;
+
+            tin.rin.r_tee = rax_tee;
+            tin.rin.ct_tee = ctax_tee;
+
+            tin.rin.r_triangle = rax_triangle;
+            tin.rin.ct_triangle = ctax_triangle;
+
+            tin.rin.shapetol = shapetol;
         }
 
+        struct resolvedInputs<T> rin;
+        getFloatDRs(rin.floatDRs, J);
+        getEtasPhis(rin.etas, rin.phis, J);
+        rin.coarseRL = coarseRLax;
+
+        rin.xi = xiax;
+        rin.phi = phiax;
+
+        rin.r_dipole = rax_dipole;
+        rin.ct_dipole = ctax_dipole;
+
+        rin.r_tee = rax_tee;
+        rin.ct_tee = ctax_tee;
+
+        rin.r_triangle = rax_triangle;
+        rin.ct_triangle = ctax_triangle;
+
+        rin.shapetol = shapetol;
+
         if (order == 2){
-            start<T, doPU, doTransfer, 2>(dRs, Es, NDR, ans, PU, &tin);
+            start<T, doPU, doTransfer, 2>(dRs, Es, NDR, rin, ans, PU, &tin);
         } else if(order == 3){
-            start<T, doPU, doTransfer, 3>(dRs, Es, NDR, ans, PU, &tin);
+            start<T, doPU, doTransfer, 3>(dRs, Es, NDR, rin, ans, PU, &tin);
         } else if(order == 4){
-            start<T, doPU, doTransfer, 4>(dRs, Es, NDR, ans, PU, &tin);
+            start<T, doPU, doTransfer, 4>(dRs, Es, NDR, rin, ans, PU, &tin);
         } else if(order == 5){
-            start<T, doPU, doTransfer, 5>(dRs, Es, NDR, ans, PU, &tin);
+            start<T, doPU, doTransfer, 5>(dRs, Es, NDR, rin, ans, PU, &tin);
         } else if(order == 6){
-            start<T, doPU, doTransfer, 6>(dRs, Es, NDR, ans, PU, &tin);
+            start<T, doPU, doTransfer, 6>(dRs, Es, NDR, rin, ans, PU, &tin);
         }
 
         return ans;

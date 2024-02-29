@@ -1241,8 +1241,10 @@ namespace fastEEC{
         }
     }   
 
-    template <typename T, bool doPU, bool doTransfer>
-    result<T> fastEEC(const jet& J, const axisptr& ax, 
+    template <typename T, bool doPU, bool doTransfer, bool doRes3, bool doRes4, bool doRes4Fixed>
+    result<T> fastEEC(result<T>& ans,
+
+                      const jet& J, const axisptr& ax, 
                       const int order, const normType nt,
 
                       axisptr& coarseRLax,
@@ -1262,10 +1264,7 @@ namespace fastEEC{
                       const std::vector<bool>* const PU = nullptr,
                       const jet * const J_Reco = nullptr,
                       const arma::mat* ptrans = nullptr){
-
         assert(order >= 2 && order <= 6);
-
-        result<T> ans;
 
         umat dRs; 
         std::vector<T> Es;
@@ -1321,15 +1320,25 @@ namespace fastEEC{
         rin.shapetol = shapetol;
 
         if (order == 2){
-            start<T, doPU, doTransfer, 2>(dRs, Es, NDR, rin, ans, PU, &tin);
+            start<T, doPU, doTransfer, 2, doRes3, doRes4, doRes4Fixed>(
+                    dRs, Es, NDR, rin, ans, PU, &tin
+            );
         } else if(order == 3){
-            start<T, doPU, doTransfer, 3>(dRs, Es, NDR, rin, ans, PU, &tin);
+            start<T, doPU, doTransfer, 3, doRes3, doRes4, doRes4Fixed>(
+                    dRs, Es, NDR, rin, ans, PU, &tin
+            );
         } else if(order == 4){
-            start<T, doPU, doTransfer, 4>(dRs, Es, NDR, rin, ans, PU, &tin);
+            start<T, doPU, doTransfer, 4, doRes3, doRes4, doRes4Fixed>(
+                    dRs, Es, NDR, rin, ans, PU, &tin
+            );
         } else if(order == 5){
-            start<T, doPU, doTransfer, 5>(dRs, Es, NDR, rin, ans, PU, &tin);
+            start<T, doPU, doTransfer, 5, doRes3, doRes4, doRes4Fixed>(
+                    dRs, Es, NDR, rin, ans, PU, &tin
+            );
         } else if(order == 6){
-            start<T, doPU, doTransfer, 6>(dRs, Es, NDR, rin, ans, PU, &tin);
+            start<T, doPU, doTransfer, 6, doRes3, doRes4, doRes4Fixed>(
+                    dRs, Es, NDR, rin, ans, PU, &tin
+            );
         }
 
         return ans;

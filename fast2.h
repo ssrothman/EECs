@@ -4,7 +4,7 @@
 #include "fast3.h"
 
 namespace fastEEC{
-    template <typename T, bool doPU, bool doTransfer, unsigned maxOrder, bool nontransfer>
+    template <typename T, bool doPU, bool doTransfer, unsigned maxOrder, bool nontransfer, bool doRes3, bool doRes4, bool doRes4Fixed>
     void do2(const umat& dRs,
              const vector<T>& Es,
              const unsigned nPart,
@@ -22,7 +22,7 @@ namespace fastEEC{
              const transferInputs<T>* const tin = nullptr) {
 
         T weight2;
-        bool isPU1=isPU0;
+        bool isPU1 __attribute__((unused)); 
         for(unsigned i1=i0; i1<nPart; ++i1){
             T partial1 = partial0 * Es[i1];
             unsigned DR1 = dRs[i0][i1];
@@ -45,7 +45,7 @@ namespace fastEEC{
                 const uvec& adj1 = tin->adj.at(i1);
                 if(adj1.empty() || partialtrans0 == 0){
                     if constexpr (maxOrder >=3 && nontransfer){
-                        do3<T, doPU, doTransfer, maxOrder, nontransfer>(
+                        do3<T, doPU, doTransfer, maxOrder, nontransfer, doRes3, doRes4, doRes4Fixed>(
                             dRs, Es, nPart, rin, ans,
                             i0, i1, partial1, DR1, isPU1,
                             0, 0, 0, 0,
@@ -59,7 +59,7 @@ namespace fastEEC{
                     ans.transfer2[DR1][DR1_Reco] += partialtrans1 * weight2;
 
                     if constexpr (maxOrder >=3){
-                        do3<T, doPU, doTransfer, maxOrder, nontransfer>(
+                        do3<T, doPU, doTransfer, maxOrder, nontransfer, doRes3, doRes4, doRes4Fixed>(
                             dRs, Es, nPart, rin, ans,
                             i0, i1, partial1, DR1, isPU1,
                             j0, j1, partialtrans1, DR1_Reco,
@@ -74,7 +74,7 @@ namespace fastEEC{
                         ans.transfer2[DR1][DR1_Reco] += partialtrans1 * weight2;
 
                         if constexpr (maxOrder >= 3){
-                            do3<T, doPU, doTransfer, maxOrder, false>(
+                            do3<T, doPU, doTransfer, maxOrder, false, doRes3, doRes4, doRes4Fixed>(
                                 dRs, Es, nPart, rin, ans,
                                 i0, i1, partial1, DR1, isPU1,
                                 j0, j1, partialtrans1, DR1_Reco,
@@ -85,7 +85,7 @@ namespace fastEEC{
                 }
             } else {
                 if constexpr(maxOrder >= 3){
-                    do3<T, doPU, doTransfer, maxOrder, true>(
+                    do3<T, doPU, doTransfer, maxOrder, true, doRes3, doRes4, doRes4Fixed>(
                         dRs, Es, nPart, rin, ans,
                         i0, i1, partial1, DR1, isPU1,
                         0, 0, 0, 0,
@@ -93,9 +93,6 @@ namespace fastEEC{
                     );
                 }
             }
-        }
-        if(isPU1){
-            isPU1 = true;
         }
     }
 }

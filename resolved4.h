@@ -85,8 +85,8 @@ namespace fastEEC{
             ct_idx = 0;
 
             return;
-        } else if((RL - subdRs[0].second)/RL < rin.shapetol &&
-                  (RL - subdRs[1].second)/RL < rin.shapetol){
+        } else if((RL - subdRs[0].second) < rin.shapetol*RL &&
+                  (RL - subdRs[1].second) < rin.shapetol*RL){
 
             shape_idx = 3;//equilateral triangle
 

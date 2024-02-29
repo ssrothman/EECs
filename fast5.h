@@ -34,9 +34,11 @@ namespace fastEEC{
              const transferInputs<T>* const tin = nullptr) {
 
         T weight5;
-        bool isPU4=isPU3;
-        unsigned i0max_new=0, i1max_new=0;
-        unsigned j0max_new=0, j1max_new=0;
+        bool isPU4 __attribute__((unused));
+        unsigned i0max_new __attribute__((unused));
+        unsigned i1max_new __attribute__((unused));
+        unsigned j0max_new __attribute__((unused));
+        unsigned j1max_new __attribute__((unused));
         for(unsigned i4=i3; i4<nPart; ++i4){
             T partial4 = partial3 * Es[i4];
 
@@ -234,17 +236,6 @@ namespace fastEEC{
                     );
                 }
             }
-        }
-        if(isPU4){
-            isPU4 = true;
-        } else if(i0max_new){
-            i0max_new = 0;
-        } else if(i1max_new){
-            i1max_new = 0;
-        } else if(j0max_new){
-            j0max_new = 0;
-        } else if(j1max_new){
-            j1max_new = 0;
         }
     }
 };

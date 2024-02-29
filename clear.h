@@ -2,29 +2,31 @@
 #define EECS_CLEAR_H
 
 namespace fastEEC{
-    template <typename T, bool doPU, bool doTransfer, unsigned maxOrder>
+    template <typename T, bool doPU, bool doTransfer, unsigned maxOrder, bool doRes3, bool doRes4, bool doRes4Fixed>
     void clear(result<T>& ans, const unsigned NDR,
                const resolvedInputs<T>& rin) {
 
-        if constexpr(maxOrder >= 4){
-            unsigned Nfixedshape = 3;
-            ans.resolved4_fixed.resize(extents[Nfixedshape][NDR]);
-            if constexpr(doPU){
-                ans.resolved4_fixed_PU.resize(extents[Nfixedshape][NDR]);
-            }
-            if constexpr(doTransfer){
-                ans.transfer_res4_fixed.resize(extents[Nfixedshape][NDR][Nfixedshape][NDR]);
-            }
-            for(unsigned i=0; i<Nfixedshape; ++i){
-                for(unsigned j=0; j<NDR; ++j){
-                    ans.resolved4_fixed[i][j] = 0;
-                    if constexpr(doPU){
-                        ans.resolved4_fixed_PU[i][j] = 0;
-                    }
-                    if constexpr(doTransfer){
-                        for(unsigned a=0; a<Nfixedshape; ++a){
-                            for(unsigned b=0; b<NDR; ++b){
-                                ans.transfer_res4_fixed[i][j][a][b] = 0;
+        if constexpr(maxOrder >= 4 && doRes4){
+            if constexpr(doRes4Fixed){
+                unsigned Nfixedshape = 3;
+                ans.resolved4_fixed.resize(extents[Nfixedshape][NDR]);
+                if constexpr(doPU){
+                    ans.resolved4_fixed_PU.resize(extents[Nfixedshape][NDR]);
+                }
+                if constexpr(doTransfer){
+                    ans.transfer_res4_fixed.resize(extents[Nfixedshape][NDR][Nfixedshape][NDR]);
+                }
+                for(unsigned i=0; i<Nfixedshape; ++i){
+                    for(unsigned j=0; j<NDR; ++j){
+                        ans.resolved4_fixed[i][j] = 0;
+                        if constexpr(doPU){
+                            ans.resolved4_fixed_PU[i][j] = 0;
+                        }
+                        if constexpr(doTransfer){
+                            for(unsigned a=0; a<Nfixedshape; ++a){
+                                for(unsigned b=0; b<NDR; ++b){
+                                    ans.transfer_res4_fixed[i][j][a][b] = 0;
+                                }
                             }
                         }
                     }
@@ -77,7 +79,7 @@ namespace fastEEC{
             }
         }
 
-        if constexpr(maxOrder >= 3){
+        if constexpr(maxOrder >= 3 && doRes3){
             unsigned NDR_coarse = histogram::axis::traits::extent(*rin.coarseRL);
             unsigned Nxi = histogram::axis::traits::extent(*rin.xi);
             unsigned Nphi = histogram::axis::traits::extent(*rin.phi);

@@ -4,7 +4,7 @@
 #include "fast2.h"
 
 namespace fastEEC{
-    template <typename T, bool doPU, bool doTransfer, unsigned maxOrder>
+    template <typename T, bool doPU, bool doTransfer, unsigned maxOrder, bool doRes3, bool doRes4, bool doRes4Fixed>
     void do1(const umat& dRs, 
              const vector<T>& Es,
              const unsigned nPart,
@@ -24,7 +24,7 @@ namespace fastEEC{
             if constexpr (doTransfer){
                 const uvec& adj0 = tin->adj.at(i0);
                 if (adj0.empty()){
-                    do2<T, doPU, doTransfer, maxOrder, true>(
+                    do2<T, doPU, doTransfer, maxOrder, true, doRes3, doRes4, doRes4Fixed>(
                         dRs, Es, nPart, rin, ans,
                         i0, partial0, isPU,
                         0, 0,
@@ -33,7 +33,7 @@ namespace fastEEC{
                 } else {
                     unsigned j0 = adj0[0];
                     T partialtrans0 = tin->ptrans[i0][j0];
-                    do2<T, doPU, doTransfer, maxOrder, true>(
+                    do2<T, doPU, doTransfer, maxOrder, true, doRes3, doRes4, doRes4Fixed>(
                         dRs, Es, nPart, rin, ans,
                         i0, partial0, isPU,
                         j0, partialtrans0,
@@ -42,7 +42,7 @@ namespace fastEEC{
                     for(unsigned j=1; j<adj0.size(); ++j){
                         j0 = adj0[j];
                         partialtrans0 = tin->ptrans[i0][j0];
-                        do2<T, doPU, doTransfer, maxOrder, false>(
+                        do2<T, doPU, doTransfer, maxOrder, false, doRes3, doRes4, doRes4Fixed>(
                             dRs, Es, nPart, rin, ans,
                             i0, partial0, isPU,
                             j0, partialtrans0,
@@ -51,7 +51,7 @@ namespace fastEEC{
                     }
                 }
             } else {
-                do2<T, doPU, doTransfer, maxOrder, true>(
+                do2<T, doPU, doTransfer, maxOrder, true, doRes3, doRes4, doRes4Fixed>(
                     dRs, Es, nPart, rin, ans,
                     i0, partial0, isPU,
                     0, 0,

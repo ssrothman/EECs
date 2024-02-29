@@ -5,7 +5,7 @@
 #include "fast1.h"
 
 namespace fastEEC{
-    template <typename T, bool doPU, bool doTransfer, unsigned maxOrder>
+    template <typename T, bool doPU, bool doTransfer, unsigned maxOrder, bool doRes3, bool doRes4, bool doRes4Fixed>
     void start(const umat& dRs, 
                const vector<T>& Es,
                const unsigned NDR,
@@ -15,16 +15,18 @@ namespace fastEEC{
                const transferInputs<T>* const tin = nullptr) {
         static_assert(maxOrder >= 2 && maxOrder <= 6);
 
-        clear<T, doPU, doTransfer, maxOrder>(ans, NDR, rin);
+        printf("top of start\n");
+        fflush(stdout);
 
-        printf("running fast EEC\n");
-        printf("\tdoPU = %d\n", doPU);
-        printf("\tdoTransfer = %d\n", doTransfer);
-        printf("\tmaxOrder = %d\n", maxOrder);
+        clear<T, doPU, doTransfer, maxOrder, doRes3, doRes4, doRes4Fixed>(ans, NDR, rin);
+        printf("after clear\n");
+        fflush(stdout);
 
         unsigned nPart = Es.size();
 
-        do1<T, doPU, doTransfer, maxOrder>(
+        printf("about to do1\n");
+        fflush(stdout);
+        do1<T, doPU, doTransfer, maxOrder, doRes3, doRes4, doRes4Fixed>(
             dRs, Es, nPart, rin, ans, PU, tin
         );
     }

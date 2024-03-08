@@ -105,11 +105,11 @@ namespace fastEEC{
 
             if constexpr(nontransfer){
                 //accumulate
-                ans.wts5[DR4] += weight5;
+                (*ans.wts5)[DR4] += weight5;
                 if constexpr(doPU){
                     isPU4 = isPU3 || PU->at(i4);
                     if(isPU4){
-                        ans.wts5_PU[DR4] += weight5;
+                        (*ans.wts5_PU)[DR4] += weight5;
                     }
                 }
             }
@@ -161,7 +161,7 @@ namespace fastEEC{
                             break;
                     };
 
-                    ans.transfer5[DR4][DR4_Reco] += partialtrans4 * weight5;
+                    (*ans.transfer5)[DR4][DR4_Reco] += partialtrans4 * weight5;
 
                     if constexpr (maxOrder >=6){
                         do6<T, doPU, doTransfer, maxOrder, nontransfer>(
@@ -208,7 +208,7 @@ namespace fastEEC{
                                 break;
                         };
 
-                        ans.transfer5[DR4][DR4_Reco] += partialtrans4 * weight5;
+                        (*ans.transfer5)[DR4][DR4_Reco] += partialtrans4 * weight5;
 
                         if constexpr (maxOrder >= 6){
                             do6<T, doPU, doTransfer, maxOrder, false>(

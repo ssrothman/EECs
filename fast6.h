@@ -144,11 +144,11 @@ namespace fastEEC{
 
             if constexpr(nontransfer){
                 //accumulate
-                ans.wts6[DR5] += weight6;
+                (*ans.wts6)[DR5] += weight6;
                 if constexpr(doPU){
                     isPU5 = isPU4 || PU->at(i5);
                     if(isPU5){
-                        ans.wts6_PU[DR5] += weight6;
+                        (*ans.wts6_PU)[DR5] += weight6;
                     }
                 }
             }
@@ -195,7 +195,7 @@ namespace fastEEC{
                             break;
                     };
 
-                    ans.transfer6[DR5][DR5_Reco] += partialtrans5 * weight6;
+                    (*ans.transfer6)[DR5][DR5_Reco] += partialtrans5 * weight6;
 
                     for(unsigned j=1; j<adj5.size(); ++j){
                         j5 = adj5[j];
@@ -234,7 +234,7 @@ namespace fastEEC{
                                 j1max_new = 5;
                                 break;
                         };
-                        ans.transfer6[DR5][DR5_Reco] += partialtrans5 * weight6;
+                        (*ans.transfer6)[DR5][DR5_Reco] += partialtrans5 * weight6;
                     }
                 }
             }

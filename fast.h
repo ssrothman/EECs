@@ -1242,7 +1242,7 @@ namespace fastEEC{
     }   
 
     template <typename T, bool doPU, bool doTransfer, bool doRes3, bool doRes4, bool doRes4Fixed>
-    result<T> fastEEC(result<T>& ans,
+    void fastEEC(result<T>& ans,
 
                       const jet& J, const axisptr& ax, 
                       const int order, const normType nt,
@@ -1340,8 +1340,8 @@ namespace fastEEC{
                     dRs, Es, NDR, rin, ans, PU, &tin
             );
         }
-
-        return ans;
+        printf("after 'start' call\n");
+        fflush(stdout);
     }
 };
 

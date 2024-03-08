@@ -29,6 +29,8 @@ namespace fastEEC{
         do1<T, doPU, doTransfer, maxOrder, doRes3, doRes4, doRes4Fixed>(
             dRs, Es, nPart, rin, ans, PU, tin
         );
+        printf("done\n");
+        fflush(stdout);
     }
 };
 

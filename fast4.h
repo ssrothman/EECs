@@ -36,6 +36,7 @@ namespace fastEEC{
             static_assert(doRes4);
         }
 
+
         T weight4;
         bool isPU3 __attribute__((unused));
         unsigned i0max_new __attribute__((unused));
@@ -43,6 +44,8 @@ namespace fastEEC{
         unsigned j0max_new __attribute__((unused));
         unsigned j1max_new __attribute__((unused));
         for(unsigned i3=i2; i3<nPart; ++i3){
+            printf("do4 (%u, %u, %u, %u)\n", i0, i1, i2, i3);
+            fflush(stdout);
             T partial3 = partial2 * Es[i3];
 
             uvec dRlist = {DR2, dRs[i0][i3], 
@@ -133,14 +136,15 @@ namespace fastEEC{
             }
 
             weight4 = symfac * partial3;
+            printf("\tweight = %0.4g\n", weight4);
 
             if constexpr(nontransfer){
                 //accumulate
-                ans.wts4[DR3] += weight4;
+                (*ans.wts4)[DR3] += weight4;
                 if constexpr(doPU){
                     isPU3 = isPU2 || PU->at(i3);
                     if(isPU3){
-                        ans.wts4_PU[DR3] += weight4;
+                        (*ans.wts4_PU)[DR3] += weight4;
                     }
                 }
             }
@@ -153,26 +157,50 @@ namespace fastEEC{
             if constexpr (doRes4){
                 if constexpr (doRes4Fixed){
                     fixedshape4(qi0, qi1, qi2, qi3, rin, fixedshape_idx);
+                    printf("\tfixedshape:\n");
+                    fflush(stdout);
+                    printf("\t\tshape: %u\n", fixedshape_idx);
+                    fflush(stdout);
+                    printf("\t\tDR: %u\n", DR3);
+                    fflush(stdout);
+                    printf("\t\tbefore: %g\n", (*ans.resolved4_fixed)[fixedshape_idx][DR3]);
+                    fflush(stdout);
 
                     if constexpr(nontransfer){
-                        ans.resolved4_fixed[fixedshape_idx][DR3] += weight4;
+                        (*ans.resolved4_fixed)[fixedshape_idx][DR3] += weight4;
                         if constexpr(doPU){
                             if (isPU3){
-                                ans.resolved4_fixed_PU[fixedshape_idx][DR3] += weight4;
+                                (*ans.resolved4_fixed_PU)[fixedshape_idx][DR3] += weight4;
                             }
                         }
                     }
+                    printf("\t\tafter: %g\n", (*ans.resolved4_fixed)[fixedshape_idx][DR3]);
+                    fflush(stdout);
                 }
 
                 resolved4(qi0, qi1, qi2, qi3, rin, shape_idx, RL_idx, r_idx, ct_idx); 
+                printf("\tshapes\n");
+                fflush(stdout);
+                printf("\t\tshape: %u\n", shape_idx);
+                fflush(stdout);
+                printf("\t\tRL: %u\n", RL_idx);
+                fflush(stdout);
+                printf("\t\tr: %u\n", r_idx);
+                fflush(stdout);
+                printf("\t\tct: %u\n", ct_idx);
+                fflush(stdout);
+                printf("\t\tbefore: %g\n", (*ans.resolved4_shapes)[shape_idx][RL_idx][r_idx][ct_idx]);
+                fflush(stdout);
                 if constexpr(nontransfer){
-                    ans.resolved4_shapes[shape_idx][RL_idx][r_idx][ct_idx] += weight4;
+                    (*ans.resolved4_shapes)[shape_idx][RL_idx][r_idx][ct_idx] += weight4;
                     if constexpr(doPU){
                         if(isPU3){
-                            ans.resolved4_shapes_PU[shape_idx][RL_idx][r_idx][ct_idx] += weight4;
+                            (*ans.resolved4_shapes_PU)[shape_idx][RL_idx][r_idx][ct_idx] += weight4;
                         }
                     }
                 }
+                printf("\t\tafter: %g\n", (*ans.resolved4_shapes)[shape_idx][RL_idx][r_idx][ct_idx]);
+                fflush(stdout);
             }
 
             if constexpr(doTransfer){
@@ -264,18 +292,18 @@ namespace fastEEC{
                             }
                             break;
                     };
-                    ans.transfer4[DR3][DR3_Reco] += partialtrans3 * weight4;
+                    (*ans.transfer4)[DR3][DR3_Reco] += partialtrans3 * weight4;
 
                     if constexpr (doRes4){
                         if constexpr (doRes4Fixed){
                             unsigned shapeidx_fixed_reco;
                             fixedshape4(qj0, qj1, qj2, qj3, rin, shapeidx_fixed_reco);
-                            ans.transfer_res4_fixed[fixedshape_idx][DR3][shapeidx_fixed_reco][DR3_Reco] += partialtrans3 * weight4;
+                            (*ans.transfer_res4_fixed)[fixedshape_idx][DR3][shapeidx_fixed_reco][DR3_Reco] += partialtrans3 * weight4;
                         }
 
                         unsigned shape_idx_reco, RL_idx_reco, r_idx_reco, ct_idx_reco;
                         resolved4(qj0, qj1, qj2, qj3, tin->rin, shape_idx_reco, RL_idx_reco, r_idx_reco, ct_idx_reco);
-                        ans.transfer_res4_shapes[shape_idx][RL_idx][r_idx][ct_idx][shape_idx_reco][RL_idx_reco][r_idx_reco][ct_idx_reco] += partialtrans3 * weight4;
+                        (*ans.transfer_res4_shapes)[shape_idx][RL_idx][r_idx][ct_idx][shape_idx_reco][RL_idx_reco][r_idx_reco][ct_idx_reco] += partialtrans3 * weight4;
                     }
 
                     if constexpr (maxOrder >=5){
@@ -362,18 +390,18 @@ namespace fastEEC{
                                 break;
                         };
 
-                        ans.transfer4[DR3][DR3_Reco] += partialtrans3 * weight4;
+                        (*ans.transfer4)[DR3][DR3_Reco] += partialtrans3 * weight4;
 
                         if constexpr (doRes4){
                             if constexpr (doRes4Fixed){
                                 unsigned shapeidx_fixed_reco;
                                 fixedshape4(qj0, qj1, qj2, qj3, rin, shapeidx_fixed_reco);
-                                ans.transfer_res4_fixed[fixedshape_idx][DR3][shapeidx_fixed_reco][DR3_Reco] += partialtrans3 * weight4;
+                                (*ans.transfer_res4_fixed)[fixedshape_idx][DR3][shapeidx_fixed_reco][DR3_Reco] += partialtrans3 * weight4;
                             }
 
                             unsigned shape_idx_reco, RL_idx_reco, r_idx_reco, ct_idx_reco;
                             resolved4(qj0, qj1, qj2, qj3, tin->rin, shape_idx_reco, RL_idx_reco, r_idx_reco, ct_idx_reco);
-                            ans.transfer_res4_shapes[shape_idx][RL_idx][r_idx][ct_idx][shape_idx_reco][RL_idx_reco][r_idx_reco][ct_idx_reco] += partialtrans3 * weight4;
+                            (*ans.transfer_res4_shapes)[shape_idx][RL_idx][r_idx][ct_idx][shape_idx_reco][RL_idx_reco][r_idx_reco][ct_idx_reco] += partialtrans3 * weight4;
                         }
 
                         if constexpr (maxOrder >= 5){
@@ -403,6 +431,8 @@ namespace fastEEC{
                 }
             }
         }
+        printf("\tend do4\n");
+        fflush(stdout);
     }
 };
 

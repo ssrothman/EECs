@@ -81,11 +81,11 @@ namespace fastEEC{
 
             if constexpr(nontransfer){
                 //accumulate
-                ans.wts3[DR2] += weight3;
+                (*ans.wts3)[DR2] += weight3;
                 if constexpr(doPU){
                     isPU2 = isPU1 || PU->at(i2);
                     if(isPU2){
-                        ans.wts3_PU[DR2] += weight3;
+                        (*ans.wts3_PU)[DR2] += weight3;
                     }
                 }
             }
@@ -119,10 +119,10 @@ namespace fastEEC{
                 phi_idx = static_cast<unsigned>(rin.phi->index(phi) + 1);
                 if constexpr(nontransfer){
                     //accumulate
-                    ans.resolved3[RL_idx][xi_idx][phi_idx] += weight3;
+                    (*ans.resolved3)[RL_idx][xi_idx][phi_idx] += weight3;
                     if constexpr(doPU){
                         if(isPU2){
-                            ans.resolved3_PU[RL_idx][xi_idx][phi_idx] += weight3;
+                            (*ans.resolved3_PU)[RL_idx][xi_idx][phi_idx] += weight3;
                         }
                     }
                 }
@@ -182,7 +182,7 @@ namespace fastEEC{
                             break;
                     };
 
-                    ans.transfer3[DR2][DR2_Reco] += partialtrans2 * weight3;
+                    (*ans.transfer3)[DR2][DR2_Reco] += partialtrans2 * weight3;
 
                     if constexpr (doRes3){
                         T RL_reco = tin->rin.floatDRs[qj0][qj1]; 
@@ -208,7 +208,7 @@ namespace fastEEC{
                         unsigned xi_reco_idx = static_cast<unsigned>(rin.xi->index(xi_reco) + 1);
                         unsigned phi_reco_idx = static_cast<unsigned>(rin.phi->index(phi_reco) + 1);
 
-                        ans.transfer_res3[RL_idx][xi_idx][phi_idx][RL_reco_idx][xi_reco_idx][phi_reco_idx] 
+                        (*ans.transfer_res3)[RL_idx][xi_idx][phi_idx][RL_reco_idx][xi_reco_idx][phi_reco_idx] 
                             += partialtrans2 * weight3;
                     }
 
@@ -262,7 +262,7 @@ namespace fastEEC{
                                 break;
                         };
 
-                        ans.transfer3[DR2][DR2_Reco] += partialtrans2 * weight3;
+                        (*ans.transfer3)[DR2][DR2_Reco] += partialtrans2 * weight3;
 
                         if constexpr (doRes3){
                             T RL_reco = tin->rin.floatDRs[qj0][qj1];
@@ -290,7 +290,7 @@ namespace fastEEC{
                             unsigned xi_reco_idx = static_cast<unsigned>(rin.xi->index(xi_reco) + 1);
                             unsigned phi_reco_idx = static_cast<unsigned>(rin.phi->index(phi_reco) + 1);
 
-                            ans.transfer_res3[RL_idx][xi_idx][phi_idx][RL_reco_idx][xi_reco_idx][phi_reco_idx] 
+                            (*ans.transfer_res3)[RL_idx][xi_idx][phi_idx][RL_reco_idx][xi_reco_idx][phi_reco_idx] 
                                 += partialtrans2 * weight3;
                         }
 

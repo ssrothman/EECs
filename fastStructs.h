@@ -19,23 +19,23 @@ namespace fastEEC{
         /*
          * Projected weights for orders 2-6
          */
-        vector<T> wts2;
-        vector<T> wts3;
-        vector<T> wts4;
-        vector<T> wts5;
-        vector<T> wts6;
+        std::shared_ptr<vector<T>> wts2;
+        std::shared_ptr<vector<T>> wts3;
+        std::shared_ptr<vector<T>> wts4;
+        std::shared_ptr<vector<T>> wts5;
+        std::shared_ptr<vector<T>> wts6;
 
-        vector<T> wts2_PU;
-        vector<T> wts3_PU;
-        vector<T> wts4_PU;
-        vector<T> wts5_PU;
-        vector<T> wts6_PU;
+        std::shared_ptr<vector<T>> wts2_PU;
+        std::shared_ptr<vector<T>> wts3_PU;
+        std::shared_ptr<vector<T>> wts4_PU;
+        std::shared_ptr<vector<T>> wts5_PU;
+        std::shared_ptr<vector<T>> wts6_PU;
 
-        multi_array<T, 2> transfer2;
-        multi_array<T, 2> transfer3;
-        multi_array<T, 2> transfer4;
-        multi_array<T, 2> transfer5;
-        multi_array<T, 2> transfer6;
+        std::shared_ptr<multi_array<T, 2>> transfer2;
+        std::shared_ptr<multi_array<T, 2>> transfer3;
+        std::shared_ptr<multi_array<T, 2>> transfer4;
+        std::shared_ptr<multi_array<T, 2>> transfer5;
+        std::shared_ptr<multi_array<T, 2>> transfer6;
         
         /*
          * shape [RL, xi, phi]
@@ -47,9 +47,9 @@ namespace fastEEC{
          * cf 2201.07800
          *    2205.02857
          */
-        multi_array<T, 3> resolved3; 
-        multi_array<T, 3> resolved3_PU;
-        multi_array<T, 6> transfer_res3;
+        std::shared_ptr<multi_array<T, 3>> resolved3; 
+        std::shared_ptr<multi_array<T, 3>> resolved3_PU;
+        std::shared_ptr<multi_array<T, 6>> transfer_res3;
 
         /*
          * shape [shapeindex, Rl, r, theta]
@@ -65,9 +65,9 @@ namespace fastEEC{
          *         in this case r is the distance from the top of the triangle to the point, over RL
          *         theta is the angle between that vertex and the point
          */
-        multi_array<T, 4> resolved4_shapes; 
-        multi_array<T, 4> resolved4_shapes_PU;
-        multi_array<T, 8> transfer_res4_shapes;
+        std::shared_ptr<multi_array<T, 4>> resolved4_shapes; 
+        std::shared_ptr<multi_array<T, 4>> resolved4_shapes_PU;
+        std::shared_ptr<multi_array<T, 8>> transfer_res4_shapes;
 
         /*
          * Some fixed shapes for 4th order and 5th order
@@ -77,9 +77,9 @@ namespace fastEEC{
          *     1: square
          *     2: triangle (for fourth-order) or pentagon (for fifth-order)
          */
-        multi_array<T, 2> resolved4_fixed;
-        multi_array<T, 2> resolved4_fixed_PU;
-        multi_array<T, 4> transfer_res4_fixed;
+        std::shared_ptr<multi_array<T, 2>> resolved4_fixed;
+        std::shared_ptr<multi_array<T, 2>> resolved4_fixed_PU;
+        std::shared_ptr<multi_array<T, 4>> transfer_res4_fixed;
 
         //multi_array<T, 2> resolved5_fixed;
         //multi_array<T, 2> resolved5_fixed_PU;

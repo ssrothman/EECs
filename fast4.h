@@ -44,8 +44,6 @@ namespace fastEEC{
         unsigned j0max_new __attribute__((unused));
         unsigned j1max_new __attribute__((unused));
         for(unsigned i3=i2; i3<nPart; ++i3){
-            printf("do4 (%u, %u, %u, %u)\n", i0, i1, i2, i3);
-            fflush(stdout);
             T partial3 = partial2 * Es[i3];
 
             uvec dRlist = {DR2, dRs[i0][i3], 
@@ -136,7 +134,6 @@ namespace fastEEC{
             }
 
             weight4 = symfac * partial3;
-            printf("\tweight = %0.4g\n", weight4);
 
             if constexpr(nontransfer){
                 //accumulate
@@ -157,14 +154,6 @@ namespace fastEEC{
             if constexpr (doRes4){
                 if constexpr (doRes4Fixed){
                     fixedshape4(qi0, qi1, qi2, qi3, rin, fixedshape_idx);
-                    printf("\tfixedshape:\n");
-                    fflush(stdout);
-                    printf("\t\tshape: %u\n", fixedshape_idx);
-                    fflush(stdout);
-                    printf("\t\tDR: %u\n", DR3);
-                    fflush(stdout);
-                    printf("\t\tbefore: %g\n", (*ans.resolved4_fixed)[fixedshape_idx][DR3]);
-                    fflush(stdout);
 
                     if constexpr(nontransfer){
                         (*ans.resolved4_fixed)[fixedshape_idx][DR3] += weight4;
@@ -174,23 +163,9 @@ namespace fastEEC{
                             }
                         }
                     }
-                    printf("\t\tafter: %g\n", (*ans.resolved4_fixed)[fixedshape_idx][DR3]);
-                    fflush(stdout);
                 }
 
                 resolved4(qi0, qi1, qi2, qi3, rin, shape_idx, RL_idx, r_idx, ct_idx); 
-                printf("\tshapes\n");
-                fflush(stdout);
-                printf("\t\tshape: %u\n", shape_idx);
-                fflush(stdout);
-                printf("\t\tRL: %u\n", RL_idx);
-                fflush(stdout);
-                printf("\t\tr: %u\n", r_idx);
-                fflush(stdout);
-                printf("\t\tct: %u\n", ct_idx);
-                fflush(stdout);
-                printf("\t\tbefore: %g\n", (*ans.resolved4_shapes)[shape_idx][RL_idx][r_idx][ct_idx]);
-                fflush(stdout);
                 if constexpr(nontransfer){
                     (*ans.resolved4_shapes)[shape_idx][RL_idx][r_idx][ct_idx] += weight4;
                     if constexpr(doPU){
@@ -199,8 +174,6 @@ namespace fastEEC{
                         }
                     }
                 }
-                printf("\t\tafter: %g\n", (*ans.resolved4_shapes)[shape_idx][RL_idx][r_idx][ct_idx]);
-                fflush(stdout);
             }
 
             if constexpr(doTransfer){
@@ -431,8 +404,6 @@ namespace fastEEC{
                 }
             }
         }
-        printf("\tend do4\n");
-        fflush(stdout);
     }
 };
 

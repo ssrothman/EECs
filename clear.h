@@ -6,9 +6,6 @@ namespace fastEEC{
     void clear(result<T>& ans, const unsigned NDR,
                const resolvedInputs<T>& rin) {
 
-        printf("top of clear\n");
-        fflush(stdout);
-
         if constexpr (doRes4Fixed){
             unsigned Nfixedshape = 3;
 
@@ -22,9 +19,6 @@ namespace fastEEC{
                     extents[Nfixedshape][NDR][Nfixedshape][NDR]
             );
         
-            printf("made fixed\n");
-            fflush(stdout);
-
             for(unsigned i=0; i<Nfixedshape; ++i){
                 for(unsigned j=0; j<NDR; ++j){
                     (*ans.resolved4_fixed)[i][j] = 0;
@@ -36,10 +30,7 @@ namespace fastEEC{
                     }
                 }
             }
-
-            printf("filled fixed\n");
-            fflush(stdout);
-        }
+        
 
         if constexpr (doRes4){
             unsigned Nshape = 4;
@@ -55,9 +46,6 @@ namespace fastEEC{
             unsigned Nct3 = histogram::axis::traits::extent(*rin.ct_triangle);
             assert(Nct1 == Nct2 && Nct2==Nct3);
 
-            printf("RESOLVED4 SHAPE: (%u, %u, %u, %u)\n", Nshape, NDR_coarse, Nr1, Nct1);
-            fflush(stdout);
-
             ans.resolved4_shapes = make_shared<multi_array<T, 4>>(
                     extents[Nshape][NDR_coarse][Nr1][Nct1]
             );
@@ -67,9 +55,6 @@ namespace fastEEC{
             ans.transfer_res4_shapes = make_shared<multi_array<T, 8>>(
                     extents[Nshape][NDR_coarse][Nr1][Nct1][Nshape][NDR_coarse][Nr1][Nct1]
             );
-
-            printf("made shapes\n");
-            fflush(stdout);
 
             for(unsigned i=0; i<Nshape; ++i){
                 for(unsigned j=0; j<NDR_coarse; ++j){

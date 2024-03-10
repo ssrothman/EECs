@@ -1340,8 +1340,6 @@ namespace fastEEC{
                     dRs, Es, NDR, rin, ans, PU, &tin
             );
         }
-        printf("after 'start' call\n");
-        fflush(stdout);
     }
 };
 

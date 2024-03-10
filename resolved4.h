@@ -98,7 +98,7 @@ namespace fastEEC{
                     T phi01 = rin.phis[qi1] - rin.phis[qi0];
                     T eta03 = rin.etas[qi3] - rin.etas[qi0];
                     T phi03 = rin.phis[qi3] - rin.phis[qi0];
-                    ct = (eta01*eta03 + phi01*phi03)/(RL*R3);
+                    ct = std::abs((eta01*eta03 + phi01*phi03)/(RL*R3));
                     break;}
                 case 1: //the fourth point is qi2, and it's connected via the 103 vertex
                     {r = R2/RL;
@@ -106,7 +106,7 @@ namespace fastEEC{
                     T phi01 = rin.phis[qi1] - rin.phis[qi0];
                     T eta02 = rin.etas[qi2] - rin.etas[qi0];
                     T phi02 = rin.phis[qi2] - rin.phis[qi0];
-                    ct = (eta01*eta02 + phi01*phi02)/(RL*R2);
+                    ct = std::abs((eta01*eta02 + phi01*phi02)/(RL*R2));
                     break;}
                 case 2: //the fourth point is qi3, and it's connected via the 210 vertex
                     {r = R5/RL;
@@ -114,7 +114,7 @@ namespace fastEEC{
                     T phi10 = rin.phis[qi0] - rin.phis[qi1];
                     T eta13 = rin.etas[qi3] - rin.etas[qi1];
                     T phi13 = rin.phis[qi3] - rin.phis[qi1];
-                    ct = (eta10*eta13 + phi10*phi13)/(RL*R5);
+                    ct = std::abs((eta10*eta13 + phi10*phi13)/(RL*R5));
                     break;}
                 case 3: //the fourth point is q2, and it's connected via the 310 vertex
                     {r = R4/RL;
@@ -122,7 +122,7 @@ namespace fastEEC{
                     T phi10 = rin.phis[qi0] - rin.phis[qi1];
                     T eta12 = rin.etas[qi2] - rin.etas[qi1];
                     T phi12 = rin.phis[qi2] - rin.phis[qi1];
-                    ct = (eta10*eta12 + phi10*phi12)/(RL*R4);
+                    ct = std::abs((eta10*eta12 + phi10*phi12)/(RL*R4));
                     break;}
             }
             r_idx = static_cast<unsigned>(rin.r_triangle->index(r)+1);
@@ -239,13 +239,13 @@ namespace fastEEC{
                         if(std::abs(a - 0.5) < rin.shapetol){
                             shape_idx = 1; //dipole configuration
                             r_idx = static_cast<unsigned>(rin.r_dipole->index(R6/RL) + 1);
-                            T ct = (ABeta * CDeta + ABphi * CDphi)/(RL*R6);
+                            T ct = std::abs((ABeta * CDeta + ABphi * CDphi)/(RL*R6));
                             ct_idx = static_cast<unsigned>(rin.ct_dipole->index(ct) + 1);
                             return;
                         } else if(std::abs(a-0) < rin.shapetol || std::abs(a-1) < rin.shapetol){
                             shape_idx = 2; //tee configuration
                             r_idx = static_cast<unsigned>(rin.r_tee->index(R6/RL) + 1);
-                            T ct = (ABeta * CDeta + ABphi * CDphi)/(RL*R6);
+                            T ct = std::abs((ABeta * CDeta + ABphi * CDphi)/(RL*R6));
                             ct_idx = static_cast<unsigned>(rin.ct_tee->index(ct) + 1);
                             return;
                         } else{

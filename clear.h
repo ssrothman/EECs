@@ -30,7 +30,7 @@ namespace fastEEC{
                     }
                 }
             }
-        
+        }
 
         if constexpr (doRes4){
             unsigned Nshape = 4;

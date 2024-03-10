@@ -1,12 +1,16 @@
 #ifndef EECS_FASTSTRUCTS_H
 #define EECS_FASTSTRUCTS_H
 
+#include "adj.h"
+
 #include <boost/histogram.hpp>
 #include <boost/multi_array.hpp>
 
 namespace fastEEC{
     using namespace boost;
     using namespace std;
+
+    using uvec = std::vector<unsigned>;
 
     using axis_t = histogram::axis::variable<double>;
     using axisptr = std::shared_ptr<axis_t>;

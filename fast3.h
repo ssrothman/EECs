@@ -111,7 +111,7 @@ namespace fastEEC{
                 if (RS==0){
                     phi = 0;
                 } else {
-                    phi = std::asin(std::sqrt(1 - square((RL-RM)/RS)));
+                    phi = std::abs(std::asin(std::sqrt(1 - square((RL-RM)/RS))));
                 }
 
                 RL_idx = static_cast<unsigned>(rin.coarseRL->index(RL) + 1);
@@ -202,7 +202,7 @@ namespace fastEEC{
                         if (RS_reco==0){
                             phi_reco = 0;
                         } else {
-                            phi_reco = std::asin(std::sqrt(1 - square((RL_reco-RM_reco)/RS_reco)));
+                            phi_reco = std::abs(std::asin(std::sqrt(1 - square((RL_reco-RM_reco)/RS_reco))));
                         }
                         unsigned RL_reco_idx = static_cast<unsigned>(rin.coarseRL->index(RL_reco) + 1);
                         unsigned xi_reco_idx = static_cast<unsigned>(rin.xi->index(xi_reco) + 1);
@@ -283,7 +283,7 @@ namespace fastEEC{
                             if (RS_reco==0){
                                 phi_reco = 0;
                             } else {
-                                phi_reco = std::asin(std::sqrt(1 - square((RL_reco-RM_reco)/RS_reco)));
+                                phi_reco = std::abs(std::asin(std::sqrt(1 - square((RL_reco-RM_reco)/RS_reco))));
                             }
 
                             unsigned RL_reco_idx = static_cast<unsigned>(rin.coarseRL->index(RL_reco) + 1);

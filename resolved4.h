@@ -11,42 +11,75 @@ namespace fastEEC{
                      const unsigned i3,
                      const resolvedInputs<T>& rin,
                      unsigned& shape_idx){
+        //printf("fixedshape4 %u %u %u %u\n", i0, i1, i2, i3);
+        //fflush(stdout);
         T R1 = rin.floatDRs[i0][i1];
         T R2 = rin.floatDRs[i0][i2];
         T R3 = rin.floatDRs[i0][i3];
         T R4 = rin.floatDRs[i1][i2];
         T R5 = rin.floatDRs[i1][i3];
         T R6 = rin.floatDRs[i2][i3];
+        //printf("\tfloatDRs size is (%lu,%lu)\n", rin.floatDRs.shape()[0],
+        //                                     rin.floatDRs.shape()[1]);
+        //printf("\tfloatDRs ndim = %lu\n", rin.floatDRs.num_dimensions());
+        //printf("\tgot floatDRs\n");
+        //printf("\t\tR1 = [%u,%u]=%f\n", i0, i1, R1);
+        //printf("\t\tR2 = [%u,%u]=%f\n", i0, i2, R2);
+        //printf("\t\tR2 = [%u,%u]=%f\n", i0, i3, R3);
+        //printf("\t\tR2 = [%u,%u]=%f\n", i1, i2, R4);
+        //printf("\t\tR2 = [%u,%u]=%f\n", i1, i3, R5);
+        //printf("\t\tR2 = [%u,%u]=%f\n", i2, i3, R6);
+        //fflush(stdout);
 
         std::array<T, 6> subdRs({{R1, R2, R3, R4, R5, R6}});
-        std::sort(subdRs.begin(), subdRs.end());
+        std::sort(subdRs.begin(), subdRs.end(), std::greater<T>());
+        //printf("\tsorted\n");
+        //printf("\t\t%g\n", subdRs[0]);
+        //printf("\t\t%g\n", subdRs[1]);
+        //printf("\t\t%g\n", subdRs[2]);
+        //printf("\t\t%g\n", subdRs[3]);
+        //printf("\t\t%g\n", subdRs[4]);
+        //printf("\t\t%g\n", subdRs[5]);
+        //fflush(stdout);
 
         T RL = subdRs[0];
+        //printf("\tRL = %g\n", RL);
+        //fflush(stdout);
 
         if ((RL - subdRs[1]) < rin.shapetol * RL &&
             (RL - subdRs[2]) < rin.shapetol * RL){
 
             if ((RL - subdRs[3]) < rin.shapetol * RL){
                 T Rsquareedge = RL * invsqrt2;
+                //printf("\tRsquareedge = %g\n", Rsquareedge);
+                //fflush(stdout);
                 if (std::abs(Rsquareedge - subdRs[4]) < rin.shapetol * RL &&
                     std::abs(Rsquareedge - subdRs[5]) < rin.shapetol * RL){
 
                     shape_idx = 1; //square
+                    //printf("\tshape_idx = 1\n");
+                    //fflush(stdout);
                     return;
                 }
             } else {
                 T Rinnertri = 0.6666666666666666 * RL;
+                //printf("\tRinnertri = %g\n", Rinnertri);
+                //fflush(stdout);
 
                 if (std::abs(Rinnertri - subdRs[3]) < rin.shapetol * RL &&
                     std::abs(Rinnertri - subdRs[4]) < rin.shapetol * RL &&
                     std::abs(Rinnertri - subdRs[5]) < rin.shapetol * RL){
 
                     shape_idx = 2; //triangle 
+                    //printf("\tshape_idx = 2\n");
+                    //fflush(stdout);
                     return;
                 }
             }
         }
         shape_idx = 0;
+        //printf("\tshape_idx = 0\n");
+        //fflush(stdout);
         return;
     }
 
@@ -61,6 +94,7 @@ namespace fastEEC{
                    unsigned& r_idx,
                    unsigned& ct_idx){
 
+        //printf("resolved4 %u %u %u %u\n", qi0, qi1, qi2, qi3);
         T RL = rin.floatDRs[qi0][qi1];
         RL_idx = static_cast<unsigned>(rin.coarseRL->index(RL) + 1);
 
@@ -75,11 +109,17 @@ namespace fastEEC{
         subdRs[1] = {1,R3};
         subdRs[2] = {2,R4};
         subdRs[3] = {3,R5}; 
-        std::sort(subdRs.begin(), subdRs.end(), [](auto& left, auto& right) {
-            return left.second < right.second;
-        }); 
 
-        if (subdRs[3].second ==0){
+        std::sort(subdRs.begin(), subdRs.end(), [](auto& left, auto& right) {
+            return left.second > right.second;
+        }); 
+        //printf("\tRL = %g\n", RL);
+        //printf("\tR1 = %g\n", subdRs[0].second);
+        //printf("\tR2 = %g\n", subdRs[1].second);
+        //printf("\tR3 = %g\n", subdRs[2].second);
+        //printf("\tR4 = %g\n", subdRs[3].second);
+
+        if (subdRs[4].second ==0){
             shape_idx = 0;//no useful shape if any distances are zero
             r_idx = 0;
             ct_idx = 0;

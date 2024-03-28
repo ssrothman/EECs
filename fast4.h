@@ -270,7 +270,7 @@ namespace fastEEC{
                     if constexpr (doRes4){
                         if constexpr (doRes4Fixed){
                             unsigned shapeidx_fixed_reco;
-                            fixedshape4(qj0, qj1, qj2, qj3, rin, shapeidx_fixed_reco);
+                            fixedshape4(qj0, qj1, qj2, qj3, tin->rin, shapeidx_fixed_reco);
                             (*ans.transfer_res4_fixed)[fixedshape_idx][DR3][shapeidx_fixed_reco][DR3_Reco] += partialtrans3 * weight4;
                         }
 
@@ -368,7 +368,7 @@ namespace fastEEC{
                         if constexpr (doRes4){
                             if constexpr (doRes4Fixed){
                                 unsigned shapeidx_fixed_reco;
-                                fixedshape4(qj0, qj1, qj2, qj3, rin, shapeidx_fixed_reco);
+                                fixedshape4(qj0, qj1, qj2, qj3, tin->rin, shapeidx_fixed_reco);
                                 (*ans.transfer_res4_fixed)[fixedshape_idx][DR3][shapeidx_fixed_reco][DR3_Reco] += partialtrans3 * weight4;
                             }
 

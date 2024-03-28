@@ -54,6 +54,9 @@ namespace fastEEC{
         for (unsigned i0=0; i0<J.nPart; ++i0){
             for (unsigned i1=0; i1<J.nPart; ++i1){
                 double deltaR = dR(J.particles[i0], J.particles[i1]);
+                if (deltaR < 1e-10){
+                    deltaR = 0;
+                }
                 unsigned idx = static_cast<unsigned>(ax->index(deltaR) + 1);
                 ans[i0][i1] = idx;
             }
@@ -66,6 +69,9 @@ namespace fastEEC{
         for (unsigned i0=0; i0<J.nPart; ++i0){
             for (unsigned i1=0; i1<J.nPart; ++i1){
                 T deltaR = dR(J.particles[i0], J.particles[i1]);
+                if(deltaR < 1e-10){
+                    deltaR = 0;
+                }
                 ans[i0][i1] = deltaR;
             }
         }

@@ -23,11 +23,11 @@ namespace fastEEC{
          * phiC < phiD
          */
 
-        printf("Line 1: (%g, %g) -> (%g, %g)\n", etaA, phiA, etaB, phiB);
-        printf("Line 2: (%g, %g) -> (%g, %g)\n", etaC, phiC, etaD, phiD);
+        //printf("Line 1: (%g, %g) -> (%g, %g)\n", etaA, phiA, etaB, phiB);
+        //printf("Line 2: (%g, %g) -> (%g, %g)\n", etaC, phiC, etaD, phiD);
         //bounding box check in phi
         if (phiB < phiC - shapetol || phiD < phiA - shapetol){
-            printf("Failed bounding box\n");
+            //printf("Failed bounding box\n");
             return false;
         }
 
@@ -45,7 +45,7 @@ namespace fastEEC{
         }
 
         if (maxEtaAB < minEtaCD - shapetol || maxEtaCD < minEtaAB - shapetol){
-            printf("Failed bounding box\n");
+            //printf("Failed bounding box\n");
             return false;
         }
 
@@ -57,7 +57,7 @@ namespace fastEEC{
 
         T slopecross = ABeta*CDphi - ABphi*CDeta;
         if (std::abs(slopecross) < 1e-8){
-            printf("Colinear\n");
+            //printf("Colinear\n");
             return false; //collinear
         }
 
@@ -70,16 +70,16 @@ namespace fastEEC{
         xCD = AC_ABcross * invslopecross;
 
         if (xCD < -shapetol || xCD > 1 + shapetol){
-            printf("Doesn't cross: xCD = %g\n", xCD);
+            //printf("Doesn't cross: xCD = %g\n", xCD);
             return false; //no crossing point
         }
 
         T AC_CDcross = ACeta*CDphi - ACphi*CDeta;
         xAB = AC_CDcross * invslopecross;
 
-        printf("FOUND CROSSING\n");
-        printf("\txAB: %f\n", xAB);
-        printf("\txCD: %f\n", xCD);
+        //printf("FOUND CROSSING\n");
+        //printf("\txAB: %f\n", xAB);
+        //printf("\txCD: %f\n", xCD);
 
         return true;
     }
@@ -109,8 +109,8 @@ namespace fastEEC{
             theta = M_PI - theta;
         }
 
-        printf("r = %g\n", r);
-        printf("theta = %g\n", theta);
+        //printf("r = %g\n", r);
+        //printf("theta = %g\n", theta);
     }
 
     template <typename T>
@@ -133,8 +133,8 @@ namespace fastEEC{
             std::swap(A, D);
         }
 
-        printf("RAB = %g\n", RAB);
-        printf("RCD = %g\n", RCD);
+        //printf("RAB = %g\n", RAB);
+        //printf("RCD = %g\n", RCD);
 
         T etaA = jetDetails.etas[A];
         T etaB = jetDetails.etas[B];

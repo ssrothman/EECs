@@ -24,7 +24,6 @@ namespace fastEEC{
         }
 
         if (res3ax.RL){
-            printf("INITIALIZING RES3\n");
             unsigned NDR_coarse = histogram::axis::traits::extent(*res3ax.RL);
             unsigned Nxi = histogram::axis::traits::extent(*res3ax.xi);
             unsigned Nphi = histogram::axis::traits::extent(*res3ax.phi);

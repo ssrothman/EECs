@@ -63,6 +63,9 @@ namespace fastEEC{
         std::shared_ptr<multi_array<T, 2>> resolved4_fixed;
         std::shared_ptr<multi_array<T, 2>> resolved4_fixed_PU;
         std::shared_ptr<multi_array<T, 4>> transfer_res4_fixed;
+
+        result_t(const result_t&) = delete;
+        result_t() = default;
     };
 
     template <typename T>

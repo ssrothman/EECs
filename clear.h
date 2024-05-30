@@ -3,8 +3,13 @@
 
 namespace fastEEC{
     template <typename T, bool doPU, bool doTransfer, unsigned maxOrder, bool doRes3, bool doRes4, bool doRes4Fixed>
-    void clear(result<T>& ans, const unsigned NDR,
-               const resolvedInputs<T>& rin) {
+    void clear(result<T>& ans, 
+               const unsigned NDR,
+               const res3axes_t& res3ax,
+               const res4shapesAxes_t& res4ax,
+               const res4fixedAxes_t& res4fixedax){
+               
+               
 
         if constexpr (doRes4Fixed){
             unsigned Nfixedshape = 3;

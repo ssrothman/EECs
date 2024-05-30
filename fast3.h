@@ -36,7 +36,11 @@ namespace fastEEC{
 
             uvec dRlist = {DR1, dRs[i0][i2], 
                                 dRs[i1][i2]};
+            printf("DR1 = %g\n", rin.floatDRs[i0][i1]);
+            printf("DR2 = %g\n", rin.floatDRs[i0][i2]);
+            printf("DR3 = %g\n", rin.floatDRs[i1][i2]);
             auto maxel = max_element(dRlist.begin(), dRlist.end());
+            printf("dist = %u\n", std::distance(dRlist.begin(), maxel));
             unsigned DR2 = *maxel;
             unsigned qi0 __attribute__((unused));
             unsigned qi1 __attribute__((unused));
@@ -89,6 +93,7 @@ namespace fastEEC{
                     }
                 }
             }
+            printf("RL_3 IS ACTUALLY %g\n", rin.floatDRs[i0max][i1max]);
 
             unsigned RL_idx __attribute__((unused));
             unsigned xi_idx __attribute__((unused));

@@ -6,41 +6,20 @@
 #include <boost/histogram.hpp>
 #include <boost/multi_array.hpp>
 
+#include "usings.h"
+#include "util.h"
+
 namespace fastEEC{
-    using namespace boost;
-    using namespace std;
-
-    using uvec = std::vector<unsigned>;
-
-    using axis_t = histogram::axis::variable<double>;
-    using axisptr = std::shared_ptr<axis_t>;
-
-    using umat = multi_array<unsigned, 2>;
-    using umatptr = std::shared_ptr<umat>;
     
     template <typename T>
-    struct result{
+    struct result_t{
         /*
          * Projected weights for orders 2-6
          */
-        std::shared_ptr<vector<T>> wts2;
-        std::shared_ptr<vector<T>> wts3;
-        std::shared_ptr<vector<T>> wts4;
-        std::shared_ptr<vector<T>> wts5;
-        std::shared_ptr<vector<T>> wts6;
+        std::array<std::shared_ptr<vector<T>>, 5> wts;
+        std::array<std::shared_ptr<vector<T>>, 5> wts_PU;
+        std::array<std::shared_ptr<multi_array<T, 2>>, 5> transfer_wts;
 
-        std::shared_ptr<vector<T>> wts2_PU;
-        std::shared_ptr<vector<T>> wts3_PU;
-        std::shared_ptr<vector<T>> wts4_PU;
-        std::shared_ptr<vector<T>> wts5_PU;
-        std::shared_ptr<vector<T>> wts6_PU;
-
-        std::shared_ptr<multi_array<T, 2>> transfer2;
-        std::shared_ptr<multi_array<T, 2>> transfer3;
-        std::shared_ptr<multi_array<T, 2>> transfer4;
-        std::shared_ptr<multi_array<T, 2>> transfer5;
-        std::shared_ptr<multi_array<T, 2>> transfer6;
-        
         /*
          * shape [RL, xi, phi]
          *
@@ -84,27 +63,43 @@ namespace fastEEC{
         std::shared_ptr<multi_array<T, 2>> resolved4_fixed;
         std::shared_ptr<multi_array<T, 2>> resolved4_fixed_PU;
         std::shared_ptr<multi_array<T, 4>> transfer_res4_fixed;
-
-        //multi_array<T, 2> resolved5_fixed;
-        //multi_array<T, 2> resolved5_fixed_PU;
-        //multi_array<T, 4> transfer_res5_fixed;
-    };
-
-    enum normType {
-        RAWPT, 
-        CORRPT,
-        SUMPT, 
     };
 
     template <typename T>
-    struct resolvedInputs{
+    struct jetDetails_t{
         multi_array<T, 2> floatDRs;
+        multi_array<unsigned, 2> dRbins;
+
         std::vector<T> etas;
         std::vector<T> phis;
+        std::vector<T> Es;
 
-        axisptr coarseRL;
+        jetDetails_t():
+            floatDRs(extents[0][0]),
+            dRbins(extents[0][0]),
+            etas(0),
+            phis(0),
+            Es(0)
+        {}
+
+        jetDetails_t(const jet& J, const axisptr& ax, const normType nt):
+            jetDetails_t()
+        {
+            getFloatDRs(floatDRs, J);
+            getDRbins(dRbins, J, ax);
+            getEtasPhis(etas, phis, J);
+            getEs(Es, J, nt);
+        }
+    };
+
+    struct res3axes_t{
+        axisptr RL;
         axisptr xi;
         axisptr phi;
+    };
+
+    struct res4shapesAxes_t{
+        axisptr RL;
 
         axisptr r_dipole;
         axisptr ct_dipole;
@@ -115,18 +110,22 @@ namespace fastEEC{
         axisptr r_triangle;
         axisptr ct_triangle;
 
-        T shapetol;
+        float shapetol;
+    };
+
+    struct res4fixedAxes_t{
+        axisptr RL;
+
+        float shapetol;
     };
 
     template <typename T>
     struct transferInputs{
-        umat dRs;
+        jetDetails_t<T> recoJet;
 
         adjacency adj;
         multi_array<T, 2> ptrans;
-
-        resolvedInputs<T> rin;
     };
-};
+}
 
 #endif

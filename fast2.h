@@ -5,21 +5,24 @@
 
 namespace fastEEC{
     template <typename T, bool doPU, bool doTransfer, unsigned maxOrder, bool nontransfer, bool doRes3, bool doRes4, bool doRes4Fixed>
-    void do2(const umat& dRs,
-             const vector<T>& Es,
-             const unsigned nPart,
-             const resolvedInputs<T>& rin,
-             result<T>& ans,
+    void do2(result<T>& ans,
+
+             const jetDetails_t<T>& J,
+             unsigned nPart,
+
+             const res3axes_t& res3ax,
+             const res4shapesAxes_t& res4ax,
+             const res4fixedAxes_t& res4fixedax,
+
+             const transferInputs<T>& tin,
+             const vector<bool>* const PU,
 
              const unsigned i0,
              const T partial0,
              bool isPU0, 
 
              const unsigned j0,
-             const T partialtrans0,
-
-             const vector<bool>* const PU = nullptr,
-             const transferInputs<T>* const tin = nullptr) {
+             const T partialtrans0){
 
         T weight2;
         bool isPU1 __attribute__((unused)); 

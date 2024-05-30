@@ -117,6 +117,7 @@ namespace fastEEC{
                     }
                     break;
             };
+            printf("RL IS ACTUALLY %g\n", rin.floatDRs[i0max_new][i1max_new]);
 
             T symfac;
             if (i0==i1){

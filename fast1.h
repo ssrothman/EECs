@@ -5,16 +5,19 @@
 
 namespace fastEEC{
     template <typename T, bool doPU, bool doTransfer, unsigned maxOrder, bool doRes3, bool doRes4, bool doRes4Fixed>
-    void do1(const umat& dRs, 
-             const vector<T>& Es,
-             const unsigned nPart,
-             const resolvedInputs<T>& rin,
-             result<T>& ans,
-             const vector<bool>* const PU = nullptr,
-             const transferInputs<T>* const tin = nullptr) {
+    void do1(result<T>& ans,
+             const jetDetails_t<T>& J,
+             unsigned nPart,
+
+             const res3axes_t& res3ax,
+             const res4shapesAxes_t& res4ax,
+             const res4fixedAxes_t& res4fixedax,
+
+             const transferInputs<T>& tin,
+             const vector<bool>* const PU){
 
         for(unsigned i0=0; i0 < nPart; ++i0){
-            T partial0 = Es[i0];
+            T partial0 = J.Es[i0];
 
             bool isPU=false;
             if constexpr(doPU){
@@ -22,40 +25,52 @@ namespace fastEEC{
             }
 
             if constexpr (doTransfer){
-                const uvec& adj0 = tin->adj.at(i0);
+                const uvec& adj0 = tin.adj.at(i0);
                 if (adj0.empty()){
                     do2<T, doPU, doTransfer, maxOrder, true, doRes3, doRes4, doRes4Fixed>(
-                        dRs, Es, nPart, rin, ans,
-                        i0, partial0, isPU,
-                        0, 0,
-                        PU, tin
+                            ans, J, nPart,
+                            res3ax, res4ax, res4fixedax,
+                            tin, PU,
+
+                            i0, partial0, isPU,
+
+                            0, 0 //transfer information
                     );
                 } else {
                     unsigned j0 = adj0[0];
-                    T partialtrans0 = tin->ptrans[i0][j0];
+                    T partialtrans0 = tin.ptrans[i0][j0];
                     do2<T, doPU, doTransfer, maxOrder, true, doRes3, doRes4, doRes4Fixed>(
-                        dRs, Es, nPart, rin, ans,
+                        ans, J, nPart,
+                        res3ax, res4ax, res4fixedax,
+                        tin, PU,
+
                         i0, partial0, isPU,
+
                         j0, partialtrans0,
-                        PU, tin
                     );
                     for(unsigned j=1; j<adj0.size(); ++j){
                         j0 = adj0[j];
-                        partialtrans0 = tin->ptrans[i0][j0];
+                        partialtrans0 = tin.ptrans[i0][j0];
                         do2<T, doPU, doTransfer, maxOrder, false, doRes3, doRes4, doRes4Fixed>(
-                            dRs, Es, nPart, rin, ans,
+                            ans, J, nPart,
+                            res3ax, res4ax, res4fixedax,
+                            tin, PU,
+
                             i0, partial0, isPU,
+
                             j0, partialtrans0,
-                            PU, tin
                         );
                     }
                 }
             } else {
                 do2<T, doPU, doTransfer, maxOrder, true, doRes3, doRes4, doRes4Fixed>(
-                    dRs, Es, nPart, rin, ans,
+                    ans, J, nPart,
+                    res3ax, res4ax, res4fixedax,
+                    tin, PU,
+
                     i0, partial0, isPU,
+
                     0, 0,
-                    PU, tin
                 );
             }
         }

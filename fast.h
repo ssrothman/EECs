@@ -11,179 +11,91 @@
 #include "faststart.h"
 
 namespace fastEEC{
-    double getNormFact(const jet& J, const normType& nt){
-        switch (nt){
-            case RAWPT:
-                return J.rawpt;
-            case SUMPT:
-                return J.sumpt;
-            case CORRPT:
-                return J.pt;
-            default:
-                throw std::invalid_argument("Invalid normType");
-        }
-    }
-
-    template <typename T>
-    void getEs(vector<T>& ans, const jet& J, const normType nt){
-        ans.clear();
-        ans.reserve(J.nPart);
-
-        double normFact = getNormFact(J, nt);
-        for(unsigned i=0; i<J.nPart; ++i){
-            ans.push_back(J.particles.at(i).pt/normFact);
-        }
-    }
-
-    template <typename T>
-    void getEtasPhis(vector<T>& etas, vector<T>& phis, const jet& J){
-        etas.clear();
-        phis.clear();
-
-        etas.reserve(J.nPart);
-        phis.reserve(J.nPart);
-
-        for(unsigned i=0; i<J.nPart; ++i){
-            etas.push_back(J.particles.at(i).eta);
-            phis.push_back(J.particles.at(i).phi);
-        }
-    }
-
-    void getDRs(umat& ans, const jet& J, const axisptr& ax){
-        ans.resize(extents[J.nPart][J.nPart]);
-        for (unsigned i0=0; i0<J.nPart; ++i0){
-            for (unsigned i1=0; i1<J.nPart; ++i1){
-                double deltaR = dR(J.particles[i0], J.particles[i1]);
-                if (deltaR < 1e-10){
-                    deltaR = 0;
-                }
-                unsigned idx = static_cast<unsigned>(ax->index(deltaR) + 1);
-                ans[i0][i1] = idx;
-            }
-        }
-    }
-
-    template <typename T>
-    void getFloatDRs(multi_array<T, 2>& ans, const jet& J){
-        ans.resize(extents[J.nPart][J.nPart]);
-        for (unsigned i0=0; i0<J.nPart; ++i0){
-            for (unsigned i1=0; i1<J.nPart; ++i1){
-                T deltaR = dR(J.particles[i0], J.particles[i1]);
-                if(deltaR < 1e-10){
-                    deltaR = 0;
-                }
-                ans[i0][i1] = deltaR;
-            }
-        }
-    }
-
-    template <typename T>
-    void getPtrans(multi_array<T, 2>& ans, const arma::mat& ptrans){//NB we transpose for faster iteration
-        ans.resize(extents[ptrans.n_cols][ptrans.n_rows]);
-        for(unsigned i=0; i<ptrans.n_rows; ++i){
-            for(unsigned j=0; j<ptrans.n_cols; ++j){
-                ans[j][i] = ptrans(i,j);
-            }
-        }
-    }
-
     template <typename T, bool doPU, bool doTransfer, bool doRes3, bool doRes4, bool doRes4Fixed>
     void fastEEC(result<T>& ans,
 
-                      const jet& J, const axisptr& ax, 
-                      const int order, const normType nt,
+                const jet& J, const axisptr& ax, 
+                const int order, const normType nt,
 
-                      axisptr& coarseRLax,
-                      axisptr& xiax,
-                      axisptr& phiax,
+                axisptr coarseRLax = nullptr,
+                axisptr xiax = nullptr,
+                axisptr phiax = nullptr,
 
-                      axisptr& rax_dipole,
-                      axisptr& ctax_dipole,
+                axisptr rax_dipole = nullptr,
+                axisptr ctax_dipole = nullptr,
 
-                      axisptr& rax_tee,
-                      axisptr& ctax_tee,
+                axisptr rax_tee = nullptr,
+                axisptr ctax_tee = nullptr,
 
-                      axisptr& rax_triangle,
-                      axisptr& ctax_triangle,
-                      T shapetol,
+                axisptr rax_triangle = nullptr,
+                axisptr ctax_triangle = nullptr,
+                T shapetol = 0,
 
-                      const std::vector<bool>* const PU = nullptr,
-                      const jet * const J_Reco = nullptr,
-                      const arma::mat* ptrans = nullptr){
+                const std::vector<bool>* const PU = nullptr,
+                const jet * const J_Reco = nullptr,
+                const arma::mat* ptrans = nullptr){
+
         assert(order >= 2 && order <= 6);
-
-        umat dRs; 
-        std::vector<T> Es;
-
-        getDRs(dRs, J, ax);
-        getEs<T>(Es, J, nt);
 
         unsigned NDR = histogram::axis::traits::extent(*ax);
 
-        struct transferInputs<T> tin;
-        if constexpr (doTransfer){
-            getDRs(tin.dRs, *J_Reco, ax);
-            tin.adj = adjacency(*ptrans);
-            getPtrans<T>(tin.ptrans, *ptrans);
+        struct jetDetails_t<T> jetDetails(J, ax, nt);
 
-            getFloatDRs(tin.rin.floatDRs, *J_Reco);
-            getEtasPhis(tin.rin.etas, tin.rin.phis, *J_Reco);
+        struct res3axes_t res3axes;
+        if constexpr (doRes3){
+            res3axes.RL = coarseRLax;
+            res3axes.xi = xiax;
+            res3axes.phi = phiax;
+        }
+        struct res4shapesAxes_t res4shapesAxes;
+        if constexpr (doRes4){
+            res4shapesAxes.RL = coarseRLax;
 
-            tin.rin.coarseRL = coarseRLax;
+            res4shapesAxes.r_dipole = rax_dipole;
+            res4shapesAxes.ct_dipole = ctax_dipole;
 
-            tin.rin.xi = xiax;
-            tin.rin.phi = phiax;
+            res4shapesAxes.r_tee = rax_tee;
+            res4shapesAxes.ct_tee = ctax_tee;
 
-            tin.rin.r_dipole = rax_dipole;
-            tin.rin.ct_dipole = ctax_dipole;
+            res4shapesAxes.r_triangle = rax_triangle;
+            res4shapesAxes.ct_triangle = ctax_triangle;
 
-            tin.rin.r_tee = rax_tee;
-            tin.rin.ct_tee = ctax_tee;
-
-            tin.rin.r_triangle = rax_triangle;
-            tin.rin.ct_triangle = ctax_triangle;
-
-            tin.rin.shapetol = shapetol;
+            res4shapesAxes.shapetol = shapetol;
+        }
+        struct res4fixedAxes_t res4fixedAxes;
+        if constexpr (doRes4Fixed){
+            res4fixedAxes.RL = coarseRLax;
+            res4fixedAxes.shapetol = shapetol;
         }
 
-        struct resolvedInputs<T> rin;
-        getFloatDRs(rin.floatDRs, J);
-        getEtasPhis(rin.etas, rin.phis, J);
-        rin.coarseRL = coarseRLax;
+        struct transferInputs<T> tin;
+        if constexpr (doTransfer){
+            struct jetDetails_t<T> recoJetDetails(*J_Reco, ax, nt);
+            tin.recoJet = recoJetDetails;
 
-        rin.xi = xiax;
-        rin.phi = phiax;
-
-        rin.r_dipole = rax_dipole;
-        rin.ct_dipole = ctax_dipole;
-
-        rin.r_tee = rax_tee;
-        rin.ct_tee = ctax_tee;
-
-        rin.r_triangle = rax_triangle;
-        rin.ct_triangle = ctax_triangle;
-
-        rin.shapetol = shapetol;
+            tin.adj = adjacency(J, *J_Reco);
+            tin.ptrans = *ptrans;
+        }
 
         if (order == 2){
             start<T, doPU, doTransfer, 2, doRes3, doRes4, doRes4Fixed>(
-                    dRs, Es, NDR, rin, ans, PU, &tin
+                    ans, jetDetails, NDR, res3axes, res4shapesAxes, res4fixedAxes, tin, PU
             );
         } else if(order == 3){
             start<T, doPU, doTransfer, 3, doRes3, doRes4, doRes4Fixed>(
-                    dRs, Es, NDR, rin, ans, PU, &tin
+                    ans, jetDetails, NDR, res3axes, res4shapesAxes, res4fixedAxes, tin, PU
             );
         } else if(order == 4){
             start<T, doPU, doTransfer, 4, doRes3, doRes4, doRes4Fixed>(
-                    dRs, Es, NDR, rin, ans, PU, &tin
+                    ans, jetDetails, NDR, res3axes, res4shapesAxes, res4fixedAxes, tin, PU
             );
         } else if(order == 5){
             start<T, doPU, doTransfer, 5, doRes3, doRes4, doRes4Fixed>(
-                    dRs, Es, NDR, rin, ans, PU, &tin
+                    ans, jetDetails, NDR, res3axes, res4shapesAxes, res4fixedAxes, tin, PU
             );
         } else if(order == 6){
             start<T, doPU, doTransfer, 6, doRes3, doRes4, doRes4Fixed>(
-                    dRs, Es, NDR, rin, ans, PU, &tin
+                    ans, jetDetails, NDR, res3axes, res4shapesAxes, res4fixedAxes, tin, PU
             );
         }
     }

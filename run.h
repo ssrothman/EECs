@@ -108,10 +108,10 @@ namespace fastEEC{
         fflush(stdout);
         printf("RES4\n");
         printf("\tsumwt = %f\n", recursive_reduce(*ans.resolved4_shapes, 0.));
-        printf("\t\tshape0 = %f\n", recursive_reduce(*ans.resolved4_shapes[0], 0.));
-        printf("\t\tshape1 = %f\n", recursive_reduce(*ans.resolved4_shapes[1], 0.));
-        printf("\t\tshape2 = %f\n", recursive_reduce(*ans.resolved4_shapes[2], 0.));
-        printf("\t\tshape3 = %f\n", recursive_reduce(*ans.resolved4_shapes[3], 0.));
+        printf("\t\tshape0 = %f\n", recursive_reduce((*ans.resolved4_shapes)[0], 0.));
+        printf("\t\tshape1 = %f\n", recursive_reduce((*ans.resolved4_shapes)[1], 0.));
+        printf("\t\tshape2 = %f\n", recursive_reduce((*ans.resolved4_shapes)[2], 0.));
+        printf("\t\tshape3 = %f\n", recursive_reduce((*ans.resolved4_shapes)[3], 0.));
     }
 }
 

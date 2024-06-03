@@ -28,6 +28,8 @@ namespace fastEEC{
         //bounding box check in phi
         if (phiB < phiC - shapetol || phiD < phiA - shapetol){
             //printf("Failed bounding box\n");
+            xAB = 0;
+            xCD = 0;
             return false;
         }
 
@@ -46,6 +48,8 @@ namespace fastEEC{
 
         if (maxEtaAB < minEtaCD - shapetol || maxEtaCD < minEtaAB - shapetol){
             //printf("Failed bounding box\n");
+            xAB = 0;
+            xCD = 0;
             return false;
         }
 
@@ -58,6 +62,8 @@ namespace fastEEC{
         T slopecross = ABeta*CDphi - ABphi*CDeta;
         if (std::abs(slopecross) < 1e-8){
             //printf("Colinear\n");
+            xAB = 0;
+            xCD = 0;
             return false; //collinear
         }
 
@@ -71,6 +77,8 @@ namespace fastEEC{
 
         if (xCD < -shapetol || xCD > 1 + shapetol){
             //printf("Doesn't cross: xCD = %g\n", xCD);
+            xAB = 0;
+            xCD = 0;
             return false; //no crossing point
         }
 
@@ -184,6 +192,7 @@ namespace fastEEC{
         T xAB, xCD;
         bool foundCrossing = false;
         for(const T& offset : offsets){
+            //printf("trying offset %g\n", offset);
             if (linesCross(res4ax.shapetol,
                            etaA, etaB, etaC, etaD,
                            phiA, phiB, phiC+offset, phiD+offset,
@@ -199,12 +208,15 @@ namespace fastEEC{
                 if(std::abs(xAB - 0.0) < res4ax.shapetol 
                         || std::abs(xAB - 1.0) < res4ax.shapetol){
                     //tee configuration
+                    //printf("SHAPE 2: xCD = %g, xAB = %g\n", xCD, xAB);
                     next.shape_res4_idx = 2; 
                 } else if (std::abs(xAB - 0.5) < res4ax.shapetol){
                     //dipole configuration
+                    //printf("SHAPE 1: xCD = %g, xAB = %g\n", xCD, xAB);
                     next.shape_res4_idx = 1;
                 } else {
                     //no shape
+                    //printf("FAIL: xCD = %g, xAB = %g\n", xCD, xAB);
                     next.shape_res4_idx = 0;
                 }
             }
@@ -267,8 +279,19 @@ namespace fastEEC{
         constexpr std::array<unsigned, 3> Ds = {3, 1, 2};
 
         for (unsigned i=0; i<3; ++i){
-            if (lookForShapes(As[i], Bs[i], Cs[i], Ds[i],
+            //printf("Trying %u, %u, %u, %u\n", As[i], Bs[i], Cs[i], Ds[i]);
+            if (lookForShapes(next.is[As[i]], next.is[Bs[i]], next.is[Cs[i]], next.is[Ds[i]],
                               jetDetails, res4ax, next)){
+                //printf("Found shape %u\n", next.shape_res4_idx);
+                //printf("\tline 1: (%0.2f, %0.2f) -> (%0.2f, %0.2f)\n", 
+                //        jetDetails.etas[next.is[As[i]]], jetDetails.phis[next.is[As[i]]],
+                //        jetDetails.etas[next.is[Bs[i]]], jetDetails.phis[next.is[Bs[i]]]);
+                //printf("\tline 2: (%0.2f, %0.2f) -> (%0.2f, %0.2f)\n", 
+                //        jetDetails.etas[next.is[Cs[i]]], jetDetails.phis[next.is[Cs[i]]],
+                //        jetDetails.etas[next.is[Ds[i]]], jetDetails.phis[next.is[Ds[i]]]);
+                //printf("\t");
+                //printVec(next.is);
+                //printf("\n");
                 return;
             }
         }

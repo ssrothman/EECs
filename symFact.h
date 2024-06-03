@@ -9,6 +9,59 @@ namespace fastEEC{
     template <typename>
     constexpr auto always_false = false;
 
+    //TODO: simplify getSymFac with something constexpr??
+    template <int order>
+    constexpr unsigned symfacTableSize(){
+        static_assert(always_false<order>, "symfacLookup not implemented for this order");
+        return 0;
+    }
+
+    template <typename T, int order>
+    constexpr auto symfacLookup(){
+        static_assert(always_false<T>, "symfacLookup not implemented for this order");
+        return std::array<T, 0>();
+    }
+
+    template <>
+    constexpr auto symfacLookup<double, 1>(){
+        return std::array<double, 1>({1});
+    }
+
+    template <>
+    constexpr auto symfacLookup<double, 2>(){
+        return std::array<double, 2>({1, 2});
+    }
+
+    template <>
+    constexpr auto symfacLookup<double, 3>(){
+        return std::array<double, 4>({1, 3, 3, 6});
+    }
+
+    template <>
+    constexpr auto symfacLookup<double, 4>(){
+        return std::array<double, 8>({1, 4, 6, 12, 4, 12, 12, 24});
+    }
+
+    template <>
+    constexpr auto symfacLookup<double, 5>(){
+        return std::array<double, 16>({1, 5, 10, 20,
+                                       10, 30, 30, 60,
+                                       5, 20, 30, 60,
+                                       20, 60, 60, 120});
+    }
+
+    template <>
+    constexpr auto symfacLookup<double, 6>(){
+        return std::array<double, 32>({1, 6, 15, 30,
+                                       20, 60, 60, 120,
+                                       15, 60, 90, 180,
+                                       60, 180, 180, 360,
+                                       6, 30, 60, 120,
+                                       60, 180, 180, 360,
+                                       30, 120, 180, 360,
+                                       120, 360, 360, 720});
+    }
+
     template <typename T, int order>
     T getSymfac(const prev_t<T, order>& prev){
         static_assert(always_false<T>, "getSymfac not implemented for this order");
@@ -56,7 +109,7 @@ namespace fastEEC{
             if(prev.is[1] == prev.is[2]){
                 if(prev.is[2] == prev.is[3]){
                     return (prev.is[3] == prev.is[4]) ? 1 : 5;
-                } else {
+    } else {
                     return (prev.is[3] == prev.is[4]) ? 10 : 20;
                 }
             } else {
@@ -92,7 +145,7 @@ namespace fastEEC{
         unsigned i4 = prev.is[4];
         unsigned i5 = prev.is[5];
 
-        if (i0==i1){
+    if (i0==i1){
             if(i1==i2){
                 if(i2==i3){
                     if(i3==i4){
@@ -104,13 +157,13 @@ namespace fastEEC{
                     if(i3==i4){
                         return (i4==i5) ? 20 : 60; //(3, 3) vs (3, 2, 1)
                     } else {
-                        return (i4==i5) ? 60 : 120; //(3, 1, 2) vs (3, 1, 1, 1)
+    return (i4==i5) ? 60 : 120; //(3, 1, 2) vs (3, 1, 1, 1)
                     }
                 }
             } else {
                 if(i2==i3){
                     if(i3==i4){
-                        return (i4==i5) ? 15 : 60; //(2, 4) vs (2, 3, 1)
+    return (i4==i5) ? 15 : 60; //(2, 4) vs (2, 3, 1)
                     } else {
                         return (i4==i5) ? 90 : 180; //(2, 2, 2) vs (2, 2, 1, 1)
                     }
@@ -128,7 +181,7 @@ namespace fastEEC{
                     if(i3==i4){
                         return (i4==i5) ? 6 : 30; //(1, 5) vs (1, 4, 1)
                     } else {
-                        return (i4==i5) ? 60 : 120; //(1, 3, 2) vs (1, 3, 1, 1)
+    return (i4==i5) ? 60 : 120; //(1, 3, 2) vs (1, 3, 1, 1)
                     }
                 } else {
                     if(i3==i4){

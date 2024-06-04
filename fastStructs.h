@@ -102,24 +102,24 @@ namespace fastEEC{
     };
 
     struct res4shapesAxes_t{
-        axisptr RL;
+        axisptr RL=nullptr;
 
-        axisptr r_dipole;
-        axisptr ct_dipole;
+        axisptr r_dipole=nullptr;
+        axisptr ct_dipole=nullptr;
 
-        axisptr r_tee;
-        axisptr ct_tee;
+        axisptr r_tee=nullptr;
+        axisptr ct_tee=nullptr;
 
-        axisptr r_triangle;
-        axisptr ct_triangle;
+        axisptr r_triangle=nullptr;
+        axisptr ct_triangle=nullptr;
 
-        float shapetol;
+        float shapetol=0;
     };
 
     struct res4fixedAxes_t{
-        axisptr RL;
+        axisptr RL=nullptr;
 
-        float shapetol;
+        float shapetol=0;
     };
 
     template <typename T>
@@ -127,7 +127,7 @@ namespace fastEEC{
         jetDetails_t<T> recoJet;
 
         adjacency adj;
-        multi_array<T, 2> ptrans;
+        arma::mat ptrans;
     };
 }
 

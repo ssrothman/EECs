@@ -24,42 +24,42 @@ namespace fastEEC{
 
     template <>
     constexpr auto symfacLookup<double, 1>(){
-        return std::array<double, 1>({1});
+        return std::array<double, 1>({{1}});
     }
 
     template <>
     constexpr auto symfacLookup<double, 2>(){
-        return std::array<double, 2>({1, 2});
+        return std::array<double, 2>({{1, 2}});
     }
 
     template <>
     constexpr auto symfacLookup<double, 3>(){
-        return std::array<double, 4>({1, 3, 3, 6});
+        return std::array<double, 4>({{1, 3, 3, 6}});
     }
 
     template <>
     constexpr auto symfacLookup<double, 4>(){
-        return std::array<double, 8>({1, 4, 6, 12, 4, 12, 12, 24});
+        return std::array<double, 8>({{1, 4, 6, 12, 4, 12, 12, 24}});
     }
 
     template <>
     constexpr auto symfacLookup<double, 5>(){
-        return std::array<double, 16>({1, 5, 10, 20,
+        return std::array<double, 16>({{1, 5, 10, 20,
                                        10, 30, 30, 60,
                                        5, 20, 30, 60,
-                                       20, 60, 60, 120});
+                                       20, 60, 60, 120}});
     }
 
     template <>
     constexpr auto symfacLookup<double, 6>(){
-        return std::array<double, 32>({1, 6, 15, 30,
+        return std::array<double, 32>({{1, 6, 15, 30,
                                        20, 60, 60, 120,
                                        15, 60, 90, 180,
                                        60, 180, 180, 360,
                                        6, 30, 60, 120,
                                        60, 180, 180, 360,
                                        30, 120, 180, 360,
-                                       120, 360, 360, 720});
+                                       120, 360, 360, 720}});
     }
 
     template <typename T, int order>

@@ -7,6 +7,7 @@
 #include "prev.h"
 #include "res3.h"
 #include "res4.h"
+#include <assert.h>
 
 namespace fastEEC{
     template <typename T,                                 //result type
@@ -85,9 +86,20 @@ namespace fastEEC{
         }
         next.is[order-1] = inew;
 
-        T weight = symfac * next.partial;
+        //printVec(next.is);
+        //printf("\n");
+        //fflush(stdout);
+
+        if constexpr (doPU){
+            //printf("about to do PU\n");
+            next.isPU = prev.isPU || PU->at(inew);
+            //printf("\tset isPU PU\n");
+            //fflush(stdout);
+        }
 
         if constexpr(order > 1){
+            T weight = symfac * next.partial;
+
             for (unsigned i=0; i<order-2; ++i){
                 //printf("passing forward %u\n", i);
                 //printf("\t= %g\n", prev.wts[i]);
@@ -98,19 +110,19 @@ namespace fastEEC{
             //printf("\t= %g\n", weight);
             next.wts[order-2] = weight;
             next.dRbins[order-2] = next.maxDRbin;
-        }
+            //printf("\tgot weights\n");
+            //fflush(stdout);
 
-        if constexpr (doPU){
-            next.isPU = prev.isPU || PU->at(inew);
-        }
-
-        if constexpr(order > 1){
             //accumulate
             (*ans.wts[order-2])[next.maxDRbin] += weight;
+            //printf("\taccumulated weight\n");
+            //fflush(stdout);
 
             if constexpr (doPU){
                 if(next.isPU){
                     (*ans.wts_PU[order-2])[next.maxDRbin] += weight;
+                    //printf("\taccumulated PU weight\n");
+                    //fflush(stdout);
                 }//end if isPU
             }//end if doPU
             /*
@@ -126,41 +138,45 @@ namespace fastEEC{
             printVec(next.dRbins);
             printf("\n");
             */
-        }
-        
-        if constexpr (doRes3 && order == 3){
-            runRes3<T>(jetDetails, res3ax, next);
-            //printf("\tres3: %u %u %u\n", next.RL_res3_idx, next.xi_res3_idx, next.phi_res3_idx);
-            //fflush(stdout);
-            (*ans.resolved3)[next.RL_res3_idx][next.xi_res3_idx][next.phi_res3_idx] += weight;
-            if constexpr (doPU){
-                if(next.isPU){
-                    (*ans.resolved3_PU)[next.RL_res3_idx][next.xi_res3_idx][next.phi_res3_idx] += weight;
+            if constexpr (doRes3 && order == 3){
+                runRes3<T>(jetDetails, res3ax, next);
+                //printf("\tres3: %u %u %u\n", next.RL_res3_idx, next.xi_res3_idx, next.phi_res3_idx);
+                //fflush(stdout);
+                (*ans.resolved3)[next.RL_res3_idx][next.xi_res3_idx][next.phi_res3_idx] += weight;
+                if constexpr (doPU){
+                    if(next.isPU){
+                        (*ans.resolved3_PU)[next.RL_res3_idx][next.xi_res3_idx][next.phi_res3_idx] += weight;
+                    }
                 }
+                //printf("\thandled res3\n");
+                //fflush(stdout);
+            }
+
+            if constexpr (doRes4 && order == 4){
+                runRes4<T>(jetDetails, res4ax, next);
+                //printf("\tres4: %u %u %u %u\n", next.shape_res4_idx, next.RL_res4_idx, next.r_res4_idx, next.ct_res4_idx);
+                //fflush(stdout);
+                (*ans.resolved4_shapes)[next.shape_res4_idx][next.RL_res4_idx][next.r_res4_idx][next.ct_res4_idx] += weight;
+                if constexpr(doPU){
+                    if(next.isPU){
+                        (*ans.resolved4_shapes_PU)[next.shape_res4_idx][next.RL_res4_idx][next.r_res4_idx][next.ct_res4_idx] += weight;
+                    }
+                }
+                //printf("\thandled res4\n");
+                //fflush(stdout);
+            }
+            
+            //TODO: res4fixed
+            if constexpr (doRes4Fixed && order == 4){
+
             }
         }
-
-        if constexpr (doRes4 && order == 4){
-            runRes4<T>(jetDetails, res4ax, next);
-            //printf("\tres4: %u %u %u %u\n", next.shape_res4_idx, next.RL_res4_idx, next.r_res4_idx, next.ct_res4_idx);
-            //fflush(stdout);
-            (*ans.resolved4_shapes)[next.shape_res4_idx][next.RL_res4_idx][next.r_res4_idx][next.ct_res4_idx] += weight;
-            if constexpr(doPU){
-                if(next.isPU){
-                    (*ans.resolved4_shapes_PU)[next.shape_res4_idx][next.RL_res4_idx][next.r_res4_idx][next.ct_res4_idx] += weight;
-                }
-            }
-        }
         
-        //TODO: res4fixed
-        if constexpr (doRes4Fixed && order == 4){
-
-        }
-
         //TODO: transfer
         
         if constexpr (order < maxOrder){
-            //printf("punting...\n");
+            //printf("\tpunting...\n");
+            //fflush(stdout);
             doN<T, 
                 doPU, doTransfer, 
                 doRes3, doRes4, doRes4Fixed, 

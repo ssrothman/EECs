@@ -188,7 +188,7 @@ namespace fastEEC{
         //Luckily I can't think of any way that it would be off by 
         //more than 2pi
 
-        static constexpr std::array<T, 3> offsets = {0, 2*M_PI, -2*M_PI};
+        static constexpr std::array<T, 3> offsets = {{0, 2*M_PI, -2*M_PI}};
         T xAB, xCD;
         bool foundCrossing = false;
         for(const T& offset : offsets){
@@ -252,14 +252,14 @@ namespace fastEEC{
                  const res4shapesAxes_t& res4ax,
 
                  prev_t<T, 5>& next){
-        std::array<T, 6> dRs = {
+        std::array<T, 6> dRs = {{
             jetDetails.floatDRs[next.is[0]][next.is[1]],
             jetDetails.floatDRs[next.is[0]][next.is[2]],
             jetDetails.floatDRs[next.is[0]][next.is[3]],
             jetDetails.floatDRs[next.is[1]][next.is[2]],
             jetDetails.floatDRs[next.is[1]][next.is[3]],
             jetDetails.floatDRs[next.is[2]][next.is[3]]
-        };
+        }};
         auto maxel = max_element(dRs.begin(), dRs.end());
         T RL = *maxel;
 
@@ -273,10 +273,10 @@ namespace fastEEC{
             return;
         }
 
-        constexpr std::array<unsigned, 3> As = {0, 0, 0};
-        constexpr std::array<unsigned, 3> Bs = {1, 2, 3};
-        constexpr std::array<unsigned, 3> Cs = {2, 3, 1};
-        constexpr std::array<unsigned, 3> Ds = {3, 1, 2};
+        constexpr std::array<unsigned, 3> As = {{0, 0, 0}};
+        constexpr std::array<unsigned, 3> Bs = {{1, 2, 3}};
+        constexpr std::array<unsigned, 3> Cs = {{2, 3, 1}};
+        constexpr std::array<unsigned, 3> Ds = {{3, 1, 2}};
 
         for (unsigned i=0; i<3; ++i){
             //printf("Trying %u, %u, %u, %u\n", As[i], Bs[i], Cs[i], Ds[i]);

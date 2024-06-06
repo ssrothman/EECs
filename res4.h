@@ -6,7 +6,7 @@
 
 namespace fastEEC{
     template <typename T>
-    bool linesCross(const float shapetol,
+    unsigned linesCross(const float shapetol,
                     const T etaA,
                     const T etaB,
                     const T etaC,
@@ -14,9 +14,7 @@ namespace fastEEC{
                     const T phiA,
                     const T phiB,
                     const T phiC,
-                    const T phiD,
-                    T& xAB,
-                    T& xCD){
+                    const T phiD){
         /* 
          * Assumes that lines are already sorted
          * phiA < phiB
@@ -25,71 +23,66 @@ namespace fastEEC{
 
         //printf("Line 1: (%g, %g) -> (%g, %g)\n", etaA, phiA, etaB, phiB);
         //printf("Line 2: (%g, %g) -> (%g, %g)\n", etaC, phiC, etaD, phiD);
-        //bounding box check in phi
-        if (phiB < phiC - shapetol || phiD < phiA - shapetol){
-            //printf("Failed bounding box\n");
-            xAB = 0;
-            xCD = 0;
-            return false;
+
+        //centroid of CD
+        T etaCD = 0.5 * (etaC + etaD);
+        T phiCD = 0.5 * (phiC + phiD);
+
+        //centroid of AB
+        T etaAB = 0.5 * (etaA + etaB);
+        T phiAB = 0.5 * (phiA + phiB);
+
+        /*
+         * Check for dipole configuration
+         */
+        T detaCentroid = etaCD - etaAB;
+        T dphiCentroid = phiCD - phiAB;
+        if(dphiCentroid > M_PI){
+            dphiCentroid -= 2*M_PI;
+        }
+        if(dphiCentroid < -M_PI){
+            dphiCentroid += 2*M_PI;
+        }
+        const T dR2Centroid = detaCentroid*detaCentroid + dphiCentroid*dphiCentroid;
+
+        if (dR2Centroid < shapetol){
+            return 1;
         }
 
-        //bounding box check in eta
-        T minEtaAB = etaA;
-        T maxEtaAB = etaB;
-        if (etaA > etaB){
-            std::swap(minEtaAB, maxEtaAB);
+        /*
+         * Check for tee configuration
+         */
+        T detaTeeA = etaA - etaCD;
+        T dphiTeeA = phiA - phiCD;
+        if(dphiTeeA > M_PI){
+            dphiTeeA -= 2*M_PI;
+        }
+        if(dphiTeeA < -M_PI){
+            dphiTeeA += 2*M_PI;
         }
 
-        T minEtaCD = etaC;
-        T maxEtaCD = etaD;
-        if (etaC > etaD){
-            std::swap(minEtaCD, maxEtaCD);
+        const T dR2TeeA = detaTeeA*detaTeeA + dphiTeeA*dphiTeeA;
+
+        if (dR2TeeA < shapetol){
+            return 2;
         }
 
-        if (maxEtaAB < minEtaCD - shapetol || maxEtaCD < minEtaAB - shapetol){
-            //printf("Failed bounding box\n");
-            xAB = 0;
-            xCD = 0;
-            return false;
+        T detaTeeB = etaB - etaCD;
+        T dphiTeeB = phiB - phiCD;
+        if(dphiTeeB > M_PI){
+            dphiTeeB -= 2*M_PI;
+        }
+        if(dphiTeeB < -M_PI){
+            dphiTeeB += 2*M_PI;
         }
 
-        T ABeta = etaB - etaA;
-        T ABphi = phiB - phiA;
+        const T dR2TeeB = detaTeeB*detaTeeB + dphiTeeB*dphiTeeB;
 
-        T CDeta = etaD - etaC;
-        T CDphi = phiD - phiC;
-
-        T slopecross = ABeta*CDphi - ABphi*CDeta;
-        if (std::abs(slopecross) < 1e-8){
-            //printf("Colinear\n");
-            xAB = 0;
-            xCD = 0;
-            return false; //collinear
+        if (dR2TeeB < shapetol){
+            return 2;
         }
 
-        T invslopecross = 1/slopecross;
-
-        T ACeta = etaC - etaA;
-        T ACphi = phiC - phiA;
-        T AC_ABcross = ACeta*ABphi - ACphi*ABeta;
-
-        xCD = AC_ABcross * invslopecross;
-
-        if (xCD < -shapetol || xCD > 1 + shapetol){
-            //printf("Doesn't cross: xCD = %g\n", xCD);
-            xAB = 0;
-            xCD = 0;
-            return false; //no crossing point
-        }
-
-        T AC_CDcross = ACeta*CDphi - ACphi*CDeta;
-        xAB = AC_CDcross * invslopecross;
-
-        //printf("FOUND CROSSING\n");
-        //printf("\txAB: %f\n", xAB);
-        //printf("\txCD: %f\n", xCD);
-
-        return true;
+        return 0;
     }
 
     template <typename T>
@@ -113,6 +106,22 @@ namespace fastEEC{
         
         r = RS/RL;
         theta = std::acos(cosTheta);
+        /*if(std::isnan(theta)){
+            printf("------------- NAN THETA!!!!! ---------\n");
+            printf("\n");
+            printf("(%g, %g) -> (%g, %g)\n", etaA, phiA, etaB, phiB);
+            printf("(%g, %g) -> (%g, %g)\n", etaC, phiC, etaD, phiD);
+            printf("RL = %g\n", RL);
+            printf("RS = %g\n", RS);
+            printf("etaAB = %g\n", etaAB);
+            printf("phiAB = %g\n", phiAB);
+            printf("etaCD = %g\n", etaCD);
+            printf("phiCD = %g\n", phiCD);
+            printf("dot = %g\n", dot);
+            printf("cosTheta = %g\n", cosTheta);
+            printf("\n");
+            printf("--------------------------------------\n");
+        }*/
         if (theta > M_PI/2){
             theta = M_PI - theta;
         }
@@ -133,7 +142,7 @@ namespace fastEEC{
                        prev_t<T, 5>& next){
 
         T RAB = jetDetails.floatDRs[A][B];
-        T RCD = jetDetails.floatDRs[A][C];
+        T RCD = jetDetails.floatDRs[C][D];
 
         if (RCD > RAB){
             std::swap(RAB, RCD);
@@ -187,60 +196,31 @@ namespace fastEEC{
         //
         //Luckily I can't think of any way that it would be off by 
         //more than 2pi
+        next.shape_res4_idx = linesCross(res4ax.shapetol,
+                                        etaA, etaB, etaC, etaD,
+                                        phiA, phiB, phiC, phiD);
 
-        static constexpr std::array<T, 3> offsets = {{0, 2*M_PI, -2*M_PI}};
-        T xAB, xCD;
-        bool foundCrossing = false;
-        for(const T& offset : offsets){
-            //printf("trying offset %g\n", offset);
-            if (linesCross(res4ax.shapetol,
-                           etaA, etaB, etaC, etaD,
-                           phiA, phiB, phiC+offset, phiD+offset,
-                           xAB, xCD)){
-                foundCrossing = true;
-                break;
-            }
-        }
-
-        if(foundCrossing){
+        if(next.shape_res4_idx != 0){
             T r, theta;
-            if(std::abs(xCD - 0.5) < res4ax.shapetol){
-                if(std::abs(xAB - 0.0) < res4ax.shapetol 
-                        || std::abs(xAB - 1.0) < res4ax.shapetol){
-                    //tee configuration
-                    //printf("SHAPE 2: xCD = %g, xAB = %g\n", xCD, xAB);
-                    next.shape_res4_idx = 2; 
-                } else if (std::abs(xAB - 0.5) < res4ax.shapetol){
-                    //dipole configuration
-                    //printf("SHAPE 1: xCD = %g, xAB = %g\n", xCD, xAB);
-                    next.shape_res4_idx = 1;
-                } else {
-                    //no shape
-                    //printf("FAIL: xCD = %g, xAB = %g\n", xCD, xAB);
-                    next.shape_res4_idx = 0;
-                }
-            }
-
-            if (next.shape_res4_idx != 0){
-                getrandangle(etaA, etaB, etaC, etaD,
-                             phiA, phiB, phiC, phiD,
-                             RAB, RCD,
-                             r, theta);
-                if (next.shape_res4_idx == 1){
-                    next.r_res4_idx = getIndex(r, res4ax.r_dipole);
-                    next.ct_res4_idx = getIndex(theta, res4ax.ct_dipole);
-                } else {
-                    next.r_res4_idx = getIndex(r, res4ax.r_tee);
-                    next.ct_res4_idx = getIndex(theta, res4ax.ct_tee);
-                }
-                return true;
+            getrandangle(etaA, etaB, etaC, etaD,
+                         phiA, phiB, phiC, phiD,
+                         RAB, RCD,
+                         r, theta);
+            if(next.shape_res4_idx == 1){
+                //printf("DIPOLE:\n");
+                next.r_res4_idx = getIndex(r, res4ax.r_dipole);
+                next.ct_res4_idx = getIndex(theta, res4ax.ct_dipole);
             } else {
-                next.r_res4_idx = 0;
-                next.ct_res4_idx = 0;
-                return false;
+                //printf("TEE:\n");
+                next.r_res4_idx = getIndex(r, res4ax.r_tee);
+                next.ct_res4_idx = getIndex(theta, res4ax.ct_tee);
             }
+            //printf("\tr = %g\n", r);
+            //printf("\trIdx = %u\n", next.r_res4_idx);
+            //printf("\ttheta = %g\n", theta);
+            //printf("\tthetaIdx = %u\n", next.ct_res4_idx);
+            return true;
         } else {
-            next.shape_res4_idx = 0;
             next.r_res4_idx = 0;
             next.ct_res4_idx = 0;
             return false;

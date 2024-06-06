@@ -9,6 +9,58 @@
 #include "adj.h"
 
 namespace fastEEC{
+    template <typename T, long unsigned D>
+    void dumpToFile(const boost::multi_array<T, D>& arr, const std::string& filename){
+        std::ofstream file;
+        file.open(filename);
+        file << std::setprecision(10);
+        file << std::scientific;
+        file << std::showpos;
+        file << std::uppercase;
+        file << "[";
+        for(unsigned d=0; d<D; ++d){
+            file << arr.shape()[d];
+            if (d < D-1){
+                file << ", ";
+            }
+        }
+        file << "]\n";
+        for(unsigned i=0; i<arr.num_elements(); ++i){
+            file << arr.data()[i];
+            if (i < arr.num_elements()-1){
+                file << ", ";
+            }
+        }
+        file.close();
+    }
+
+    template <typename T>
+    void addInPlace(T& lhs, const T& rhs){
+        lhs += rhs;
+    }
+
+    template <typename T>
+    void addInPlace(std::vector<T>& lhs,
+                    const std::vector<T>& rhs){
+        if(lhs.size() != rhs.size()){
+            throw std::invalid_argument("Vectors must be the same size");
+        }
+        for(unsigned i=0; i<lhs.size(); ++i){
+            lhs[i] += rhs[i];
+        }
+    }
+
+    template <typename T, long unsigned D>
+    void addInPlace(boost::multi_array<T, D>& lhs,
+                    const boost::multi_array<T, D>& rhs){
+        if(lhs.num_elements() != rhs.num_elements()){
+            throw std::invalid_argument("Arrays must be the same shape");
+        }
+        for(unsigned i=0; i<lhs.num_elements(); ++i){
+            lhs.data()[i] += rhs.data()[i];
+        }
+    }
+
     template <typename T>
     unsigned getIndex(const T& val, const axisptr& ax){
         return static_cast<unsigned>(ax->index(val) + 1);

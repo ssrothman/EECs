@@ -46,7 +46,7 @@ namespace fastEEC{
          *         in this case r is the short distance over the long distance , theta is the angle at the top of the T
          *      3: triangle
          *         in this case r is the distance from the top of the triangle to the point, over RL
-         *         theta is the angle between that vertex and the point
+         *theta is the angle between that vertex and the point
          */
         std::shared_ptr<multi_array<T, 4>> resolved4_shapes; 
         std::shared_ptr<multi_array<T, 4>> resolved4_shapes_PU;
@@ -66,6 +66,52 @@ namespace fastEEC{
 
         result_t(const result_t&) = delete;
         result_t() = default;
+
+        result_t& operator+=(const result_t& other){
+            for(unsigned i=0; i<5; ++i){
+                if(other.wts[i]){
+                    addInPlace(*wts[i], *other.wts[i]);
+                }
+                if(other.wts_PU[i]){
+                    addInPlace(*wts_PU[i], *other.wts_PU[i]);
+                }
+                if(other.transfer_wts[i]){
+                    addInPlace(*transfer_wts[i], *other.transfer_wts[i]);
+                }
+            }
+
+            if (other.resolved3){
+                addInPlace(*resolved3, *other.resolved3);
+            }
+            if (other.resolved3_PU){
+                addInPlace(*resolved3_PU, *other.resolved3_PU);
+            }
+            if (other.transfer_res3){
+                addInPlace(*transfer_res3, *other.transfer_res3);
+            }
+
+            if(other.resolved4_shapes){
+                addInPlace(*resolved4_shapes, *other.resolved4_shapes);
+            }
+
+            if(other.resolved4_shapes_PU){
+                addInPlace(*resolved4_shapes_PU, *other.resolved4_shapes_PU);
+            }
+            if(other.transfer_res4_shapes){
+                addInPlace(*transfer_res4_shapes, *other.transfer_res4_shapes);
+            }
+
+            if(other.resolved4_fixed){
+                addInPlace(*resolved4_fixed, *other.resolved4_fixed);
+            }
+            if(other.resolved4_fixed_PU){
+                addInPlace(*resolved4_fixed_PU, *other.resolved4_fixed_PU);
+            }
+            if(other.transfer_res4_fixed){
+                addInPlace(*transfer_res4_fixed, *other.transfer_res4_fixed);
+            }
+            return *this;
+        }
     };
 
     template <typename T>

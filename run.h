@@ -113,7 +113,7 @@ namespace fastEEC{
             fflush(stdout);
         }
 
-        clear(ans, ax, res3axes, res4shapesAxes, res4fixedAxes);
+        clear<T, doPU, doTransfer>(ans, ax, res3axes, res4shapesAxes, res4fixedAxes);
 
         unsigned nPart = jetDetails.Es.size();
 

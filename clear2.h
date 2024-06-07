@@ -2,7 +2,7 @@
 #define EECS_FAST_CLEAR_H
 
 namespace fastEEC{
-    template <typename T>
+    template <typename T, bool doPU, bool doTransfer>
     void clear(result_t<T>& ans,
                axisptr ax,
                res3axes_t res3ax,
@@ -13,14 +13,20 @@ namespace fastEEC{
 
         for(unsigned order=0; order < 5; ++order){
             ans.wts[order] = std::make_shared<vector<T>>(NDR, 0);
-            ans.wts_PU[order] = std::make_shared<vector<T>>(NDR, 0);
-            ans.transfer_wts[order] = std::make_shared<multi_array<T, 2>>(
-                    extents[NDR][NDR]
-            );
-            std::fill(ans.transfer_wts[order]->data(), 
-                      ans.transfer_wts[order]->data() 
-                        + ans.transfer_wts[order]->num_elements(),
-                      0);
+
+            if constexpr(doPU){
+                ans.wts_PU[order] = std::make_shared<vector<T>>(NDR, 0);
+            }
+
+            if constexpr(doTransfer){
+                ans.transfer_wts[order] = std::make_shared<multi_array<T, 2>>(
+                        extents[NDR][NDR]
+                );
+                std::fill(ans.transfer_wts[order]->data(), 
+                          ans.transfer_wts[order]->data() 
+                            + ans.transfer_wts[order]->num_elements(),
+                          0);
+            }
         }
 
         if (res3ax.RL){
@@ -36,21 +42,26 @@ namespace fastEEC{
                         + ans.resolved3->num_elements(),
                       0);
 
-            ans.resolved3_PU = std::make_shared<multi_array<T, 3>>(
-                    extents[NDR_coarse][Nxi][Nphi]
-            );
-            std::fill(ans.resolved3_PU->data(), 
-                      ans.resolved3_PU->data() 
-                        + ans.resolved3_PU->num_elements(),
-                      0);
+            if constexpr(doPU){
+                ans.resolved3_PU = std::make_shared<multi_array<T, 3>>(
+                        extents[NDR_coarse][Nxi][Nphi]
+                );
 
-            ans.transfer_res3 = std::make_shared<multi_array<T, 6>>(
-                    extents[NDR_coarse][Nxi][Nphi][NDR_coarse][Nxi][Nphi]
-            );
-            std::fill(ans.transfer_res3->data(), 
-                      ans.transfer_res3->data() 
-                        + ans.transfer_res3->num_elements(),
-                      0);
+                std::fill(ans.resolved3_PU->data(), 
+                          ans.resolved3_PU->data() 
+                            + ans.resolved3_PU->num_elements(),
+                          0);
+            }
+
+            if constexpr(doTransfer){
+                ans.transfer_res3 = std::make_shared<multi_array<T, 6>>(
+                        extents[NDR_coarse][Nxi][Nphi][NDR_coarse][Nxi][Nphi]
+                );
+                std::fill(ans.transfer_res3->data(), 
+                          ans.transfer_res3->data() 
+                            + ans.transfer_res3->num_elements(),
+                          0);
+            }
         }
 
         if (res4ax.RL){
@@ -67,21 +78,25 @@ namespace fastEEC{
                         + ans.resolved4_shapes->num_elements(),
                       0);
 
-            ans.resolved4_shapes_PU = std::make_shared<multi_array<T, 4>>(
-                    extents[Nshape][NRL][Nr][Nct]
-            );
-            std::fill(ans.resolved4_shapes_PU->data(), 
-                      ans.resolved4_shapes_PU->data() 
-                        + ans.resolved4_shapes_PU->num_elements(),
-                      0);
+            if constexpr(doPU){
+                ans.resolved4_shapes_PU = std::make_shared<multi_array<T, 4>>(
+                        extents[Nshape][NRL][Nr][Nct]
+                );
+                std::fill(ans.resolved4_shapes_PU->data(), 
+                          ans.resolved4_shapes_PU->data() 
+                            + ans.resolved4_shapes_PU->num_elements(),
+                          0);
+            }
 
-            ans.transfer_res4_shapes = std::make_shared<multi_array<T, 8>>(
-                    extents[Nshape][NRL][Nr][Nct][Nshape][NRL][Nr][Nct]
-            );
-            std::fill(ans.transfer_res4_shapes->data(), 
-                      ans.transfer_res4_shapes->data() 
-                        + ans.transfer_res4_shapes->num_elements(),
-                      0);
+            if constexpr (doTransfer){
+                ans.transfer_res4_shapes = std::make_shared<multi_array<T, 8>>(
+                        extents[Nshape][NRL][Nr][Nct][Nshape][NRL][Nr][Nct]
+                );
+                std::fill(ans.transfer_res4_shapes->data(), 
+                          ans.transfer_res4_shapes->data() 
+                            + ans.transfer_res4_shapes->num_elements(),
+                          0);
+            }
         }
 
         if (res4fixedax.RL){
@@ -96,23 +111,27 @@ namespace fastEEC{
                         + ans.resolved4_fixed->num_elements(),
                       0);
 
-            ans.resolved4_fixed_PU = std::make_shared<multi_array<T, 2>>(
-                    extents[Nfixedshape][NRL]
-            );
-            std::fill(ans.resolved4_fixed_PU->data(), 
-                      ans.resolved4_fixed_PU->data() 
-                        + ans.resolved4_fixed_PU->num_elements(),
-                      0);
+            if constexpr(doPU){
+                ans.resolved4_fixed_PU = std::make_shared<multi_array<T, 2>>(
+                        extents[Nfixedshape][NRL]
+                );
+                std::fill(ans.resolved4_fixed_PU->data(), 
+                          ans.resolved4_fixed_PU->data() 
+                            + ans.resolved4_fixed_PU->num_elements(),
+                          0);
+            }
 
-            ans.transfer_res4_fixed = std::make_shared<multi_array<T, 4>>(
-                    extents[Nfixedshape][NRL][Nfixedshape][NRL]
-            );
-            std::fill(ans.transfer_res4_fixed->data(), 
-                      ans.transfer_res4_fixed->data() 
-                        + ans.transfer_res4_fixed->num_elements(),
-                      0);
+            if constexpr(doTransfer){
+                ans.transfer_res4_fixed = std::make_shared<multi_array<T, 4>>(
+                        extents[Nfixedshape][NRL][Nfixedshape][NRL]
+                );
+                std::fill(ans.transfer_res4_fixed->data(), 
+                          ans.transfer_res4_fixed->data() 
+                            + ans.transfer_res4_fixed->num_elements(),
+                          0);
+            }
         }
-    }
+    }//end clear()
 }
 
 #endif

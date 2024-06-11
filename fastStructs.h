@@ -102,21 +102,9 @@ namespace fastEEC{
         std::shared_ptr<multi_array<T, 3>> resolved3_PU;
         std::shared_ptr<multi_array<T, 6>> transfer_res3;
 
-        res4shapes<T> resolved4_shapes;
-        res4shapes<T> resolved4_shapes_PU;
-        res4shapes_transfer<T> transfer_res4_shapes;
-
-        /*
-         * Some fixed shapes for 4th order and 5th order
-         * shape [shapeindex, RL]
-         * where shapeindex is:
-         *     0: no special shape
-         *     1: square
-         *     2: triangle (for fourth-order) or pentagon (for fifth-order)
-         */
-        std::shared_ptr<multi_array<T, 2>> resolved4_fixed;
-        std::shared_ptr<multi_array<T, 2>> resolved4_fixed_PU;
-        std::shared_ptr<multi_array<T, 4>> transfer_res4_fixed;
+        std::shared_ptr<res4shapes<T>> resolved4_shapes;
+        std::shared_ptr<res4shapes<T>> resolved4_shapes_PU;
+        std::shared_ptr<res4shapes_transfer<T>> transfer_res4_shapes;
 
         result_t(const result_t&) = delete;
         result_t() = default;
@@ -160,16 +148,6 @@ namespace fastEEC{
             //if(other.transfer_res4_shapes){
             //    addInPlace(*transfer_res4_shapes, *other.transfer_res4_shapes);
             //}
-
-            if(other.resolved4_fixed){
-                addInPlace(*resolved4_fixed, *other.resolved4_fixed);
-            }
-            if(other.resolved4_fixed_PU){
-                addInPlace(*resolved4_fixed_PU, *other.resolved4_fixed_PU);
-            }
-            if(other.transfer_res4_fixed){
-                addInPlace(*transfer_res4_fixed, *other.transfer_res4_fixed);
-            }
             return *this;
         }
     };

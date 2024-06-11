@@ -3,14 +3,19 @@
 
 #include <boost/histogram.hpp>
 #include <boost/multi_array.hpp>
+#include <stdio.h>
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 
 #include "usings.h"
+#include "SRothman/SimonTools/src/deltaR.h"
 
 #include "adj.h"
 
 namespace fastEEC{
     template <typename AX>
-    unsigned extent(const AX& ax){
+    unsigned AXextent(const AX& ax){
         return histogram::axis::traits::extent(ax);
     }
 

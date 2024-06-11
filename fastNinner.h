@@ -157,7 +157,7 @@ namespace fastEEC{
                 //printf("\tres4: %u %u %u %u\n", next.shape_res4_idx, next.RL_res4_idx, next.r_res4_idx, next.ct_res4_idx);
                 //fflush(stdout);
                 for(unsigned q=0; q<3; ++q){
-                    ans.resolved4_shapes.fill(weight,
+                    ans.resolved4_shapes->fill(weight,
                             next.RL_res4_idx[q],
                             next.shape_res4_idx[q],
                             next.r_res4_idx[q],
@@ -167,7 +167,7 @@ namespace fastEEC{
                 if constexpr(doPU){
                     if(next.isPU){
                         for(unsigned q=0; q<1; ++q){
-                            ans.resolved4_shapes_PU.fill(weight,
+                            ans.resolved4_shapes_PU->fill(weight,
                                     next.RL_res4_idx[q],
                                     next.shape_res4_idx[q],
                                     next.r_res4_idx[q],

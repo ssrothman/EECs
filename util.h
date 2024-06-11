@@ -9,6 +9,31 @@
 #include "adj.h"
 
 namespace fastEEC{
+    template <typename AX>
+    unsigned extent(const AX& ax){
+        return histogram::axis::traits::extent(ax);
+    }
+
+    template <typename T>
+    void dumpToFile(const std::vector<T>& vec, const std::string& filename){
+        std::ofstream file;
+        file.open(filename);
+        file << std::setprecision(10);
+        file << std::scientific;
+        file << std::showpos;
+        file << std::uppercase;
+        file << "[";
+        file << vec.size();
+        file << "]\n";
+        for(unsigned i=0; i<vec.size(); ++i){
+            file << vec[i];
+            if (i < vec.size()-1){
+                file << ", ";
+            }
+        }
+        file.close();
+    }
+
     template <typename T, long unsigned D>
     void dumpToFile(const boost::multi_array<T, D>& arr, const std::string& filename){
         std::ofstream file;

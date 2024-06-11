@@ -156,10 +156,23 @@ namespace fastEEC{
                 runRes4<T>(jetDetails, res4ax, next);
                 //printf("\tres4: %u %u %u %u\n", next.shape_res4_idx, next.RL_res4_idx, next.r_res4_idx, next.ct_res4_idx);
                 //fflush(stdout);
-                (*ans.resolved4_shapes)[next.shape_res4_idx][next.RL_res4_idx][next.r_res4_idx][next.ct_res4_idx] += weight;
+                for(unsigned q=0; q<3; ++q){
+                    ans.resolved4_shapes.fill(weight,
+                            next.RL_res4_idx[q],
+                            next.shape_res4_idx[q],
+                            next.r_res4_idx[q],
+                            next.ct_res4_idx[q]);
+                }
+
                 if constexpr(doPU){
                     if(next.isPU){
-                        (*ans.resolved4_shapes_PU)[next.shape_res4_idx][next.RL_res4_idx][next.r_res4_idx][next.ct_res4_idx] += weight;
+                        for(unsigned q=0; q<1; ++q){
+                            ans.resolved4_shapes_PU.fill(weight,
+                                    next.RL_res4_idx[q],
+                                    next.shape_res4_idx[q],
+                                    next.r_res4_idx[q],
+                                    next.ct_res4_idx[q]);
+                        }
                     }
                 }
                 //printf("\thandled res4\n");

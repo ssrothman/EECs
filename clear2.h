@@ -65,37 +65,32 @@ namespace fastEEC{
         }
 
         if (res4ax.RL){
-            unsigned Nshape = 4;
-            unsigned NRL = histogram::axis::traits::extent(*res4ax.RL);
-            unsigned Nr = histogram::axis::traits::extent(*res4ax.r_dipole);
-            unsigned Nct = histogram::axis::traits::extent(*res4ax.ct_dipole);
-
-            ans.resolved4_shapes = std::make_shared<multi_array<T, 4>>(
-                    extents[Nshape][NRL][Nr][Nct]
+            unsigned NRL_res4 = extent(*res4ax.RL);
+            unsigned Nr_dipole_res4 = extent(*res4ax.r_dipole);
+            unsigned Ntheta_dipole_res4 = extent(*res4ax.ct_dipole);
+            unsigned Nr_tee_res4 = extent(*res4ax.r_tee);
+            unsigned Ntheta_tee_res4 = extent(*res4ax.ct_tee);
+            
+            ans.resolved4_shapes.setup(
+                    NRL_res4, 
+                    Nr_dipole_res4, Ntheta_dipole_res4,
+                    Nr_tee_res4, Ntheta_tee_res4
             );
-            std::fill(ans.resolved4_shapes->data(), 
-                      ans.resolved4_shapes->data() 
-                        + ans.resolved4_shapes->num_elements(),
-                      0);
 
             if constexpr(doPU){
-                ans.resolved4_shapes_PU = std::make_shared<multi_array<T, 4>>(
-                        extents[Nshape][NRL][Nr][Nct]
+                ans.resolved4_shapes_PU.setup(
+                        NRL_res4,
+                        Nr_dipole_res4, Ntheta_dipole_res4,
+                        Nr_tee_res4, Ntheta_tee_res4
                 );
-                std::fill(ans.resolved4_shapes_PU->data(), 
-                          ans.resolved4_shapes_PU->data() 
-                            + ans.resolved4_shapes_PU->num_elements(),
-                          0);
             }
 
             if constexpr (doTransfer){
-                ans.transfer_res4_shapes = std::make_shared<multi_array<T, 8>>(
-                        extents[Nshape][NRL][Nr][Nct][Nshape][NRL][Nr][Nct]
+                ans.transfer_res4_shapes.setup(
+                        NRL_res4,
+                        Nr_dipole_res4, Ntheta_dipole_res4,
+                        Nr_tee_res4, Ntheta_tee_res4
                 );
-                std::fill(ans.transfer_res4_shapes->data(), 
-                          ans.transfer_res4_shapes->data() 
-                            + ans.transfer_res4_shapes->num_elements(),
-                          0);
             }
         }
 

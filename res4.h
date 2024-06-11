@@ -45,7 +45,7 @@ namespace fastEEC{
         }
         const T dR2Centroid = detaCentroid*detaCentroid + dphiCentroid*dphiCentroid;
 
-        if (dR2Centroid < shapetol){
+        if (dR2Centroid < shapetol*shapetol){
             return 1;
         }
 
@@ -63,7 +63,7 @@ namespace fastEEC{
 
         const T dR2TeeA = detaTeeA*detaTeeA + dphiTeeA*dphiTeeA;
 
-        if (dR2TeeA < shapetol){
+        if (dR2TeeA < shapetol*shapetol){
             return 2;
         }
 
@@ -78,7 +78,7 @@ namespace fastEEC{
 
         const T dR2TeeB = detaTeeB*detaTeeB + dphiTeeB*dphiTeeB;
 
-        if (dR2TeeB < shapetol){
+        if (dR2TeeB < shapetol*shapetol){
             return 2;
         }
 
@@ -105,7 +105,11 @@ namespace fastEEC{
         T cosTheta = dot/(RL*RS);
         
         r = RS/RL;
-        theta = std::acos(cosTheta);
+        if (cosTheta > 1){
+            theta = 0;
+        } else {
+            theta = std::acos(cosTheta);
+        }
         /*if(std::isnan(theta)){
             printf("------------- NAN THETA!!!!! ---------\n");
             printf("\n");
@@ -128,18 +132,27 @@ namespace fastEEC{
 
         //printf("r = %g\n", r);
         //printf("theta = %g\n", theta);
+        //printf("\tdot, %g\n", dot);
+        //printf("\tcosTheta = %g\n", cosTheta);
+        //printf("\tRL = %g\n", RL);
+        //printf("\tRS = %g\n", RS);
+        //printf("\tRS*RL = %g\n", RS*RL);
     }
 
     template <typename T>
-    bool lookForShapes(unsigned A,
-                       unsigned B,
-                       unsigned C,
-                       unsigned D,
+    unsigned lookForShapes(const jetDetails_t<T>& jetDetails,
+                           const res4shapesAxes_t& res4ax,
+                           prev_t<T, 5>& next){
 
-                       const jetDetails_t<T>& jetDetails,
-                       const res4shapesAxes_t& res4ax,
+        constexpr std::array<unsigned, 3> As = {{0, 0, 0}};
+        constexpr std::array<unsigned, 3> Bs = {{1, 2, 3}};
+        constexpr std::array<unsigned, 3> Cs = {{2, 3, 1}};
+        constexpr std::array<unsigned, 3> Ds = {{3, 1, 2}};
 
-                       prev_t<T, 5>& next){
+        unsigned A = next.is[As[next.ires4]];
+        unsigned B = next.is[Bs[next.ires4]];
+        unsigned C = next.is[Cs[next.ires4]];
+        unsigned D = next.is[Ds[next.ires4]];
 
         T RAB = jetDetails.floatDRs[A][B];
         T RCD = jetDetails.floatDRs[C][D];
@@ -148,6 +161,12 @@ namespace fastEEC{
             std::swap(RAB, RCD);
             std::swap(B, C);
             std::swap(A, D);
+        }
+
+        if(RCD < 1e-8){
+            //printf("\tRCD < 1e-8\n");
+            next.shape_res4_idx[next.ires4] = 0;
+            return 0;
         }
 
         //printf("RAB = %g\n", RAB);
@@ -162,7 +181,6 @@ namespace fastEEC{
         T phiB = jetDetails.phis[B];
         T phiC = jetDetails.phis[C];
         T phiD = jetDetails.phis[D];
-
 
         if (phiA > phiB){
             std::swap(phiA, phiB);
@@ -185,45 +203,45 @@ namespace fastEEC{
             std::swap(etaC, etaD);
         }
         
-        //now we know for certain that phiA < phiB and phiC < phiD
-        //and that phiB - phiA <= M_PI and phiD - phiC <= M_PI
+        unsigned shape = linesCross(res4ax.shapetol,
+                                    etaA, etaB, etaC, etaD,
+                                    phiA, phiB, phiC, phiD);
 
-        //in principle we need to worry now about whether C-D would cross
-        //if we were in the right +-2pi window
-        //
-        //the only solution I can think of is just to explicitly check
-        //all three options
-        //
-        //Luckily I can't think of any way that it would be off by 
-        //more than 2pi
-        next.shape_res4_idx = linesCross(res4ax.shapetol,
-                                        etaA, etaB, etaC, etaD,
-                                        phiA, phiB, phiC, phiD);
-
-        if(next.shape_res4_idx != 0){
+        if(shape != 0){
             T r, theta;
             getrandangle(etaA, etaB, etaC, etaD,
                          phiA, phiB, phiC, phiD,
                          RAB, RCD,
                          r, theta);
-            if(next.shape_res4_idx == 1){
-                //printf("DIPOLE:\n");
-                next.r_res4_idx = getIndex(r, res4ax.r_dipole);
-                next.ct_res4_idx = getIndex(theta, res4ax.ct_dipole);
+
+            next.RL_res4_idx[next.ires4] = getIndex(RAB, res4ax.RL);
+
+            if(shape == 1){
+                //printf("\tDIPOLE:\n");
+                next.shape_res4_idx[next.ires4] = 1;
+                next.r_res4_idx[next.ires4] = getIndex(r, res4ax.r_dipole);
+                next.ct_res4_idx[next.ires4] = getIndex(theta, res4ax.ct_dipole);
             } else {
-                //printf("TEE:\n");
-                next.r_res4_idx = getIndex(r, res4ax.r_tee);
-                next.ct_res4_idx = getIndex(theta, res4ax.ct_tee);
+                //printf("\tTEE:\n");
+                next.shape_res4_idx[next.ires4] = 2;
+                next.r_res4_idx[next.ires4] = getIndex(r, res4ax.r_tee);
+                next.ct_res4_idx[next.ires4] = getIndex(theta, res4ax.ct_tee);
             }
+            /*if ((RAB < 0.2) & (RAB > 0.1)){
+                printf("%g, %g, %u, %u\n", 
+                        theta, r,
+                        next.ct_res4_idx[next.ires4], 
+                        next.r_res4_idx[next.ires4]);
+            }*/
             //printf("\tr = %g\n", r);
             //printf("\trIdx = %u\n", next.r_res4_idx);
             //printf("\ttheta = %g\n", theta);
             //printf("\tthetaIdx = %u\n", next.ct_res4_idx);
-            return true;
+            return shape;
         } else {
-            next.r_res4_idx = 0;
-            next.ct_res4_idx = 0;
-            return false;
+            //printf("\tnoshape\n");
+            next.shape_res4_idx[next.ires4] = 0;
+            return 0;
         }
     }
 
@@ -240,28 +258,18 @@ namespace fastEEC{
             jetDetails.floatDRs[next.is[1]][next.is[3]],
             jetDetails.floatDRs[next.is[2]][next.is[3]]
         }};
-        auto maxel = max_element(dRs.begin(), dRs.end());
-        T RL = *maxel;
-
-        next.RL_res4_idx = getIndex(RL, res4ax.RL);
 
         auto minel = min_element(dRs.begin(), dRs.end());
-        if (*minel < 1e-8){
-            next.shape_res4_idx = 0;
-            next.r_res4_idx = 0;
-            next.ct_res4_idx = 0;
+        if (*minel < 1e-16){
             return;
         }
 
-        constexpr std::array<unsigned, 3> As = {{0, 0, 0}};
-        constexpr std::array<unsigned, 3> Bs = {{1, 2, 3}};
-        constexpr std::array<unsigned, 3> Cs = {{2, 3, 1}};
-        constexpr std::array<unsigned, 3> Ds = {{3, 1, 2}};
-
-        for (unsigned i=0; i<3; ++i){
+        int nfound = 0;
+        for(next.ires4=0; next.ires4<3; ++next.ires4){
             //printf("Trying %u, %u, %u, %u\n", As[i], Bs[i], Cs[i], Ds[i]);
-            if (lookForShapes(next.is[As[i]], next.is[Bs[i]], next.is[Cs[i]], next.is[Ds[i]],
-                              jetDetails, res4ax, next)){
+            //printf("%u %u %u %u:\n", As[i], Bs[i], Cs[i], Ds[i]);
+            if (lookForShapes(jetDetails, res4ax, next)){
+                ++nfound;
                 //printf("Found shape %u\n", next.shape_res4_idx);
                 //printf("\tline 1: (%0.2f, %0.2f) -> (%0.2f, %0.2f)\n", 
                 //        jetDetails.etas[next.is[As[i]]], jetDetails.phis[next.is[As[i]]],
@@ -272,8 +280,40 @@ namespace fastEEC{
                 //printf("\t");
                 //printVec(next.is);
                 //printf("\n");
-                return;
+                //return;
             }
+        }
+        if(nfound > 2){
+            /*printf("Found more than two shapes\n");
+            printf("\t");
+            printVec(next.is);
+            printf("\n");
+            printf("\t(%g, %g)\n", jetDetails.etas[next.is[0]], jetDetails.phis[next.is[0]]);
+            printf("\t(%g, %g)\n", jetDetails.etas[next.is[1]], jetDetails.phis[next.is[1]]);
+            printf("\t(%g, %g)\n", jetDetails.etas[next.is[2]], jetDetails.phis[next.is[2]]);
+            printf("\t(%g, %g)\n", jetDetails.etas[next.is[3]], jetDetails.phis[next.is[3]]);
+            printf("\tRL = %g\n", RL);*/
+            /*printf("\tABCD: %u\n", lookForShapes(next.is[0],
+                                                 next.is[1],
+                                                 next.is[2],
+                                                 next.is[3],
+                                                 jetDetails,
+                                                 res4ax,
+                                                 next));
+            printf("\tACBD: %u\n", lookForShapes(next.is[0],
+                                                 next.is[2],
+                                                 next.is[1],
+                                                 next.is[3],
+                                                 jetDetails,
+                                                 res4ax,
+                                                 next));
+            printf("\tADBC: %u\n", lookForShapes(next.is[0],
+                                                 next.is[3],
+                                                 next.is[1],
+                                                 next.is[2],
+                                                 jetDetails,
+                                                 res4ax,
+                                                 next));*/
         }
     } 
 }

@@ -10,6 +10,74 @@
 #include "util.h"
 
 namespace fastEEC{
+    template <typename T>
+    struct res4shapes{
+        std::shared_ptr<multi_array<T, 3>> dipole;
+        std::shared_ptr<multi_array<T, 3>> tee;
+
+        void fill(const T val, const unsigned RL,
+                  const unsigned shape,
+                  const unsigned r, const unsigned theta){
+            switch(shape){
+                case 0:
+                    break;
+                case 1:
+                    fill_dipole(val, RL, r, theta);
+                    break;
+                case 2:
+                    fill_tee(val, RL, r, theta);
+                    break;
+                default:
+                    printf("SHAPE %u\n", shape);
+                    fflush(stdout);
+                    assert(false);
+            }
+        }
+
+        void fill_dipole(const T val, const unsigned RL,
+                         const unsigned r, const unsigned theta){
+            (*dipole)[RL][r][theta] += val;
+        }
+
+        void fill_tee(const T val, const unsigned RL,
+                      const unsigned r, const unsigned theta){
+            (*tee)[RL][r][theta] += val;
+        }
+
+        void setup(unsigned NRL, 
+                   unsigned Nr_dipole, unsigned Ntheta_dipole,
+                   unsigned Nr_tee, unsigned Ntheta_tee){
+            dipole = std::make_shared<multi_array<T, 3>>(
+                    extents[NRL][Nr_dipole][Ntheta_dipole]
+            );
+            tee = std::make_shared<multi_array<T, 3>>(
+                    extents[NRL][Nr_tee][Ntheta_tee]
+            );
+            
+            std::fill(dipole->data(), dipole->data() + dipole->num_elements(), 0);
+            std::fill(tee->data(), tee->data() + tee->num_elements(), 0);
+        }
+    };
+
+    template <typename T>
+    struct res4shapes_transfer{
+        std::shared_ptr<multi_array<T, 6>> dipole;
+        std::shared_ptr<multi_array<T, 6>> tee;
+
+        void setup(unsigned NRL, 
+                   unsigned Nr_dipole, unsigned Ntheta_dipole,
+                   unsigned Nr_tee, unsigned Ntheta_tee){
+            dipole = std::make_shared<multi_array<T, 6>>(
+                    extents[NRL][Nr_dipole][Ntheta_dipole][NRL][Nr_dipole][Ntheta_dipole]
+            );
+            tee = std::make_shared<multi_array<T, 6>>(
+                    extents[NRL][Nr_tee][Ntheta_tee][NRL][Nr_tee][Ntheta_tee]
+            );
+
+            std::fill(dipole->data(), dipole->data() + dipole->num_elements(), 0);
+            std::fill(tee->data(), tee->data() + tee->num_elements(), 0);
+        }
+    };
     
     template <typename T>
     struct result_t{
@@ -24,7 +92,7 @@ namespace fastEEC{
          * shape [RL, xi, phi]
          *
          * where RL = longest side
-         *       xi = shortest side/medium side
+         *xi = shortest side/medium side
          *       phi = arcsin(1 - square(RL-RM)/square(RS))
          *
          * cf 2201.07800
@@ -34,23 +102,9 @@ namespace fastEEC{
         std::shared_ptr<multi_array<T, 3>> resolved3_PU;
         std::shared_ptr<multi_array<T, 6>> transfer_res3;
 
-        /*
-         * shape [shapeindex, Rl, r, theta]
-         *
-         * where shapeindex is:
-         *      0: no special shape
-         *         in this case r, theta are both zero
-         *      1: dipole
-         *         in this case theta is the cross angle, r is the short distance over the long distance
-         *      2: tee
-         *         in this case r is the short distance over the long distance , theta is the angle at the top of the T
-         *      3: triangle
-         *         in this case r is the distance from the top of the triangle to the point, over RL
-         *theta is the angle between that vertex and the point
-         */
-        std::shared_ptr<multi_array<T, 4>> resolved4_shapes; 
-        std::shared_ptr<multi_array<T, 4>> resolved4_shapes_PU;
-        std::shared_ptr<multi_array<T, 8>> transfer_res4_shapes;
+        res4shapes<T> resolved4_shapes;
+        res4shapes<T> resolved4_shapes_PU;
+        res4shapes_transfer<T> transfer_res4_shapes;
 
         /*
          * Some fixed shapes for 4th order and 5th order
@@ -90,16 +144,22 @@ namespace fastEEC{
                 addInPlace(*transfer_res3, *other.transfer_res3);
             }
 
-            if(other.resolved4_shapes){
-                addInPlace(*resolved4_shapes, *other.resolved4_shapes);
+            if(other.resolved4_shapes.dipole){
+                addInPlace(*(resolved4_shapes.dipole), 
+                           *(other.resolved4_shapes.dipole));
+                addInPlace(*(resolved4_shapes.tee),
+                           *(other.resolved4_shapes.tee));
             }
 
-            if(other.resolved4_shapes_PU){
-                addInPlace(*resolved4_shapes_PU, *other.resolved4_shapes_PU);
+            if(other.resolved4_shapes_PU.dipole){
+                addInPlace(*(resolved4_shapes_PU.dipole),
+                           *(other.resolved4_shapes_PU.dipole));
+                addInPlace(*(resolved4_shapes_PU.tee),
+                           *(other.resolved4_shapes_PU.tee));
             }
-            if(other.transfer_res4_shapes){
-                addInPlace(*transfer_res4_shapes, *other.transfer_res4_shapes);
-            }
+            //if(other.transfer_res4_shapes){
+            //    addInPlace(*transfer_res4_shapes, *other.transfer_res4_shapes);
+            //}
 
             if(other.resolved4_fixed){
                 addInPlace(*resolved4_fixed, *other.resolved4_fixed);

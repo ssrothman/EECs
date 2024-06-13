@@ -14,6 +14,11 @@
 #include "adj.h"
 
 namespace fastEEC{
+    inline void printb(unsigned int v) {
+        unsigned int i, s = 8; // s = only most significant bit at 1
+        for (i = s; i; i>>=1) printf("%d", v & i || 0 );
+    }
+
     template <typename AX>
     unsigned AXextent(const AX& ax){
         return histogram::axis::traits::extent(ax);

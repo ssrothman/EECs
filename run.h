@@ -13,11 +13,10 @@ namespace fastEEC{
     constexpr unsigned DOTRANSFER = 0b10;
     constexpr unsigned DORES3 = 0b100;
     constexpr unsigned DORES4 = 0b1000;
-    constexpr unsigned DORES4FIXED = 0b10000;
 
     template <typename T,
              bool doPU, bool doTransfer,
-             bool doRes3, bool doRes4, bool doRes4Fixed,
+             bool doRes3, bool doRes4,
              unsigned maxOrder>
     void run(result_t<T>& ans,
 
@@ -67,88 +66,33 @@ namespace fastEEC{
 
             res4shapesAxes.shapetol = shapetol;
         }
-        struct res4fixedAxes_t res4fixedAxes;
-        if constexpr (doRes4Fixed){
-            res4fixedAxes.RL = coarseRLax;
-            res4fixedAxes.shapetol = shapetol;
-        }
 
         struct transferInputs<T> tin;
         if constexpr (doTransfer){
-            struct jetDetails_t<T> recoJetDetails(*J_Reco, ax, nt);
-            tin.recoJet = recoJetDetails;
-            printf("recoJet:\n");
-            fflush(stdout);
-            printf("\tetas.size() = %lu\n", tin.recoJet.etas.size());
-            fflush(stdout);
-            printf("\tphis.size() = %lu\n", tin.recoJet.phis.size());
-            fflush(stdout);
-            printf("\tEs.size() = %lu\n", tin.recoJet.Es.size());
-            fflush(stdout);
-            printf("\tfloatDRs[0][0] = %g\n", tin.recoJet.floatDRs[0][0]);
-            fflush(stdout);
-            printf("\tfloatDRs[0][1] = %g\n", tin.recoJet.floatDRs[0][1]);
-            fflush(stdout);
-            printf("\tdRbins[0][0] = %u\n", tin.recoJet.dRbins[0][0]);
-            fflush(stdout);
-            printf("\tdRbins[0][1] = %u\n", tin.recoJet.dRbins[0][1]);
-            fflush(stdout);
-
-            tin.adj = adjacency(*ptrans);
-            printf("adj\n");
-            fflush(stdout);
-            printf("\tadj[0].size() = %lu\n", tin.adj.at(0).size());
-            fflush(stdout);
-            printf("\tadj[1].size() = %lu\n", tin.adj.at(0).size());
-            fflush(stdout);
-
-            tin.ptrans = *ptrans;
-            printf("ptrans\n");
-            fflush(stdout);
-            printf("\tptrans.n_rows = %llu\n", tin.ptrans.n_rows);
-            fflush(stdout);
-            printf("\tptrans.n_cols = %llu\n", tin.ptrans.n_cols);
-            fflush(stdout);
-            std::cout << tin.ptrans << std::endl;
-            fflush(stdout);
+            tin.setup(J_Reco, ptrans, ax, nt);
         }
 
-        clear<T, doPU, doTransfer>(ans, ax, res3axes, res4shapesAxes, res4fixedAxes);
+        clear<T, doPU, doTransfer>(ans, ax, res3axes, res4shapesAxes);
 
         unsigned nPart = jetDetails.Es.size();
 
         prev_t<T, 1> prev;
 
         doN<T, doPU, doTransfer,
-            doRes3, doRes4, doRes4Fixed,
-            maxOrder, 1>(
+            doRes3, doRes4, 
+            maxOrder, 1, 0>(
                 ans,
                 jetDetails,
                 nPart,
 
                 res3axes,
                 res4shapesAxes,
-                res4fixedAxes,
 
                 tin,
                 PU,
                 
                 prev
         );
-        //printf("RESULTS\n");
-        //for(unsigned order=0; order < 5; ++order){
-        //    printf("Order %d\n", order);
-        //    printf("\tsumwt = %f\n", recursive_reduce(*ans.wts[order], 0.));
-        //}
-        //printf("RES3\n");
-        //printf("\tsumwt = %f\n", recursive_reduce(*ans.resolved3, 0.));
-        //fflush(stdout);
-        //printf("RES4\n");
-        //printf("\tsumwt = %f\n", recursive_reduce(*ans.resolved4_shapes, 0.));
-        //printf("\t\tshape0 = %f\n", recursive_reduce((*ans.resolved4_shapes)[0], 0.));
-        //printf("\t\tshape1 = %f\n", recursive_reduce((*ans.resolved4_shapes)[1], 0.));
-        //printf("\t\tshape2 = %f\n", recursive_reduce((*ans.resolved4_shapes)[2], 0.));
-        //printf("\t\tshape3 = %f\n", recursive_reduce((*ans.resolved4_shapes)[3], 0.));
     }
 
     template <typename T, unsigned flags>
@@ -182,8 +126,7 @@ namespace fastEEC{
                 run<T, bool(flags & DOPU), 
                        bool(flags & DOTRANSFER), 
                        bool(flags & DORES3),
-                       bool(flags & DORES4), 
-                       bool(flags & DORES4FIXED), 2>(
+                       bool(flags & DORES4), 2>(
                     ans,
                     J, ax, nt,
                     coarseRLax, xiax, phiax,
@@ -198,8 +141,7 @@ namespace fastEEC{
                 run<T, bool(flags & DOPU), 
                        bool(flags & DOTRANSFER), 
                        bool(flags & DORES3),
-                       bool(flags & DORES4), 
-                       bool(flags & DORES4FIXED), 3>(
+                       bool(flags & DORES4), 3>(
                     ans,
                     J, ax, nt,
                     coarseRLax, xiax, phiax,
@@ -214,8 +156,7 @@ namespace fastEEC{
                 run<T, bool(flags & DOPU), 
                        bool(flags & DOTRANSFER), 
                        bool(flags & DORES3),
-                       bool(flags & DORES4), 
-                       bool(flags & DORES4FIXED), 4>(
+                       bool(flags & DORES4), 4>(
                     ans,
                     J, ax, nt,
                     coarseRLax, xiax, phiax,
@@ -230,8 +171,7 @@ namespace fastEEC{
                 run<T, bool(flags & DOPU), 
                        bool(flags & DOTRANSFER), 
                        bool(flags & DORES3),
-                       bool(flags & DORES4), 
-                       bool(flags & DORES4FIXED), 5>(
+                       bool(flags & DORES4), 5>(
                     ans,
                     J, ax, nt,
                     coarseRLax, xiax, phiax,
@@ -246,8 +186,7 @@ namespace fastEEC{
                 run<T, bool(flags & DOPU), 
                        bool(flags & DOTRANSFER), 
                        bool(flags & DORES3),
-                       bool(flags & DORES4), 
-                       bool(flags & DORES4FIXED), 6>(
+                       bool(flags & DORES4), 6>(
                     ans,
                     J, ax, nt,
                     coarseRLax, xiax, phiax,

@@ -13,9 +13,10 @@
 namespace fastEEC{
     template <typename T,                                 //result type
              bool doPU, bool doTransfer,                  //flags
-             bool doRes3, bool doRes4, bool doRes4Fixed,  //more flags
+             bool doRes3, bool doRes4,                    //more flags
              unsigned maxOrder,                           //max EEC order
-             unsigned order                               //current EEC order
+             unsigned order,                              //current EEC order
+             unsigned symfacIndex_prev                    //symfac index
     >
     void doN(result_t<T>& ans,
              const jetDetails_t<T>& jetDetails,
@@ -23,7 +24,6 @@ namespace fastEEC{
 
              const res3axes_t& res3ax,
              const res4shapesAxes_t& res4ax,
-             const res4fixedAxes_t& res4fixedax,
 
              const transferInputs<T>& tin,
              const vector<bool>* const PU,
@@ -51,59 +51,37 @@ namespace fastEEC{
          *
          * easy easy
          */
-        //printf("top of doN\n");
-        //fflush(stdout);
-
         unsigned istart = 0;
         if constexpr (order > 1){
             istart = prev.is[order-2];
         }
 
-        T symfac;
-        unsigned symfacIndex = 0;
-        if constexpr (order < 2){
-            symfac = 1;
-        } else {
-            symfacIndex = (prev.symfacIndex << 1);
-            symfac = symfacLookup<T, order>()[symfacIndex];
-        }
-        //printVec(prev.is);
-        //printf("%u\n", istart);
-        //printf("\tidx: %u\n", symfacIndex);
-        //printf("\tsymfac: %f\n", symfac);
-        //fflush(stdout);
+        constexpr unsigned symfacIndex_new_first = (order < 2) ? 0 : (symfacIndex_prev << 1);
+        constexpr T symfac_first = (order < 2) ? 1 : symfacLookup<T, order>()[symfacIndex_new_first];
 
         doNinner<T, doPU, doTransfer,
-            doRes3, doRes4, doRes4Fixed,
-            maxOrder, order>(
+            doRes3, doRes4, 
+            maxOrder, order,
+            symfacIndex_new_first>(
                     ans, istart,
                     jetDetails, nPart, 
-                    res3ax, res4ax, res4fixedax, 
+                    res3ax, res4ax, 
                     tin, PU, 
-                    prev, symfac, symfacIndex);
+                    prev, symfac_first);
 
-        if constexpr (order < 2){
-            symfac = 1;
-        } else {
-            symfacIndex += 1;
-            symfac = symfacLookup<T, order>()[symfacIndex];
-        }
+        constexpr unsigned symfacIndex_new_all = (order < 2) ? symfacIndex_new_first : symfacIndex_new_first + 1;
+        constexpr T symfac_all = (order < 2) ? 1 : symfacLookup<T, order>()[symfacIndex_new_all];
 
         for(unsigned inew = istart+1; inew < nPart; ++inew){
-            //printVec(prev.is);
-            //printf("%u\n", inew);
-            //printf("\tidx: %u\n", symfacIndex);
-            //printf("\tsymfac: %f\n", symfac);
-            //fflush(stdout);
-
             doNinner<T, doPU, doTransfer, 
-                doRes3, doRes4, doRes4Fixed, 
-                maxOrder, order>(
+                doRes3, doRes4, 
+                maxOrder, order,
+                symfacIndex_new_all>(
                         ans, inew, 
                         jetDetails, nPart, 
-                        res3ax, res4ax, res4fixedax, 
+                        res3ax, res4ax, 
                         tin, PU, 
-                        prev, symfac, symfacIndex);
+                        prev, symfac_all);
         }//end loop
     }//end function
 }

@@ -8,13 +8,15 @@
 #include "res3.h"
 #include "res4.h"
 #include <assert.h>
+#include "fastNtransfer.h"
 
 namespace fastEEC{
-    template <typename T,                                 //result type
-             bool doPU, bool doTransfer,                  //flags
-             bool doRes3, bool doRes4, bool doRes4Fixed,  //more flags
-             unsigned maxOrder,                           //max EEC order
-             unsigned order                               //current EEC order
+    template <typename T,                    //result type
+             bool doPU, bool doTransfer,     //flags
+             bool doRes3, bool doRes4,       //more flags
+             unsigned maxOrder,              //max EEC order
+             unsigned order,                 //current EEC order
+             unsigned symfacIndex_prev       //symfac index 
     >
     void doN(result_t<T>& ans,
              const jetDetails_t<T>& jetDetails,
@@ -22,7 +24,6 @@ namespace fastEEC{
 
              const res3axes_t& res3ax,
              const res4shapesAxes_t& res4ax,
-             const res4fixedAxes_t& res4fixedax,
 
              const transferInputs<T>& tin,
              const vector<bool>* const PU,
@@ -30,11 +31,12 @@ namespace fastEEC{
              const prev_t<T, order>& prev);
     
 
-    template <typename T,                                 //result type
-             bool doPU, bool doTransfer,                  //flags
-             bool doRes3, bool doRes4, bool doRes4Fixed,  //more flags
-             unsigned maxOrder,                           //max EEC order
-             unsigned order                               //current EEC order
+    template <typename T,                         //result type
+             bool doPU, bool doTransfer,          //flags
+             bool doRes3, bool doRes4,            //more flags
+             unsigned maxOrder,                   //max EEC order
+             unsigned order,                      //current EEC order
+             unsigned symfacIndex                 //symfac index (passthrough)
     >
     void doNinner(result_t<T>& ans,
                   const unsigned inew,
@@ -44,14 +46,12 @@ namespace fastEEC{
 
                   const res3axes_t& res3ax,
                   const res4shapesAxes_t& res4ax,
-                  const res4fixedAxes_t& res4fixedax,
 
                   const transferInputs<T>& tin,
                   const vector<bool>* const PU,
 
                   const prev_t<T, order>& prev,
-                  const T symfac,
-                  const unsigned symfacIndex){
+                  const T symfac){
 
         prev_t<T, order+1> next;
 
@@ -60,8 +60,6 @@ namespace fastEEC{
         } else {
             next.partial = prev.partial * jetDetails.Es[inew];
         }
-
-        next.symfacIndex = symfacIndex;
 
         if constexpr (order == 1){
             next.maxDR = 0;
@@ -150,6 +148,10 @@ namespace fastEEC{
                 }
                 //printf("\thandled res3\n");
                 //fflush(stdout);
+            } else if constexpr(doRes3 && order > 3){
+                next.RL_res3_idx = prev.RL_res3_idx;
+                next.xi_res3_idx = prev.xi_res3_idx;
+                next.phi_res3_idx = prev.phi_res3_idx;
             }
 
             if constexpr (doRes4 && order == 4){
@@ -157,6 +159,16 @@ namespace fastEEC{
                 //printf("\tres4: %u %u %u %u\n", next.shape_res4_idx, next.RL_res4_idx, next.r_res4_idx, next.ct_res4_idx);
                 //fflush(stdout);
                 for(unsigned q=0; q<3; ++q){
+                    /*if (next.shape_res4_idx[q] == 1){
+                        printf("THE RES4 DIPOLE IS (%u, %u, %u, %u)\n",
+                                next.is[0], next.is[1], 
+                                next.is[2], next.is[3]);
+                    } else if(next.shape_res4_idx[q] == 2){
+                        printf("THE RES4 TEE IS (%u, %u, %u, %u)\n",
+                                next.is[0], next.is[1], 
+                                next.is[2], next.is[3]);
+                    }*/
+
                     ans.resolved4_shapes->fill(weight,
                             next.RL_res4_idx[q],
                             next.shape_res4_idx[q],
@@ -166,7 +178,7 @@ namespace fastEEC{
 
                 if constexpr(doPU){
                     if(next.isPU){
-                        for(unsigned q=0; q<1; ++q){
+                        for(unsigned q=0; q<3; ++q){
                             ans.resolved4_shapes_PU->fill(weight,
                                     next.RL_res4_idx[q],
                                     next.shape_res4_idx[q],
@@ -177,31 +189,47 @@ namespace fastEEC{
                 }
                 //printf("\thandled res4\n");
                 //fflush(stdout);
-            }
-            
-            //TODO: res4fixed
-            if constexpr (doRes4Fixed && order == 4){
-
+            } else if constexpr(doRes4 && order > 4){
+                for(unsigned q=0; q<3; ++q){
+                    next.RL_res4_idx[q] = prev.RL_res4_idx[q];
+                    next.shape_res4_idx[q] = prev.shape_res4_idx[q];
+                    next.r_res4_idx[q] = prev.r_res4_idx[q];
+                    next.ct_res4_idx[q] = prev.ct_res4_idx[q];
+                }
             }
         }
         
         //TODO: transfer
-        
         if constexpr (order < maxOrder){
             //printf("\tpunting...\n");
             //fflush(stdout);
             doN<T, 
                 doPU, doTransfer, 
-                doRes3, doRes4, doRes4Fixed, 
-                maxOrder, order+1
+                doRes3, doRes4, 
+                maxOrder, order+1,
+                symfacIndex
             >(
                     ans, 
                     jetDetails, nPart, 
-                    res3ax, res4ax, res4fixedax, 
+                    res3ax, res4ax, 
                     tin, PU, 
                     next
             );
-        }//end if order < maxOrder
+        } else if constexpr (doTransfer){
+            prev_t<T, 1> prevTrans;
+            transferN<T, 
+                doPU, doRes3, doRes4, 
+                maxOrder, 1,
+                symfacIndex,
+                0>(
+                        ans, 
+                        jetDetails, nPart, 
+                        res3ax, res4ax, 
+                        tin, 
+                        next, 
+                        prevTrans
+            );
+        }
     }
 };
 

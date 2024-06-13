@@ -17,8 +17,6 @@ template <typename T, int order>
         std::array<T, order-2> wts; //weights at each order so far
         std::array<unsigned, order-2> dRbins; //DR bins at each order so far
 
-        unsigned symfacIndex;
-
         /*for res3*/
         unsigned RL_res3_idx;
         unsigned xi_res3_idx;

@@ -9,6 +9,8 @@
 #include "usings.h"
 #include "util.h"
 
+#include "SRothman/SimonTools/src/recursive_reduce.h"
+
 namespace fastEEC{
     template <typename T>
     struct res4shapes{
@@ -28,8 +30,6 @@ namespace fastEEC{
                     fill_tee(val, RL, r, theta);
                     break;
                 default:
-                    printf("SHAPE %u\n", shape);
-                    fflush(stdout);
                     assert(false);
             }
         }
@@ -76,6 +76,57 @@ namespace fastEEC{
 
             std::fill(dipole->data(), dipole->data() + dipole->num_elements(), 0);
             std::fill(tee->data(), tee->data() + tee->num_elements(), 0);
+        }
+
+        void fill(const T val,
+                  const unsigned RL_gen,
+                  const unsigned shape_gen,
+                  const unsigned r_gen,
+                  const unsigned ct_gen,
+                  const unsigned RL_reco,
+                  const unsigned shape_reco,
+                  const unsigned r_reco,
+                  const unsigned ct_reco){
+            if (shape_gen != shape_reco){
+                return;
+            }
+
+            switch(shape_gen){
+                case 0:
+                    break;
+                case 1:
+                    fill_dipole(val, 
+                            RL_gen, r_gen, ct_gen, 
+                            RL_reco, r_reco, ct_reco);
+                    break;
+                case 2:
+                    fill_tee(val, 
+                            RL_gen, r_gen, ct_gen, 
+                            RL_reco, r_reco, ct_reco);
+                    break;
+                default:
+                    assert(false);
+            }
+        }
+
+        void fill_dipole(const T val,
+                         const unsigned RL_gen, 
+                         const unsigned r_gen,
+                         const unsigned ct_gen,
+                         const unsigned RL_reco,
+                         const unsigned r_reco,
+                         const unsigned ct_reco){
+            (*dipole)[RL_gen][r_gen][ct_gen][RL_reco][r_reco][ct_reco] += val;
+        }
+
+        void fill_tee(const T val,
+                      const unsigned RL_gen,
+                      const unsigned r_gen,
+                      const unsigned ct_gen,
+                      const unsigned RL_reco,
+                      const unsigned r_reco,
+                      const unsigned ct_reco){
+            (*tee)[RL_gen][r_gen][ct_gen][RL_reco][r_reco][ct_reco] += val;
         }
     };
     
@@ -132,23 +183,74 @@ namespace fastEEC{
                 addInPlace(*transfer_res3, *other.transfer_res3);
             }
 
-            if(other.resolved4_shapes.dipole){
-                addInPlace(*(resolved4_shapes.dipole), 
-                           *(other.resolved4_shapes.dipole));
-                addInPlace(*(resolved4_shapes.tee),
-                           *(other.resolved4_shapes.tee));
+            if(other.resolved4_shapes){
+                addInPlace(*(resolved4_shapes->dipole), 
+                           *(other.resolved4_shapes->dipole));
+                addInPlace(*(resolved4_shapes->tee),
+                           *(other.resolved4_shapes->tee));
             }
 
-            if(other.resolved4_shapes_PU.dipole){
-                addInPlace(*(resolved4_shapes_PU.dipole),
-                           *(other.resolved4_shapes_PU.dipole));
-                addInPlace(*(resolved4_shapes_PU.tee),
-                           *(other.resolved4_shapes_PU.tee));
+            if(other.resolved4_shapes_PU){
+                addInPlace(*(resolved4_shapes_PU->dipole),
+                           *(other.resolved4_shapes_PU->dipole));
+                addInPlace(*(resolved4_shapes_PU->tee),
+                           *(other.resolved4_shapes_PU->tee));
             }
-            //if(other.transfer_res4_shapes){
-            //    addInPlace(*transfer_res4_shapes, *other.transfer_res4_shapes);
-            //}
+
+            if(other.transfer_res4_shapes){
+                addInPlace(*(transfer_res4_shapes->dipole), 
+                           *(other.transfer_res4_shapes->dipole));
+                addInPlace(*(transfer_res4_shapes->tee),
+                           *(other.transfer_res4_shapes->tee));
+            }
             return *this;
+        }
+
+        void summarize() const{
+            for(unsigned o=0; o<5; ++o){
+                printf("\torder %u: %g\n", o+2, recursive_reduce(*(wts[o]), 0.0));
+            }
+            if(resolved3){
+                printf("\tres3: %g\n", recursive_reduce(*resolved3, 0.0));
+            }
+            if(resolved4_shapes){
+                printf("\tdipole: %g\n", recursive_reduce(*(resolved4_shapes->dipole), 0.0));
+                printf("\ttee: %g\n", recursive_reduce(*(resolved4_shapes->tee), 0.0));
+            }
+
+            if(wts_PU[0]){
+                for(unsigned o=0; o<5; ++o){
+                    printf("\torder %u PU: %g\n", o+2, recursive_reduce(*(wts_PU[o]), 0.0));
+                }
+            }
+
+            if(resolved3_PU){
+                printf("\tres3 PU: %g\n", recursive_reduce(*resolved3_PU, 0.0));
+            }
+
+            if(resolved4_shapes_PU){
+                printf("\tdipole PU: %g\n", recursive_reduce(*(resolved4_shapes_PU->dipole), 0.0));
+                printf("\ttee PU: %g\n", recursive_reduce(*(resolved4_shapes_PU->tee), 0.0));
+            }
+
+            if(transfer_wts[0]){
+                for(unsigned o=0; o<5; ++o){
+                    double total = recursive_reduce(*(wts[o]), 0.0);
+                    printf("\torder %u transfer: 1-%g\n", o+2, total-recursive_reduce(*(transfer_wts[o]), 0.0));
+                }
+            }
+
+            if(transfer_res3){
+                double total = recursive_reduce(*resolved3, 0.0);
+                printf("\tres3 transfer: 1-%g\n", total-recursive_reduce(*transfer_res3, 0.0));
+            }
+
+            if(transfer_res4_shapes){
+                double total_dipole = recursive_reduce(*(resolved4_shapes->dipole), 0.0);
+                double total_tee = recursive_reduce(*(resolved4_shapes->tee), 0.0);
+                printf("\tdipole transfer: 1-%g\n", total_dipole - recursive_reduce(*(transfer_res4_shapes->dipole), 0.0));
+                printf("\ttee transfer: 1-%g\n", total_tee - recursive_reduce(*(transfer_res4_shapes->tee), 0.0));
+            }
         }
     };
 
@@ -200,19 +302,23 @@ namespace fastEEC{
         float shapetol=0;
     };
 
-    struct res4fixedAxes_t{
-        axisptr RL=nullptr;
-
-        float shapetol=0;
-    };
-
     template <typename T>
     struct transferInputs{
-        jetDetails_t<T> recoJet;
+        std::shared_ptr<jetDetails_t<T>> recoJet;
 
-        adjacency adj;
-        arma::mat ptrans;
+        std::shared_ptr<adjacency> adj;
+        std::shared_ptr<arma::mat> ptrans;
+
+        void setup(const jet * recoJet,
+                   const arma::mat * ptrans,
+                   const axisptr& ax,
+                   const normType nt){
+            this->recoJet = std::make_shared<jetDetails_t<T>>(*recoJet, ax, nt);
+            this->ptrans = std::make_shared<arma::mat>(arma::trans(*ptrans));
+            this->adj = std::make_shared<adjacency>(*ptrans);
+        }
     };
 }
+
 
 #endif

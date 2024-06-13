@@ -25,7 +25,6 @@ namespace fastEEC{
             std::swap(RS, RM);
         }
         //they're now sorted
-        
         T xi, phi;
         if (RM == 0){
             xi = 0;

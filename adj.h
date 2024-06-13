@@ -8,10 +8,10 @@ public:
     adjacency(const arma::mat ptrans){
         data.clear();
         data.resize(ptrans.n_cols);
-        for(unsigned i=0; i<ptrans.n_cols; ++i){
-            for(unsigned j=0; j<ptrans.n_rows; ++j){
-                if(ptrans(j, i)>0){
-                    data[i].emplace_back(j);
+        for(unsigned iGen=0; iGen<ptrans.n_cols; ++iGen){
+            for(unsigned iReco=0; iReco<ptrans.n_rows; ++iReco){
+                if(ptrans(iReco, iGen)>0){
+                    data[iGen].emplace_back(iReco);
                 }
             }
         }

@@ -6,8 +6,7 @@ namespace fastEEC{
     void clear(result_t<T>& ans,
                axisptr ax,
                res3axes_t res3ax,
-               res4shapesAxes_t res4ax,
-               res4fixedAxes_t res4fixedax){
+               res4shapesAxes_t res4ax){
 
         unsigned NDR = AXextent(*ax);
 

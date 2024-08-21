@@ -67,6 +67,19 @@ namespace fastEEC{
         struct transferInputs<T> tin;
         if constexpr (doTransfer){
             tin.setup(J_Reco, ptrans, ax, nt);
+            switch(nt){
+                case normType::RAWPT:
+                    *tin.ptrans *= J.rawpt / J_Reco->rawpt;
+                    break;
+                case normType::SUMPT:
+                    *tin.ptrans *= J.sumpt / J_Reco->sumpt;
+                    break;
+                case normType::CORRPT:
+                    *tin.ptrans *= J.pt / J_Reco->pt;
+                    break;
+                default:
+                    assert(false);
+            }
         }
 
         clear<T, doPU, doTransfer>(ans, ax, res3axes, res4shapesAxes);

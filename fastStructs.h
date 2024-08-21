@@ -264,8 +264,8 @@ namespace fastEEC{
         std::vector<T> Es;
 
         jetDetails_t() noexcept :
-            floatDRs(extents[0][0]),
-            dRbins(extents[0][0]),
+            floatDRs(extents[1][1]),
+            dRbins(extents[1][1]),
             etas(0),
             phis(0),
             Es(0)

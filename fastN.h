@@ -28,7 +28,7 @@ namespace fastEEC{
              const transferInputs<T>& tin,
              const vector<bool>* const PU,
 
-             const prev_t<T, order>& prev){
+             const prev_t<T, order>& prev) noexcept {
 
         /*
          * I think we can do something cute with symfacs

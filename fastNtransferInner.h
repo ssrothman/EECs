@@ -29,7 +29,7 @@ namespace fastEEC{
 
                    const prev_t<T, maxOrder+1>& prevGen,
 
-                   const prev_t<T, order>& prevTrans);
+                   const prev_t<T, order>& prevTrans) noexcept;
 
     template <typename T,
              bool doPU,
@@ -52,7 +52,7 @@ namespace fastEEC{
 
                         const prev_t<T, order>& prevTrans,
 
-                        const unsigned jnew){
+                        const unsigned jnew) noexcept {
         const unsigned inew = prevGen.is[order-1];
 
         prev_t<T, order+1> nextTrans;
@@ -84,9 +84,10 @@ namespace fastEEC{
         } else {
             std::array<T, order> dRlist;
             std::array<unsigned, order> dRbin_list;
-            for(unsigned jold=0; jold<order-1; ++jold){
-                dRlist[jold] = tin.recoJet->floatDRs[prevTrans.is[jold]][jnew];
-                dRbin_list[jold] = tin.recoJet->dRbins[prevTrans.is[jold]][jnew];
+            for(unsigned jjold=0; jjold<order-1; ++jjold){
+                const unsigned& jold = prevTrans.is[jjold];
+                dRlist[jjold] = tin.recoJet->floatDRs[jnew][jold];
+                dRbin_list[jjold] = tin.recoJet->dRbins[jnew][jold];
             }
             dRlist[order-1] = prevTrans.maxDR;
             dRbin_list[order-1] = prevTrans.maxDRbin;
@@ -136,7 +137,8 @@ namespace fastEEC{
             }
 
             if constexpr(doRes4 && order == 4){
-                runRes4<T>(*tin.recoJet, res4ax, nextTrans);
+                //runRes4<T>(*tin.recoJet, res4ax, nextTrans);
+                runRes4_nocheck(*tin.recoJet, res4ax, prevGen, nextTrans);
 
                 for (unsigned q=0; q<3; ++q){
                     /*if (prevGen.shape_res4_idx[q] == 0){

@@ -37,6 +37,7 @@ namespace fastEEC{
          */
         T detaCentroid = etaCD - etaAB;
         T dphiCentroid = phiCD - phiAB;
+
         if(dphiCentroid > M_PI){
             dphiCentroid -= 2*M_PI;
         }
@@ -109,13 +110,13 @@ namespace fastEEC{
             theta = 0;
         } else {
             theta = std::acos(cosTheta);
-        }
+}
         /*if(std::isnan(theta)){
             printf("------------- NAN THETA!!!!! ---------\n");
             printf("\n");
             printf("(%g, %g) -> (%g, %g)\n", etaA, phiA, etaB, phiB);
             printf("(%g, %g) -> (%g, %g)\n", etaC, phiC, etaD, phiD);
-            printf("RL = %g\n", RL);
+printf("RL = %g\n", RL);
             printf("RS = %g\n", RS);
             printf("etaAB = %g\n", etaAB);
             printf("phiAB = %g\n", phiAB);
@@ -139,70 +140,32 @@ namespace fastEEC{
         //printf("\tRS*RL = %g\n", RS*RL);
     }
 
+
+
     template <typename T>
     unsigned lookForShapes(const jetDetails_t<T>& jetDetails,
                            const res4shapesAxes_t& res4ax,
                            prev_t<T, 5>& next){
 
-        constexpr std::array<unsigned, 3> As = {{0, 0, 0}};
-        constexpr std::array<unsigned, 3> Bs = {{1, 2, 3}};
-        constexpr std::array<unsigned, 3> Cs = {{2, 3, 1}};
-        constexpr std::array<unsigned, 3> Ds = {{3, 1, 2}};
+        T etaA, etaB, etaC, etaD;
+        T phiA, phiB, phiC, phiD;
+        T RAB, RCD;
 
-        unsigned A = next.is[As[next.ires4]];
-        unsigned B = next.is[Bs[next.ires4]];
-        unsigned C = next.is[Cs[next.ires4]];
-        unsigned D = next.is[Ds[next.ires4]];
-
-        T RAB = jetDetails.floatDRs[A][B];
-        T RCD = jetDetails.floatDRs[C][D];
-
-        if (RCD > RAB){
-            std::swap(RAB, RCD);
-            std::swap(B, C);
-            std::swap(A, D);
-        }
+        getEtasPhis(jetDetails, next, 
+                etaA, etaB, etaC, etaD, 
+                phiA, phiB, phiC, phiD, 
+                RAB, RCD);
 
         if(RCD < 1e-8){
             //printf("\tRCD < 1e-8\n");
             next.shape_res4_idx[next.ires4] = 0;
+            next.RL_res4_idx[next.ires4] = 0;
+            next.r_res4_idx[next.ires4] = 0;
+next.ct_res4_idx[next.ires4] = 0;
+
             return 0;
         }
 
-        //printf("RAB = %g\n", RAB);
-        //printf("RCD = %g\n", RCD);
-
-        T etaA = jetDetails.etas[A];
-        T etaB = jetDetails.etas[B];
-        T etaC = jetDetails.etas[C];
-        T etaD = jetDetails.etas[D];
-
-        T phiA = jetDetails.phis[A];
-        T phiB = jetDetails.phis[B];
-        T phiC = jetDetails.phis[C];
-        T phiD = jetDetails.phis[D];
-
-        if (phiA > phiB){
-            std::swap(phiA, phiB);
-            std::swap(etaA, etaB);
-        }
-        if (phiC > phiD){
-            std::swap(phiC, phiD);
-            std::swap(etaC, etaD);
-        }
-
-        if (phiB - phiA > M_PI){
-            phiB -= 2*M_PI;
-            std::swap(phiA, phiB);
-            std::swap(etaA, etaB);
-        }
-
-        if (phiD - phiC > M_PI){
-            phiD -= 2*M_PI;
-            std::swap(phiC, phiD);
-            std::swap(etaC, etaD);
-        }
-        
         unsigned shape = linesCross(res4ax.shapetol,
                                     etaA, etaB, etaC, etaD,
                                     phiA, phiB, phiC, phiD);
@@ -242,6 +205,112 @@ namespace fastEEC{
             //printf("\tnoshape\n");
             next.shape_res4_idx[next.ires4] = 0;
             return 0;
+        }
+    }
+
+    template <typename T>
+    void getEtasPhis(const jetDetails_t<T>& jetDetails,
+                     const prev_t<T, 5>& prev,
+
+                     T& etaA, T& etaB, T& etaC, T& etaD,
+                     T& phiA, T& phiB, T& phiC, T& phiD,
+
+                     T& RAB, T& RCD){
+        static constexpr std::array<unsigned, 3> As = {{0, 0, 0}};
+        static constexpr std::array<unsigned, 3> Bs = {{1, 2, 3}};
+        static constexpr std::array<unsigned, 3> Cs = {{2, 3, 1}};
+        static constexpr std::array<unsigned, 3> Ds = {{3, 1, 2}};
+
+        unsigned A = prev.is[As[prev.ires4]];
+        unsigned B = prev.is[Bs[prev.ires4]];
+        unsigned C = prev.is[Cs[prev.ires4]];
+        unsigned D = prev.is[Ds[prev.ires4]];
+
+        RAB = jetDetails.floatDRs[A][B];
+        RCD = jetDetails.floatDRs[C][D];
+
+        if (RCD > RAB){
+            std::swap(RAB, RCD);
+            std::swap(B, C);
+            std::swap(A, D);
+        }
+
+        etaA = jetDetails.etas[A];
+        etaB = jetDetails.etas[B];
+        etaC = jetDetails.etas[C];
+        etaD = jetDetails.etas[D];
+
+        phiA = jetDetails.phis[A];
+        phiB = jetDetails.phis[B];
+        phiC = jetDetails.phis[C];
+        phiD = jetDetails.phis[D];
+
+        if (phiA > phiB){
+            std::swap(phiA, phiB);
+            std::swap(etaA, etaB);
+        }
+
+        if (phiC > phiD){
+            std::swap(phiC, phiD);
+            std::swap(etaC, etaD);
+        }
+
+        if (phiB - phiA > M_PI){
+            phiB -= 2*M_PI;
+            std::swap(phiA, phiB);
+            std::swap(etaA, etaB);
+        }
+
+        if (phiD - phiC > M_PI){
+            phiD -= 2*M_PI;
+            std::swap(phiC, phiD);
+            std::swap(etaC, etaD);
+        }
+    }
+
+
+    template <typename T, int genOrder>
+    void runRes4_nocheck(const jetDetails_t<T>& jetDetails,
+                         const res4shapesAxes_t& res4ax,
+
+                         const prev_t<T, genOrder>& prevGen,
+
+                         prev_t<T, 5>& next){
+
+        
+
+        for(next.ires4=0; next.ires4<3; ++next.ires4){
+            unsigned shapeGen = prevGen.shape_res4_idx[next.ires4];
+            if(prevGen.shape_res4_idx[next.ires4] == 0){
+                continue;
+            }
+
+            T etaA, etaB, etaC, etaD;
+            T phiA, phiB, phiC, phiD;
+            T RAB, RCD;
+
+            getEtasPhis(jetDetails, next, 
+                    etaA, etaB, etaC, etaD, 
+                    phiA, phiB, phiC, phiD, 
+                    RAB, RCD);
+
+            T r, theta;
+            getrandangle(etaA, etaB, etaC, etaD,
+                         phiA, phiB, phiC, phiD,
+                         RAB, RCD,
+                         r, theta);
+
+            next.RL_res4_idx[next.ires4] = getIndex(RAB, res4ax.RL);
+
+            if (shapeGen == 1){
+                next.shape_res4_idx[next.ires4] = 1;
+                next.r_res4_idx[next.ires4] = getIndex(r, res4ax.r_dipole);
+                next.ct_res4_idx[next.ires4] = getIndex(theta, res4ax.ct_dipole);
+            } else {
+                next.shape_res4_idx[next.ires4] = 2;
+                next.r_res4_idx[next.ires4] = getIndex(r, res4ax.r_tee);
+                next.ct_res4_idx[next.ires4] = getIndex(theta, res4ax.ct_tee);
+            }
         }
     }
 

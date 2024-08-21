@@ -2,10 +2,11 @@
 #define EECs_ADJ_H
 
 #include <vector>
+#include "SRothman/armadillo-12.2.0/include/armadillo"
 
 class adjacency{
 public:
-    adjacency(const arma::mat ptrans){
+    adjacency(const arma::mat ptrans) noexcept {
         data.clear();
         data.resize(ptrans.n_cols);
         for(unsigned iGen=0; iGen<ptrans.n_cols; ++iGen){
@@ -17,15 +18,15 @@ public:
         }
     }
 
-    adjacency(){
+    adjacency() noexcept {
         data.clear();
     }
 
-    const std::vector<unsigned>& at(unsigned i) const{
+    const std::vector<unsigned>& at(unsigned i) const noexcept{
         return data.at(i);
     }
 
-    std::vector<unsigned> nadj(const std::vector<unsigned>& ord) const {
+    std::vector<unsigned> nadj(const std::vector<unsigned>& ord) const noexcept {
         std::vector<unsigned> ans(ord.size(), 0);
         for(unsigned i=0; i<ord.size(); ++i){
             ans[i] = at(ord[i]).size();

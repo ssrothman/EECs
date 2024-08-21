@@ -3,6 +3,7 @@
 
 #include "util.h"
 #include "fastStructs.h"
+#include "SRothman/SimonTools/src/util.h"
 
 namespace fastEEC{
 

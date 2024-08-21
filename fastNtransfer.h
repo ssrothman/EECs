@@ -30,7 +30,7 @@ namespace fastEEC{
 
                    const prev_t<T, maxOrder+1>& prevGen,
 
-                   const prev_t<T, order>& prevTrans){
+                   const prev_t<T, order>& prevTrans) noexcept {
 
 
         //printf("TOP OF TRANSFERN\n");

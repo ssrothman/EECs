@@ -28,7 +28,7 @@ namespace fastEEC{
              const transferInputs<T>& tin,
              const vector<bool>* const PU,
 
-             const prev_t<T, order>& prev);
+             const prev_t<T, order>& prev) noexcept;
     
 
     template <typename T,                         //result type
@@ -51,7 +51,7 @@ namespace fastEEC{
                   const vector<bool>* const PU,
 
                   const prev_t<T, order>& prev,
-                  const T symfac){
+                  const T symfac) noexcept {
 
         prev_t<T, order+1> next;
 
@@ -67,9 +67,10 @@ namespace fastEEC{
         } else {
             std::array<T, order> dRlist;
             std::array<unsigned, order> dRbin_list;
-            for(unsigned iold=0; iold<order-1; ++iold){
-                dRlist[iold] = jetDetails.floatDRs[prev.is[iold]][inew];
-                dRbin_list[iold] = jetDetails.dRbins[prev.is[iold]][inew];
+            for(unsigned iiold =0; iiold<order-1; ++iiold){
+                const unsigned& iold = prev.is[iiold];
+                dRlist[iiold] = jetDetails.floatDRs[inew][iold];
+                dRbin_list[iiold] = jetDetails.dRbins[inew][iold];
             }
             dRlist[order-1] = prev.maxDR;
             dRbin_list[order-1] = prev.maxDRbin;

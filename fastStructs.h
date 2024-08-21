@@ -19,7 +19,7 @@ namespace fastEEC{
 
         void fill(const T val, const unsigned RL,
                   const unsigned shape,
-                  const unsigned r, const unsigned theta){
+                  const unsigned r, const unsigned theta) noexcept {
             switch(shape){
                 case 0:
                     break;
@@ -35,18 +35,18 @@ namespace fastEEC{
         }
 
         void fill_dipole(const T val, const unsigned RL,
-                         const unsigned r, const unsigned theta){
+                         const unsigned r, const unsigned theta) noexcept {
             (*dipole)[RL][r][theta] += val;
         }
 
         void fill_tee(const T val, const unsigned RL,
-                      const unsigned r, const unsigned theta){
+                      const unsigned r, const unsigned theta) noexcept {
             (*tee)[RL][r][theta] += val;
         }
 
         void setup(unsigned NRL, 
                    unsigned Nr_dipole, unsigned Ntheta_dipole,
-                   unsigned Nr_tee, unsigned Ntheta_tee){
+                   unsigned Nr_tee, unsigned Ntheta_tee) noexcept {
             dipole = std::make_shared<multi_array<T, 3>>(
                     extents[NRL][Nr_dipole][Ntheta_dipole]
             );
@@ -66,7 +66,7 @@ namespace fastEEC{
 
         void setup(unsigned NRL, 
                    unsigned Nr_dipole, unsigned Ntheta_dipole,
-                   unsigned Nr_tee, unsigned Ntheta_tee){
+                   unsigned Nr_tee, unsigned Ntheta_tee) noexcept {
             dipole = std::make_shared<multi_array<T, 6>>(
                     extents[NRL][Nr_dipole][Ntheta_dipole][NRL][Nr_dipole][Ntheta_dipole]
             );
@@ -84,12 +84,12 @@ namespace fastEEC{
                   const unsigned r_gen,
                   const unsigned ct_gen,
                   const unsigned RL_reco,
-                  const unsigned shape_reco,
+                  [[maybe_unused]] const unsigned shape_reco,
                   const unsigned r_reco,
-                  const unsigned ct_reco){
-            if (shape_gen != shape_reco){
+                  const unsigned ct_reco) noexcept {
+            /*if (shape_gen != shape_reco){
                 return;
-            }
+            }*/
 
             switch(shape_gen){
                 case 0:
@@ -115,7 +115,7 @@ namespace fastEEC{
                          const unsigned ct_gen,
                          const unsigned RL_reco,
                          const unsigned r_reco,
-                         const unsigned ct_reco){
+                         const unsigned ct_reco) noexcept {
             (*dipole)[RL_gen][r_gen][ct_gen][RL_reco][r_reco][ct_reco] += val;
         }
 
@@ -125,7 +125,7 @@ namespace fastEEC{
                       const unsigned ct_gen,
                       const unsigned RL_reco,
                       const unsigned r_reco,
-                      const unsigned ct_reco){
+                      const unsigned ct_reco) noexcept {
             (*tee)[RL_gen][r_gen][ct_gen][RL_reco][r_reco][ct_reco] += val;
         }
     };
@@ -160,7 +160,7 @@ namespace fastEEC{
         result_t(const result_t&) = delete;
         result_t() = default;
 
-        result_t& operator+=(const result_t& other){
+        result_t& operator+=(const result_t& other) noexcept {
             for(unsigned i=0; i<5; ++i){
                 if(other.wts[i]){
                     addInPlace(*wts[i], *other.wts[i]);
@@ -206,7 +206,7 @@ namespace fastEEC{
             return *this;
         }
 
-        void summarize() const{
+        void summarize() const noexcept{
             for(unsigned o=0; o<5; ++o){
                 printf("\torder %u: %g\n", o+2, recursive_reduce(*(wts[o]), 0.0));
             }
@@ -263,7 +263,7 @@ namespace fastEEC{
         std::vector<T> phis;
         std::vector<T> Es;
 
-        jetDetails_t():
+        jetDetails_t() noexcept :
             floatDRs(extents[0][0]),
             dRbins(extents[0][0]),
             etas(0),
@@ -271,7 +271,7 @@ namespace fastEEC{
             Es(0)
         {}
 
-        jetDetails_t(const jet& J, const axisptr& ax, const normType nt):
+        jetDetails_t(const jet& J, const axisptr& ax, const normType nt) noexcept:
             jetDetails_t()
         {
             getFloatDRs(floatDRs, J);
@@ -312,7 +312,7 @@ namespace fastEEC{
         void setup(const jet * recoJet,
                    const arma::mat * ptrans,
                    const axisptr& ax,
-                   const normType nt){
+                   const normType nt) noexcept {
             this->recoJet = std::make_shared<jetDetails_t<T>>(*recoJet, ax, nt);
             this->ptrans = std::make_shared<arma::mat>(arma::trans(*ptrans));
             this->adj = std::make_shared<adjacency>(*ptrans);

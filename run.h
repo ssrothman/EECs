@@ -70,12 +70,17 @@ namespace fastEEC{
 
             arma::vec ptrec = J_Reco->ptvec();
             arma::vec ptgen = J.ptvec();
+            printf("ptrec size: %lld\n", ptrec.size());
+            printf("ptgen size: %lld\n", ptgen.size());
+            printf("ptrans size: (%lld, %lld)\n", tin.ptrans->n_rows, tin.ptrans->n_cols);
             arma::vec ptfwd = *(tin.ptrans) * ptgen;
+            printf("matmul\n");
+            fflush(stdout);
 
             for (unsigned iReco=0; iReco<J_Reco->particles.size(); ++iReco){
                 for(unsigned iGen=0; iGen<J.particles.size(); ++iGen){
                     if (J_Reco->particles[iReco].pt == J.particles[iGen].pt){
-                        if (ptfwd(iGen) > 0){
+                        if (ptfwd(iReco) > 0){
                             (*tin.ptrans)(iReco,iGen) *= ptrec(iReco) / ptfwd(iGen);
                         }
                     }

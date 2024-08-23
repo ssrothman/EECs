@@ -67,6 +67,21 @@ namespace fastEEC{
         struct transferInputs<T> tin;
         if constexpr (doTransfer){
             tin.setup(J_Reco, ptrans, ax, nt);
+
+            arma::vec ptrec = J_Reco->ptvec();
+            arma::vec ptgen = J.ptvec();
+            arma::vec ptfwd = *(tin.ptrans) * ptgen;
+
+            for (unsigned iReco=0; iReco<J_Reco->particles.size(); ++iReco){
+                for(unsigned iGen=0; iGen<J.particles.size(); ++iGen){
+                    if (J_Reco->particles[iReco].pt == J.particles[iGen].pt){
+                        if (ptfwd(iGen) > 0){
+                            (*tin.ptrans)(iReco,iGen) *= ptrec(iReco) / ptfwd(iGen);
+                        }
+                    }
+                }
+            }
+
             switch(nt){
                 case normType::RAWPT:
                     *tin.ptrans *= J.rawpt / J_Reco->rawpt;

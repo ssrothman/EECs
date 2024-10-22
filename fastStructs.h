@@ -236,20 +236,20 @@ namespace fastEEC{
             if(transfer_wts[0]){
                 for(unsigned o=0; o<5; ++o){
                     double total = recursive_reduce(*(wts[o]), 0.0);
-                    printf("\torder %u transfer: 1-%g\n", o+2, total-recursive_reduce(*(transfer_wts[o]), 0.0));
+                    printf("\torder %u transfer: %g\n", o+2, recursive_reduce(*(transfer_wts[o]), 0.0));
                 }
             }
 
             if(transfer_res3){
                 double total = recursive_reduce(*resolved3, 0.0);
-                printf("\tres3 transfer: 1-%g\n", total-recursive_reduce(*transfer_res3, 0.0));
+                printf("\tres3 transfer: %g\n", recursive_reduce(*transfer_res3, 0.0));
             }
 
             if(transfer_res4_shapes){
                 double total_dipole = recursive_reduce(*(resolved4_shapes->dipole), 0.0);
                 double total_tee = recursive_reduce(*(resolved4_shapes->tee), 0.0);
-                printf("\tdipole transfer: 1-%g\n", total_dipole - recursive_reduce(*(transfer_res4_shapes->dipole), 0.0));
-                printf("\ttee transfer: 1-%g\n", total_tee - recursive_reduce(*(transfer_res4_shapes->tee), 0.0));
+                printf("\tdipole transfer: %g\n", recursive_reduce(*(transfer_res4_shapes->dipole), 0.0));
+                printf("\ttee transfer: %g\n", recursive_reduce(*(transfer_res4_shapes->tee), 0.0));
             }
         }
     };

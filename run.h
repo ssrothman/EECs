@@ -70,22 +70,43 @@ namespace fastEEC{
 
             arma::vec ptrec = J_Reco->ptvec();
             arma::vec ptgen = J.ptvec();
-            printf("ptrec size: %lld\n", ptrec.size());
-            printf("ptgen size: %lld\n", ptgen.size());
-            printf("ptrans size: (%lld, %lld)\n", tin.ptrans->n_rows, tin.ptrans->n_cols);
-            arma::vec ptfwd = *(tin.ptrans) * ptgen;
-            printf("matmul\n");
-            fflush(stdout);
+            //printf("ptrec size: %lld\n", ptrec.size());
+            //printf("ptgen size: %lld\n", ptgen.size());
+            //printf("ptrans size: (%lld, %lld)\n", tin.ptrans->n_rows, tin.ptrans->n_cols);
+            arma::vec ptfwd = arma::trans(*tin.ptrans) * ptgen;
+            //printf("matmul\n");
+            //fflush(stdout);
 
+            //std::cout << *tin.ptrans << std::endl;
             for (unsigned iReco=0; iReco<J_Reco->particles.size(); ++iReco){
                 for(unsigned iGen=0; iGen<J.particles.size(); ++iGen){
-                    if (J_Reco->particles[iReco].pt == J.particles[iGen].pt){
-                        if (ptfwd(iReco) > 0){
-                            (*tin.ptrans)(iReco,iGen) *= ptrec(iReco) / ptfwd(iGen);
-                        }
+                    /*printf("iReco %u, iGen %u\n", iReco, iGen);
+                    fflush(stdout);*/
+                    if (ptfwd(iReco) > 0){
+                        /*printf("\t ptfwd(iReco) = %f\n", ptfwd(iReco));
+                        fflush(stdout);
+                        printf("\t ptrec(iReco) = %f\n", ptrec(iReco));
+                        fflush(stdout);
+                        printf("\t ptgen(iGen) = %f\n", ptgen(iGen));
+                        fflush(stdout);
+                        printf("\t ptrans(iGen, iReco) = %f\n", (*tin.ptrans)(iGen,iReco));
+                        fflush(stdout);*/
+                        (*tin.ptrans)(iGen,iReco) = (*tin.ptrans)(iGen,iReco) * ptrec(iReco) / ptfwd(iReco);
+                        /*printf("\t ptrans(iGen, iReco) = %f\n", (*tin.ptrans)(iGen,iReco));
+                        fflush(stdout);*/
                     }
                 }
             }
+
+            /*printf("TEST\n");
+            printf("pt gen:\n");
+            std::cout << arma::trans(J.ptvec()) << std::endl;
+            printf("pt reco:\n");
+            std::cout << arma::trans(J_Reco->ptvec()) << std::endl;
+            printf("pt fwd:\n");
+            arma::vec fwdpt = arma::trans(*tin.ptrans) * ptgen;
+            std::cout << arma::trans(fwdpt) << std::endl;
+            printf("\n");*/
 
             switch(nt){
                 case normType::RAWPT:

@@ -307,14 +307,14 @@ namespace fastEEC{
         std::shared_ptr<jetDetails_t<T>> recoJet;
 
         std::shared_ptr<adjacency> adj;
-        std::shared_ptr<arma::mat> ptrans;
+        std::shared_ptr<Eigen::MatrixXd> ptrans;
 
         void setup(const jet * recoJet,
-                   const arma::mat * ptrans,
+                   const Eigen::MatrixXd * ptrans,
                    const axisptr& ax,
                    const normType nt) noexcept {
             this->recoJet = std::make_shared<jetDetails_t<T>>(*recoJet, ax, nt);
-            this->ptrans = std::make_shared<arma::mat>(arma::trans(*ptrans));
+            this->ptrans = std::make_shared<Eigen::MatrixXd>((*ptrans).transpose());
             this->adj = std::make_shared<adjacency>(*ptrans);
         }
     };

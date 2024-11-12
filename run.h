@@ -38,7 +38,7 @@ namespace fastEEC{
 
              [[maybe_unused]] const std::vector<bool>* const PU = nullptr,
              const jet* const J_Reco = nullptr,
-             const arma::mat* ptrans = nullptr){
+             const Eigen::MatrixXd* ptrans = nullptr){
 
         struct jetDetails_t<T> jetDetails(J, ax, nt);
 
@@ -68,12 +68,12 @@ namespace fastEEC{
         if constexpr (doTransfer){
             tin.setup(J_Reco, ptrans, ax, nt);
 
-            arma::vec ptrec = J_Reco->ptvec();
-            arma::vec ptgen = J.ptvec();
+            Eigen::VectorXd ptrec = J_Reco->ptvec();
+            Eigen::VectorXd ptgen = J.ptvec();
             //printf("ptrec size: %lld\n", ptrec.size());
             //printf("ptgen size: %lld\n", ptgen.size());
             //printf("ptrans size: (%lld, %lld)\n", tin.ptrans->n_rows, tin.ptrans->n_cols);
-            arma::vec ptfwd = arma::trans(*tin.ptrans) * ptgen;
+            Eigen::VectorXd ptfwd = (*tin.ptrans).transpose() * ptgen;
             //printf("matmul\n");
             //fflush(stdout);
 
@@ -82,7 +82,7 @@ namespace fastEEC{
                 for(unsigned iGen=0; iGen<J.particles.size(); ++iGen){
                     /*printf("iReco %u, iGen %u\n", iReco, iGen);
                     fflush(stdout);*/
-                    if (ptfwd(iReco) > 0){
+                    if (ptfwd[iReco] > 0){
                         /*printf("\t ptfwd(iReco) = %f\n", ptfwd(iReco));
                         fflush(stdout);
                         printf("\t ptrec(iReco) = %f\n", ptrec(iReco));
@@ -91,22 +91,12 @@ namespace fastEEC{
                         fflush(stdout);
                         printf("\t ptrans(iGen, iReco) = %f\n", (*tin.ptrans)(iGen,iReco));
                         fflush(stdout);*/
-                        (*tin.ptrans)(iGen,iReco) = (*tin.ptrans)(iGen,iReco) * ptrec(iReco) / ptfwd(iReco);
+                        (*tin.ptrans)(iGen,iReco) = (*tin.ptrans)(iGen,iReco) * ptrec(iReco) / ptfwd[iReco];
                         /*printf("\t ptrans(iGen, iReco) = %f\n", (*tin.ptrans)(iGen,iReco));
                         fflush(stdout);*/
                     }
                 }
             }
-
-            /*printf("TEST\n");
-            printf("pt gen:\n");
-            std::cout << arma::trans(J.ptvec()) << std::endl;
-            printf("pt reco:\n");
-            std::cout << arma::trans(J_Reco->ptvec()) << std::endl;
-            printf("pt fwd:\n");
-            arma::vec fwdpt = arma::trans(*tin.ptrans) * ptgen;
-            std::cout << arma::trans(fwdpt) << std::endl;
-            printf("\n");*/
 
             switch(nt){
                 case normType::RAWPT:
@@ -171,7 +161,7 @@ namespace fastEEC{
 
             [[maybe_unused]] const std::vector<bool>* const PU = nullptr,
             const jet* const J_Reco = nullptr,
-            const arma::mat* ptrans = nullptr){
+            const Eigen::MatrixXd* ptrans = nullptr){
         switch(maxOrder){
             case 2:
                 run<T, bool(flags & DOPU), 
@@ -279,7 +269,7 @@ namespace fastEEC{
 
              [[maybe_unused]] const std::vector<bool>* const PU = nullptr,
              const jet* const J_Reco = nullptr,
-             const arma::mat* ptrans = nullptr){
+             const Eigen::MatrixXd* ptrans = nullptr){
 
 
         switch(flags){

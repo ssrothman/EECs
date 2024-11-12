@@ -2,15 +2,15 @@
 #define EECs_ADJ_H
 
 #include <vector>
-#include "SRothman/armadillo-12.2.0/include/armadillo"
+#include <Eigen/Dense>
 
 class adjacency{
 public:
-    adjacency(const arma::mat ptrans) noexcept {
+    adjacency(const Eigen::MatrixXd& ptrans) noexcept {
         data.clear();
-        data.resize(ptrans.n_cols);
-        for(unsigned iGen=0; iGen<ptrans.n_cols; ++iGen){
-            for(unsigned iReco=0; iReco<ptrans.n_rows; ++iReco){
+        data.resize(ptrans.cols());
+        for(unsigned iGen=0; iGen<ptrans.cols(); ++iGen){
+            for(unsigned iReco=0; iReco<ptrans.rows(); ++iReco){
                 if(ptrans(iReco, iGen)>0){
                     data[iGen].emplace_back(iReco);
                 }

@@ -25,7 +25,7 @@ void runFastEEC(fastEEC::result_t<double>& ans,
 
 [[maybe_unused]] const std::vector<bool>* const PU = nullptr,
         const jet* const J_Reco = nullptr,
-        const arma::mat* ptrans = nullptr){
+        const Eigen::MatrixXd* ptrans = nullptr){
             
             fastEEC::runSuperSpecific<double>(
                     ans,

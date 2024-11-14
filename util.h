@@ -181,10 +181,10 @@ namespace fastEEC{
     }
 
     template <typename T>
-    void getPtrans(multi_array<T, 2>& ans, const arma::mat& ptrans){//NB we transpose for faster iteration
-        ans.resize(extents[ptrans.n_cols][ptrans.n_rows]);
-        for(unsigned i=0; i<ptrans.n_rows; ++i){
-            for(unsigned j=0; j<ptrans.n_cols; ++j){
+    void getPtrans(multi_array<T, 2>& ans, const Eigen::MatrixXd& ptrans){//NB we transpose for faster iteration
+        ans.resize(extents[ptrans.cols()][ptrans.rows()]);
+        for(unsigned i=0; i<ptrans.rows(); ++i){
+            for(unsigned j=0; j<ptrans.cols(); ++j){
                 ans[j][i] = ptrans(i,j);
             }
         }

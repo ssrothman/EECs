@@ -34,6 +34,16 @@ namespace fastEEC{
             }
         }
 
+        void fillTri(const T val, const bool isTri,
+                const unsigned RL, const unsigned r,
+                const unsigned theta) noexcept {
+            if(isTri){
+                fill_dipole(val, RL, r, theta);
+            } else {
+                fill_tee(val, RL, r, theta);
+            }
+        }
+
         void fill_dipole(const T val, const unsigned RL,
                          const unsigned r, const unsigned theta) noexcept {
             (*dipole)[RL][r][theta] += val;

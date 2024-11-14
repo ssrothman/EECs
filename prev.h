@@ -23,12 +23,16 @@ template <typename T, int order>
         unsigned phi_res3_idx;
 
         /*for res4*/
-
         std::array<unsigned, 3> shape_res4_idx = {{0, 0, 0}};
         std::array<unsigned, 3> RL_res4_idx;
         std::array<unsigned, 3> r_res4_idx;
         std::array<unsigned, 3> ct_res4_idx;
         unsigned ires4;
+
+        std::array<bool, 3> istri_res4 = {{false, false, false}};
+        std::array<unsigned, 3> RL_res4tri_idx;
+        std::array<unsigned, 3> r_res4tri_idx;
+        std::array<unsigned, 3> ct_res4tri_idx;
     };
 
     template <typename T>

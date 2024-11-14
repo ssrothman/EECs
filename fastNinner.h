@@ -175,6 +175,11 @@ namespace fastEEC{
                             next.shape_res4_idx[q],
                             next.r_res4_idx[q],
                             next.ct_res4_idx[q]);
+                    ans.resolved4_shapes->fillTri(weight,
+                            next.istri_res4[q],
+                            next.RL_res4tri_idx[q],
+                            next.r_res4tri_idx[q],
+                            next.ct_res4tri_idx[q]);
                 }
 
                 if constexpr(doPU){

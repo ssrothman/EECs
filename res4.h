@@ -39,7 +39,7 @@ namespace fastEEC{
             dphi_12 += 2*M_PI;
         }
         T dR2_12 = deta_12*deta_12 + dphi_12*dphi_12;
-        std::array<T, 3> coords_12 = {deta_12, dphi_12, dR2_12};
+        std::array<T, 3> coords_12 = {{deta_12, dphi_12, dR2_12}};
 
         T deta_13 = eta1 - eta3;
         T dphi_13 = phi1 - phi3;
@@ -50,7 +50,7 @@ namespace fastEEC{
             dphi_13 += 2*M_PI;
         }
         T dR2_13 = deta_13*deta_13 + dphi_13*dphi_13;
-        std::array<T, 3> coords_13 = {deta_13, dphi_13, dR2_13};
+        std::array<T, 3> coords_13 = {{deta_13, dphi_13, dR2_13}};
 
         T deta_23 = eta2 - eta3;
         T dphi_23 = phi2 - phi3;
@@ -61,7 +61,7 @@ namespace fastEEC{
             dphi_23 += 2*M_PI;
         }
         T dR2_23 = deta_23*deta_23 + dphi_23*dphi_23;
-        std::array<T, 3> coords_23 = {deta_23, dphi_23, dR2_23};
+        std::array<T, 3> coords_23 = {{deta_23, dphi_23, dR2_23}};
         
 
         std::array<std::array<T, 3>*, 3> dR2s = {{&coords_12, &coords_13, &coords_23}};

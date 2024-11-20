@@ -29,10 +29,10 @@ template <typename T, int order>
         std::array<unsigned, 3> ct_res4_idx;
         unsigned ires4;
 
-        std::array<bool, 3> istri_res4 = {{false, false, false}};
-        std::array<unsigned, 3> RL_res4tri_idx;
-        std::array<unsigned, 3> r_res4tri_idx;
-        std::array<unsigned, 3> ct_res4tri_idx;
+        std::array<bool, 4> istri_res4 = {{false, false, false, false}};
+        std::array<unsigned, 4> RL_res4tri_idx;
+        std::array<unsigned, 4> r_res4tri_idx;
+        std::array<unsigned, 4> ct_res4tri_idx;
     };
 
     template <typename T>

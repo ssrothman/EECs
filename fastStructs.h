@@ -16,6 +16,7 @@ namespace fastEEC{
     struct res4shapes{
         std::shared_ptr<multi_array<T, 3>> dipole;
         std::shared_ptr<multi_array<T, 3>> tee;
+        std::shared_ptr<multi_array<T, 3>> triangle;
 
         void fill(const T val, const unsigned RL,
                   const unsigned shape,
@@ -38,10 +39,8 @@ namespace fastEEC{
                 const unsigned RL, const unsigned r,
                 const unsigned theta) noexcept {
             if(isTri){
-                fill_dipole(val, RL, r, theta);
-            } else {
-                fill_tee(val, RL, r, theta);
-            }
+                (*triangle)[RL][r][theta] += val;
+            } 
         }
 
         void fill_dipole(const T val, const unsigned RL,
@@ -56,16 +55,21 @@ namespace fastEEC{
 
         void setup(unsigned NRL, 
                    unsigned Nr_dipole, unsigned Ntheta_dipole,
-                   unsigned Nr_tee, unsigned Ntheta_tee) noexcept {
+                   unsigned Nr_tee, unsigned Ntheta_tee,
+                   unsigned Nr_triangle, unsigned Ntheta_triangle) noexcept {
             dipole = std::make_shared<multi_array<T, 3>>(
                     extents[NRL][Nr_dipole][Ntheta_dipole]
             );
             tee = std::make_shared<multi_array<T, 3>>(
                     extents[NRL][Nr_tee][Ntheta_tee]
             );
+            triangle = std::make_shared<multi_array<T, 3>>(
+                    extents[NRL][Nr_triangle][Ntheta_triangle]
+            );
             
             std::fill(dipole->data(), dipole->data() + dipole->num_elements(), 0);
             std::fill(tee->data(), tee->data() + tee->num_elements(), 0);
+            std::fill(triangle->data(), triangle->data() + triangle->num_elements(), 0);
         }
     };
 
@@ -73,19 +77,39 @@ namespace fastEEC{
     struct res4shapes_transfer{
         std::shared_ptr<multi_array<T, 6>> dipole;
         std::shared_ptr<multi_array<T, 6>> tee;
+        std::shared_ptr<multi_array<T, 6>> triangle;
 
         void setup(unsigned NRL, 
                    unsigned Nr_dipole, unsigned Ntheta_dipole,
-                   unsigned Nr_tee, unsigned Ntheta_tee) noexcept {
+                   unsigned Nr_tee, unsigned Ntheta_tee,
+                   unsigned Nr_triangle, unsigned Ntheta_triangle) noexcept {
             dipole = std::make_shared<multi_array<T, 6>>(
                     extents[NRL][Nr_dipole][Ntheta_dipole][NRL][Nr_dipole][Ntheta_dipole]
             );
             tee = std::make_shared<multi_array<T, 6>>(
                     extents[NRL][Nr_tee][Ntheta_tee][NRL][Nr_tee][Ntheta_tee]
             );
+            triangle = std::make_shared<multi_array<T, 6>>(
+                    extents[NRL][Nr_triangle][Ntheta_triangle][NRL][Nr_triangle][Ntheta_triangle]
+            );
 
             std::fill(dipole->data(), dipole->data() + dipole->num_elements(), 0);
             std::fill(tee->data(), tee->data() + tee->num_elements(), 0);
+            std::fill(triangle->data(), triangle->data() + triangle->num_elements(), 0);
+        }
+
+        void fillTri(const T val, 
+                     const bool isTri_gen,
+                     const unsigned RL_gen, 
+                     const unsigned r_gen,
+                     const unsigned theta_gen,
+                     const unsigned RL_reco,
+                     [[maybe_unused]] const bool isTri_reco,
+                     const unsigned r_reco,
+                     const unsigned theta_reco) noexcept {
+            if(isTri_gen){
+                (*triangle)[RL_gen][r_gen][theta_gen][RL_reco][r_reco][theta_reco] += val;
+            }
         }
 
         void fill(const T val,
@@ -198,6 +222,8 @@ namespace fastEEC{
                            *(other.resolved4_shapes->dipole));
                 addInPlace(*(resolved4_shapes->tee),
                            *(other.resolved4_shapes->tee));
+                addInPlace(*(resolved4_shapes->triangle),
+                           *(other.resolved4_shapes->triangle));
             }
 
             if(other.resolved4_shapes_PU){
@@ -205,6 +231,8 @@ namespace fastEEC{
                            *(other.resolved4_shapes_PU->dipole));
                 addInPlace(*(resolved4_shapes_PU->tee),
                            *(other.resolved4_shapes_PU->tee));
+                addInPlace(*(resolved4_shapes_PU->triangle),
+                           *(other.resolved4_shapes_PU->triangle));
             }
 
             if(other.transfer_res4_shapes){
@@ -212,6 +240,8 @@ namespace fastEEC{
                            *(other.transfer_res4_shapes->dipole));
                 addInPlace(*(transfer_res4_shapes->tee),
                            *(other.transfer_res4_shapes->tee));
+                addInPlace(*(transfer_res4_shapes->triangle),
+                           *(other.transfer_res4_shapes->triangle));
             }
             return *this;
         }
@@ -226,6 +256,7 @@ namespace fastEEC{
             if(resolved4_shapes){
                 printf("\tdipole: %g\n", recursive_reduce(*(resolved4_shapes->dipole), 0.0));
                 printf("\ttee: %g\n", recursive_reduce(*(resolved4_shapes->tee), 0.0));
+                printf("\ttriangle: %g\n", recursive_reduce(*(resolved4_shapes->triangle), 0.0));
             }
 
             if(wts_PU[0]){
@@ -241,6 +272,7 @@ namespace fastEEC{
             if(resolved4_shapes_PU){
                 printf("\tdipole PU: %g\n", recursive_reduce(*(resolved4_shapes_PU->dipole), 0.0));
                 printf("\ttee PU: %g\n", recursive_reduce(*(resolved4_shapes_PU->tee), 0.0));
+                printf("\ttriangle PU: %g\n", recursive_reduce(*(resolved4_shapes_PU->triangle), 0.0));
             }
 
             if(transfer_wts[0]){
@@ -258,8 +290,10 @@ namespace fastEEC{
             if(transfer_res4_shapes){
                 double total_dipole = recursive_reduce(*(resolved4_shapes->dipole), 0.0);
                 double total_tee = recursive_reduce(*(resolved4_shapes->tee), 0.0);
+                double total_triangle = recursive_reduce(*(resolved4_shapes->triangle), 0.0);
                 printf("\tdipole transfer: %g\n", recursive_reduce(*(transfer_res4_shapes->dipole), 0.0));
                 printf("\ttee transfer: %g\n", recursive_reduce(*(transfer_res4_shapes->tee), 0.0));
+                printf("\ttriangle transfer: %g\n", recursive_reduce(*(transfer_res4_shapes->triangle), 0.0));
             }
         }
     };

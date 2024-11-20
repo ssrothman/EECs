@@ -4,9 +4,9 @@
 #include "util.h"
 #include "fastStructs.h"
 
-static constexpr int triangleL = 5;
-static constexpr int triangleM = 4;
-static constexpr int triangleS = 3;
+static constexpr double triangleL = 5;
+static constexpr double triangleM = 4;
+static constexpr double triangleS = 3;
 
 static constexpr double triangleLM2 = (triangleL/triangleM)*(triangleL/triangleM);
 static constexpr double triangleLS2 = (triangleL/triangleS)*(triangleL/triangleS);
@@ -29,6 +29,7 @@ namespace fastEEC{
             T& R,
             T& r, 
             T& theta) noexcept {
+
         T deta_12 = eta1 - eta2;
         T dphi_12 = phi1 - phi2;
         if(dphi_12 > M_PI){
@@ -102,6 +103,22 @@ namespace fastEEC{
                 theta = acos_costheta;
             }
                 
+            //printf("Found a triangle\n");
+            //printf("(%0.2f, %0.2f)\n", eta1, phi1);
+            //printf("(%0.2f, %0.2f)\n", eta2, phi2);
+            //printf("(%0.2f, %0.2f)\n", eta3, phi3);
+            //printf("(%0.2f, %0.2f)\n", eta4, phi4);
+            //printf("RL = %g\n", std::sqrt(RL2));
+            //printf("RM = %g\n", std::sqrt(RM2));
+            //printf("RS = %g\n", std::sqrt(RS2));
+            //printf("RL2/RM2 = %g\n", RL2/RM2);
+            //printf("RL2/RS2 = %g\n", RL2/RS2);
+            //printf("triangleLM2 = %g\n", triangleLM2);
+            //printf("triangleLS2 = %g\n", triangleLS2);
+            //printf("shapetol = %g\n", shapetol);
+            //printf("r = %g\n", r);
+            //printf("theta = %g\n", theta);
+            //printf("\n");
             return true;
         }
     }
@@ -281,7 +298,6 @@ printf("RL = %g\n", RL);
             next.RL_res4_idx[next.ires4] = getIndex(RAB, res4ax.RL);
 
             if(shape == 1){
-                //printf("\tDIPOLE:\n");
                 next.shape_res4_idx[next.ires4] = 1;
                 next.r_res4_idx[next.ires4] = getIndex(r, res4ax.r_dipole);
                 next.ct_res4_idx[next.ires4] = getIndex(theta, res4ax.ct_dipole);
@@ -306,25 +322,6 @@ printf("RL = %g\n", RL);
             //printf("\tnoshape\n");
             next.shape_res4_idx[next.ires4] = 0;
             return 0;
-        }
-
-        T R_tri, r_tri, theta_tri;
-        next.istri_res4[next.ires4] = checkTriangle(
-                res4ax.shapetol,
-                etaA, etaB, etaC, etaD,
-                phiA, phiB, phiC, phiD,
-                R_tri,
-                r_tri,
-                theta_tri);
-
-        if (next.istri_res4[next.ires4]){
-            next.RL_res4tri_idx[next.ires4] = getIndex(R_tri, res4ax.RL);
-            next.r_res4tri_idx[next.ires4] = getIndex(r_tri, res4ax.r_triangle);
-            next.ct_res4tri_idx[next.ires4] = getIndex(theta_tri, res4ax.ct_triangle);
-        } else {
-            next.RL_res4tri_idx[next.ires4] = 0;
-            next.r_res4tri_idx[next.ires4] = 0;
-            next.ct_res4tri_idx[next.ires4] = 0;
         }
     }
 
@@ -455,54 +452,53 @@ printf("RL = %g\n", RL);
 
         int nfound = 0;
         for(next.ires4=0; next.ires4<3; ++next.ires4){
-            //printf("Trying %u, %u, %u, %u\n", As[i], Bs[i], Cs[i], Ds[i]);
-            //printf("%u %u %u %u:\n", As[i], Bs[i], Cs[i], Ds[i]);
             if (lookForShapes(jetDetails, res4ax, next)){
                 ++nfound;
-                //printf("Found shape %u\n", next.shape_res4_idx);
-                //printf("\tline 1: (%0.2f, %0.2f) -> (%0.2f, %0.2f)\n", 
-                //        jetDetails.etas[next.is[As[i]]], jetDetails.phis[next.is[As[i]]],
-                //        jetDetails.etas[next.is[Bs[i]]], jetDetails.phis[next.is[Bs[i]]]);
-                //printf("\tline 2: (%0.2f, %0.2f) -> (%0.2f, %0.2f)\n", 
-                //        jetDetails.etas[next.is[Cs[i]]], jetDetails.phis[next.is[Cs[i]]],
-                //        jetDetails.etas[next.is[Ds[i]]], jetDetails.phis[next.is[Ds[i]]]);
-                //printf("\t");
-                //printVec(next.is);
-                //printf("\n");
-                //return;
             }
         }
-        if(nfound > 2){
-            /*printf("Found more than two shapes\n");
-            printf("\t");
-            printVec(next.is);
-            printf("\n");
-            printf("\t(%g, %g)\n", jetDetails.etas[next.is[0]], jetDetails.phis[next.is[0]]);
-            printf("\t(%g, %g)\n", jetDetails.etas[next.is[1]], jetDetails.phis[next.is[1]]);
-            printf("\t(%g, %g)\n", jetDetails.etas[next.is[2]], jetDetails.phis[next.is[2]]);
-            printf("\t(%g, %g)\n", jetDetails.etas[next.is[3]], jetDetails.phis[next.is[3]]);
-            printf("\tRL = %g\n", RL);*/
-            /*printf("\tABCD: %u\n", lookForShapes(next.is[0],
-                                                 next.is[1],
-                                                 next.is[2],
-                                                 next.is[3],
-                                                 jetDetails,
-                                                 res4ax,
-                                                 next));
-            printf("\tACBD: %u\n", lookForShapes(next.is[0],
-                                                 next.is[2],
-                                                 next.is[1],
-                                                 next.is[3],
-                                                 jetDetails,
-                                                 res4ax,
-                                                 next));
-            printf("\tADBC: %u\n", lookForShapes(next.is[0],
-                                                 next.is[3],
-                                                 next.is[1],
-                                                 next.is[2],
-                                                 jetDetails,
-                                                 res4ax,
-                                                 next));*/
+
+        std::array<T, 4> etas = {{
+            jetDetails.etas[next.is[0]],
+            jetDetails.etas[next.is[1]],
+            jetDetails.etas[next.is[2]],
+            jetDetails.etas[next.is[3]]
+        }};
+        std::array<T, 4> phis = {{
+            jetDetails.phis[next.is[0]],
+            jetDetails.phis[next.is[1]],
+            jetDetails.phis[next.is[2]],
+            jetDetails.phis[next.is[3]]
+        }};
+
+        static constexpr std::array<unsigned, 4> As = {{0, 1, 2, 3}};
+        static constexpr std::array<unsigned, 4> Bs = {{1, 2, 3, 0}};
+        static constexpr std::array<unsigned, 4> Cs = {{2, 3, 0, 1}};
+        static constexpr std::array<unsigned, 4> Ds = {{3, 0, 1, 2}};
+
+        for(unsigned iTri=0; iTri<4; ++iTri){
+            T etaA = etas[As[iTri]];
+            T etaB = etas[Bs[iTri]];
+            T etaC = etas[Cs[iTri]];
+            T etaD = etas[Ds[iTri]];
+
+            T phiA = phis[As[iTri]];
+            T phiB = phis[Bs[iTri]];
+            T phiC = phis[Cs[iTri]];
+            T phiD = phis[Ds[iTri]];
+
+            T R, r, theta;
+            if (checkTriangle(res4ax.shapetol,
+                        etaA, etaB, etaC, etaD,
+                        phiA, phiB, phiC, phiD,
+                        R, r, theta)){
+
+                next.istri_res4[iTri] = true;
+                next.RL_res4tri_idx[iTri] = getIndex(R, res4ax.RL);
+                next.r_res4tri_idx[iTri] = getIndex(r, res4ax.r_triangle);
+                next.ct_res4tri_idx[iTri] = getIndex(theta, res4ax.ct_triangle);
+            } else {
+                next.istri_res4[iTri] = false;
+            }
         }
     } 
 }

@@ -141,31 +141,6 @@ namespace fastEEC{
                 runRes4_nocheck(*tin.recoJet, res4ax, prevGen, nextTrans);
 
                 for (unsigned q=0; q<3; ++q){
-                    /*if (prevGen.shape_res4_idx[q] == 0){
-                        printf("\tacc res4 noshape -> shape %u\n", 
-                                nextTrans.shape_res4_idx[q]);
-                    } else if (prevGen.shape_res4_idx[q] == 1){
-                        printf("\tacc res4 dipole -> shape %u\n", 
-                                nextTrans.shape_res4_idx[q]);
-                        printf("\t\twith (%u, %u, %u) -> (%u, %u, %u)\n",
-                                prevGen.RL_res4_idx[q],
-                                prevGen.r_res4_idx[q],
-                                prevGen.ct_res4_idx[q],
-                                nextTrans.RL_res4_idx[q],
-                                nextTrans.r_res4_idx[q],
-                                nextTrans.ct_res4_idx[q]);
-                    } else {
-                        printf("\tacc res4 tee -> shape %u\n",
-                                nextTrans.shape_res4_idx[q]);
-                        printf("\t\twith (%u, %u, %u) -> (%u, %u, %u)\n",
-                                prevGen.RL_res4_idx[q],
-                                prevGen.r_res4_idx[q],
-                                prevGen.ct_res4_idx[q],
-                                nextTrans.RL_res4_idx[q],
-                                nextTrans.r_res4_idx[q],
-                                nextTrans.ct_res4_idx[q]);
-                    }*/
-
                     ans.transfer_res4_shapes->fill(weight,
                             prevGen.RL_res4_idx[q],
                             prevGen.shape_res4_idx[q],

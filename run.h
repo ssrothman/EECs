@@ -70,30 +70,13 @@ namespace fastEEC{
 
             Eigen::VectorXd ptrec = J_Reco->ptvec();
             Eigen::VectorXd ptgen = J.ptvec();
-            //printf("ptrec size: %lld\n", ptrec.size());
-            //printf("ptgen size: %lld\n", ptgen.size());
-            //printf("ptrans size: (%lld, %lld)\n", tin.ptrans->n_rows, tin.ptrans->n_cols);
             Eigen::VectorXd ptfwd = (*tin.ptrans).transpose() * ptgen;
-            //printf("matmul\n");
-            //fflush(stdout);
 
             //std::cout << *tin.ptrans << std::endl;
             for (unsigned iReco=0; iReco<J_Reco->particles.size(); ++iReco){
                 for(unsigned iGen=0; iGen<J.particles.size(); ++iGen){
-                    /*printf("iReco %u, iGen %u\n", iReco, iGen);
-                    fflush(stdout);*/
                     if (ptfwd[iReco] > 0){
-                        /*printf("\t ptfwd(iReco) = %f\n", ptfwd(iReco));
-                        fflush(stdout);
-                        printf("\t ptrec(iReco) = %f\n", ptrec(iReco));
-                        fflush(stdout);
-                        printf("\t ptgen(iGen) = %f\n", ptgen(iGen));
-                        fflush(stdout);
-                        printf("\t ptrans(iGen, iReco) = %f\n", (*tin.ptrans)(iGen,iReco));
-                        fflush(stdout);*/
                         (*tin.ptrans)(iGen,iReco) = (*tin.ptrans)(iGen,iReco) * ptrec(iReco) / ptfwd[iReco];
-                        /*printf("\t ptrans(iGen, iReco) = %f\n", (*tin.ptrans)(iGen,iReco));
-                        fflush(stdout);*/
                     }
                 }
             }

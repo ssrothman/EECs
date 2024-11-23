@@ -9,6 +9,7 @@
 #include "res4.h"
 #include <assert.h>
 #include "fastNtransfer.h"
+#include "res4minR.h"
 
 namespace fastEEC{
     template <typename T,                    //result type
@@ -139,6 +140,16 @@ namespace fastEEC{
                             next.ct_res4tri_idx[q]);
                 }
 
+                if(runRes4_minR<T>(jetDetails, res4ax, next)){
+                    ans.resolved4_shapes->fillMinR(
+                        weight,
+                        next.minR_R_idx,
+                        next.minR_r1_idx,
+                        next.minR_r2_idx,
+                        next.minR_phi_idx
+                    );
+                }
+
                 if constexpr(doPU){
                     if(next.isPU){
                         for(unsigned q=0; q<3; ++q){
@@ -154,6 +165,15 @@ namespace fastEEC{
                                     next.RL_res4tri_idx[q],
                                     next.r_res4tri_idx[q],
                                     next.ct_res4tri_idx[q]);
+                        }
+                        if(next.isRes4_minR){
+                            ans.resolved4_shapes_PU->fillMinR(
+                                weight,
+                                next.minR_R_idx,
+                                next.minR_r1_idx,
+                                next.minR_r2_idx,
+                                next.minR_phi_idx
+                            );
                         }
                     }
                 }

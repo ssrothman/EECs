@@ -17,6 +17,7 @@ namespace fastEEC{
         std::shared_ptr<multi_array<T, 3>> dipole;
         std::shared_ptr<multi_array<T, 3>> tee;
         std::shared_ptr<multi_array<T, 3>> triangle;
+        std::shared_ptr<multi_array<T, 4>> minR;
 
         void fill(const T val, const unsigned RL,
                   const unsigned shape,
@@ -33,6 +34,14 @@ namespace fastEEC{
                 default:
                     assert(false);
             }
+        }
+
+        void fillMinR(const T val, 
+                      const unsigned RL, 
+                      const unsigned r1,
+                      const unsigned r2,
+                      const unsigned phi) noexcept{
+            (*minR)[RL][r1][r2][phi] += val;
         }
 
         void fillTri(const T val, const bool isTri,
@@ -56,7 +65,8 @@ namespace fastEEC{
         void setup(unsigned NRL, 
                    unsigned Nr_dipole, unsigned Ntheta_dipole,
                    unsigned Nr_tee, unsigned Ntheta_tee,
-                   unsigned Nr_triangle, unsigned Ntheta_triangle) noexcept {
+                   unsigned Nr_triangle, unsigned Ntheta_triangle,
+                   unsigned Nr_minR, unsigned Nphi_minR) noexcept {
             dipole = std::make_shared<multi_array<T, 3>>(
                     extents[NRL][Nr_dipole][Ntheta_dipole]
             );
@@ -66,10 +76,14 @@ namespace fastEEC{
             triangle = std::make_shared<multi_array<T, 3>>(
                     extents[NRL][Nr_triangle][Ntheta_triangle]
             );
+            minR = std::make_shared<multi_array<T, 4>>(
+                    extents[NRL][Nr_minR][Nr_minR][Nphi_minR]
+            );
             
             std::fill(dipole->data(), dipole->data() + dipole->num_elements(), 0);
             std::fill(tee->data(), tee->data() + tee->num_elements(), 0);
             std::fill(triangle->data(), triangle->data() + triangle->num_elements(), 0);
+            std::fill(minR->data(), minR->data() + minR->num_elements(), 0);
         }
     };
 
@@ -342,6 +356,9 @@ namespace fastEEC{
 
         axisptr r_triangle=nullptr;
         axisptr ct_triangle=nullptr;
+
+        axisptr r_minR=nullptr;
+        axisptr phi_minR=nullptr;
 
         float shapetol=0;
     };

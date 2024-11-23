@@ -33,6 +33,12 @@ template <typename T, int order>
         std::array<unsigned, 4> RL_res4tri_idx;
         std::array<unsigned, 4> r_res4tri_idx;
         std::array<unsigned, 4> ct_res4tri_idx;
+
+        bool isRes4_minR = false;
+        unsigned minR_R_idx;
+        unsigned minR_r1_idx;
+        unsigned minR_r2_idx;
+        unsigned minR_phi_idx;
     };
 
     template <typename T>

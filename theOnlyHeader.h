@@ -25,6 +25,9 @@ void runFastEEC(fastEEC::result_t<double>& ans,
         const fastEEC::axisptr rax_triangle = nullptr,
         const fastEEC::axisptr ctax_triangle = nullptr,
 
+        const fastEEC::axisptr rax_minR = nullptr,
+        const fastEEC::axisptr phiax_minR = nullptr,
+
         const double shapetol = 0,
 
         [[maybe_unused]] const std::vector<bool>* const PU = nullptr,

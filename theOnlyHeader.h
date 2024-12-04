@@ -27,6 +27,8 @@ void runFastEEC(fastEEC::result_t<double>& ans,
 
         const fastEEC::axisptr rax_minR = nullptr,
         const fastEEC::axisptr phiax_minR = nullptr,
+        const fastEEC::axisptr phidiffax_minR = nullptr,
+        const fastEEC::axisptr thetaax_minR = nullptr,
 
         const double shapetol = 0,
 

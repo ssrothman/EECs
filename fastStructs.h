@@ -17,7 +17,11 @@ namespace fastEEC{
         std::shared_ptr<multi_array<T, 3>> dipole;
         std::shared_ptr<multi_array<T, 3>> tee;
         std::shared_ptr<multi_array<T, 3>> triangle;
-        std::shared_ptr<multi_array<T, 4>> minR;
+
+        std::shared_ptr<multi_array<T, 3>> minR_phi1;
+        std::shared_ptr<multi_array<T, 3>> minR_phi2;
+        std::shared_ptr<multi_array<T, 3>> minR_phidiff;
+        std::shared_ptr<multi_array<T, 3>> minR_theta;
 
         void fill(const T val, const unsigned RL,
                   const unsigned shape,
@@ -38,10 +42,15 @@ namespace fastEEC{
 
         void fillMinR(const T val, 
                       const unsigned RL, 
-                      const unsigned r1,
-                      const unsigned r2,
-                      const unsigned phi) noexcept{
-            (*minR)[RL][r1][r2][phi] += val;
+                      const unsigned rmax,
+                      const unsigned phi1,
+                      const unsigned phi2,
+                      const unsigned phidiff,
+                      const unsigned theta) noexcept{
+            (*minR_phi1)[RL][rmax][phi1] += val;
+            (*minR_phi2)[RL][rmax][phi2] += val;
+            (*minR_phidiff)[RL][rmax][phidiff] += val;
+            (*minR_theta)[RL][rmax][theta] += val;
         }
 
         void fillTri(const T val, const bool isTri,
@@ -66,7 +75,8 @@ namespace fastEEC{
                    unsigned Nr_dipole, unsigned Ntheta_dipole,
                    unsigned Nr_tee, unsigned Ntheta_tee,
                    unsigned Nr_triangle, unsigned Ntheta_triangle,
-                   unsigned Nr_minR, unsigned Nphi_minR) noexcept {
+                   unsigned Nr_minR, unsigned Nphi_minR,
+                   unsigned Nphidiff_minR, unsigned Ntheta_minR) noexcept {
             dipole = std::make_shared<multi_array<T, 3>>(
                     extents[NRL][Nr_dipole][Ntheta_dipole]
             );
@@ -76,14 +86,26 @@ namespace fastEEC{
             triangle = std::make_shared<multi_array<T, 3>>(
                     extents[NRL][Nr_triangle][Ntheta_triangle]
             );
-            minR = std::make_shared<multi_array<T, 4>>(
-                    extents[NRL][Nr_minR][Nr_minR][Nphi_minR]
+            minR_phi1 = std::make_shared<multi_array<T, 3>>(
+                    extents[NRL][Nr_minR][Nphi_minR]
+            );
+            minR_phi2 = std::make_shared<multi_array<T, 3>>(
+                    extents[NRL][Nr_minR][Nphi_minR]
+            );
+            minR_phidiff = std::make_shared<multi_array<T, 3>>(
+                    extents[NRL][Nr_minR][Nphidiff_minR]
+            );
+            minR_theta = std::make_shared<multi_array<T, 3>>(
+                    extents[NRL][Nr_minR][Ntheta_minR]
             );
             
             std::fill(dipole->data(), dipole->data() + dipole->num_elements(), 0);
             std::fill(tee->data(), tee->data() + tee->num_elements(), 0);
             std::fill(triangle->data(), triangle->data() + triangle->num_elements(), 0);
-            std::fill(minR->data(), minR->data() + minR->num_elements(), 0);
+            std::fill(minR_phi1->data(), minR_phi1->data() + minR_phi1->num_elements(), 0);
+            std::fill(minR_phi2->data(), minR_phi2->data() + minR_phi2->num_elements(), 0);
+            std::fill(minR_phidiff->data(), minR_phidiff->data() + minR_phidiff->num_elements(), 0);
+            std::fill(minR_theta->data(), minR_theta->data() + minR_theta->num_elements(), 0);
         }
     };
 
@@ -238,6 +260,14 @@ namespace fastEEC{
                            *(other.resolved4_shapes->tee));
                 addInPlace(*(resolved4_shapes->triangle),
                            *(other.resolved4_shapes->triangle));
+                addInPlace(*(resolved4_shapes->minR_phi1),
+                           *(other.resolved4_shapes->minR_phi1));
+                addInPlace(*(resolved4_shapes->minR_phi2),
+                           *(other.resolved4_shapes->minR_phi2));
+                addInPlace(*(resolved4_shapes->minR_phidiff),
+                           *(other.resolved4_shapes->minR_phidiff));
+                addInPlace(*(resolved4_shapes->minR_theta),
+                           *(other.resolved4_shapes->minR_theta));
             }
 
             if(other.resolved4_shapes_PU){
@@ -247,6 +277,14 @@ namespace fastEEC{
                            *(other.resolved4_shapes_PU->tee));
                 addInPlace(*(resolved4_shapes_PU->triangle),
                            *(other.resolved4_shapes_PU->triangle));
+                addInPlace(*(resolved4_shapes_PU->minR_phi1),
+                           *(other.resolved4_shapes_PU->minR_phi1));
+                addInPlace(*(resolved4_shapes_PU->minR_phi2),
+                           *(other.resolved4_shapes_PU->minR_phi2));
+                addInPlace(*(resolved4_shapes_PU->minR_phidiff),
+                           *(other.resolved4_shapes_PU->minR_phidiff));
+                addInPlace(*(resolved4_shapes_PU->minR_theta),
+                           *(other.resolved4_shapes_PU->minR_theta));
             }
 
             if(other.transfer_res4_shapes){
@@ -359,6 +397,8 @@ namespace fastEEC{
 
         axisptr r_minR=nullptr;
         axisptr phi_minR=nullptr;
+        axisptr phidiff_minR=nullptr;
+        axisptr theta_minR=nullptr;
 
         float shapetol=0;
     };

@@ -36,9 +36,11 @@ template <typename T, int order>
 
         bool isRes4_minR = false;
         unsigned minR_R_idx;
-        unsigned minR_r1_idx;
-        unsigned minR_r2_idx;
-        unsigned minR_phi_idx;
+        unsigned minR_rmax_idx;
+        unsigned minR_phi1_idx;
+        unsigned minR_phi2_idx;
+        unsigned minR_phidiff_idx;
+        unsigned minR_theta_idx;
     };
 
     template <typename T>

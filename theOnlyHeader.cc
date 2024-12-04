@@ -23,6 +23,8 @@ void runFastEEC(fastEEC::result_t<double>& ans,
 
         const fastEEC::axisptr rax_minR = nullptr,
         const fastEEC::axisptr phiax_minR = nullptr,
+        const fastEEC::axisptr phidiffax_minR = nullptr,
+        const fastEEC::axisptr thetaax_minR = nullptr,
 
         const double shapetol = 0,
 
@@ -38,7 +40,7 @@ void runFastEEC(fastEEC::result_t<double>& ans,
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
             );

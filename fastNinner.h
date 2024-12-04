@@ -144,9 +144,11 @@ namespace fastEEC{
                     ans.resolved4_shapes->fillMinR(
                         weight,
                         next.minR_R_idx,
-                        next.minR_r1_idx,
-                        next.minR_r2_idx,
-                        next.minR_phi_idx
+                        next.minR_rmax_idx,
+                        next.minR_phi1_idx,
+                        next.minR_phi2_idx,
+                        next.minR_phidiff_idx,
+                        next.minR_theta_idx
                     );
                 }
 
@@ -170,9 +172,11 @@ namespace fastEEC{
                             ans.resolved4_shapes_PU->fillMinR(
                                 weight,
                                 next.minR_R_idx,
-                                next.minR_r1_idx,
-                                next.minR_r2_idx,
-                                next.minR_phi_idx
+                                next.minR_rmax_idx,
+                                next.minR_phi1_idx,
+                                next.minR_phi2_idx,
+                                next.minR_phidiff_idx,
+                                next.minR_theta_idx
                             );
                         }
                     }

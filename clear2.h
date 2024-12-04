@@ -73,6 +73,8 @@ namespace fastEEC{
             unsigned Ntheta_triangle_res4 = AXextent(*res4ax.ct_triangle);
             unsigned Nr_minR = AXextent(*res4ax.r_minR);
             unsigned Nphi_minR = AXextent(*res4ax.phi_minR);
+            unsigned Nphidiff_minR = AXextent(*res4ax.phidiff_minR);
+            unsigned Ntheta_minR = AXextent(*res4ax.theta_minR);
             
             ans.resolved4_shapes = std::make_shared<res4shapes<T>>();
 
@@ -81,7 +83,8 @@ namespace fastEEC{
                     Nr_dipole_res4, Ntheta_dipole_res4,
                     Nr_tee_res4, Ntheta_tee_res4,
                     Nr_triangle_res4, Ntheta_triangle_res4,
-                    Nr_minR, Nphi_minR
+                    Nr_minR, Nphi_minR,
+                    Nphidiff_minR, Ntheta_minR
             );
 
             if constexpr(doPU){
@@ -92,7 +95,8 @@ namespace fastEEC{
                         Nr_dipole_res4, Ntheta_dipole_res4,
                         Nr_tee_res4, Ntheta_tee_res4,
                         Nr_triangle_res4, Ntheta_triangle_res4,
-                        Nr_minR, Nphi_minR
+                        Nr_minR, Nphi_minR,
+                        Nphidiff_minR, Ntheta_minR
                 );
             }
 

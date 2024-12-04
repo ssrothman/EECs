@@ -36,6 +36,8 @@ namespace fastEEC{
 
              const axisptr rax_minR = nullptr,
              const axisptr phiax_minR = nullptr,
+             const axisptr phidiffax_minR = nullptr,
+             const axisptr thetaax_minR = nullptr,
 
              const T shapetol = 0,
 
@@ -68,6 +70,8 @@ namespace fastEEC{
 
             res4shapesAxes.r_minR = rax_minR;
             res4shapesAxes.phi_minR = phiax_minR;
+            res4shapesAxes.phidiff_minR = phidiffax_minR;
+            res4shapesAxes.theta_minR = thetaax_minR;
         }
 
         struct transferInputs<T> tin;
@@ -148,6 +152,8 @@ namespace fastEEC{
 
              const axisptr rax_minR = nullptr,
              const axisptr phiax_minR = nullptr,
+             const axisptr phidiffax_minR = nullptr,
+             const axisptr thetaax_minR = nullptr,
 
             const T shapetol = 0,
 
@@ -166,7 +172,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -182,7 +188,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -198,7 +204,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -214,7 +220,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -230,7 +236,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -264,6 +270,8 @@ namespace fastEEC{
 
              const axisptr rax_minR = nullptr,
              const axisptr phiax_minR = nullptr,
+             const axisptr phidiffax_minR = nullptr,
+             const axisptr thetaax_minR = nullptr,
 
             const T shapetol = 0,
 
@@ -281,7 +289,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -294,7 +302,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -307,7 +315,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -320,7 +328,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -333,7 +341,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -346,7 +354,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -359,7 +367,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -372,7 +380,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -385,7 +393,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -398,7 +406,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -411,7 +419,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -424,7 +432,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -437,7 +445,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -450,7 +458,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -463,7 +471,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -476,7 +484,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -489,7 +497,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -502,7 +510,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -515,7 +523,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -528,7 +536,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -541,7 +549,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -554,7 +562,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -567,7 +575,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -580,7 +588,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -593,7 +601,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -606,7 +614,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -619,7 +627,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -632,7 +640,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -645,7 +653,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -658,7 +666,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -671,7 +679,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );
@@ -684,7 +692,7 @@ namespace fastEEC{
                     rax_dipole, ctax_dipole,
                     rax_tee, ctax_tee,
                     rax_triangle, ctax_triangle,
-                    rax_minR, phiax_minR,
+                    rax_minR, phiax_minR, phidiffax_minR, thetaax_minR,
                     shapetol,
                     PU, J_Reco, ptrans
                 );

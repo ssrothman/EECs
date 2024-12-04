@@ -6,33 +6,66 @@
 #include "SRothman/SimonTools/src/deltaR.h"
 
 namespace fastEEC{
+    /*
+     * Run the experimntal/new "minR" configuration for the res4
+     *
+     * This looks for configurations where:
+     *      The two smallest distnces are between AB and CD
+     *      AB and CD are disjoint
+     *
+     * The interesting quantities are
+     *      R = distance between dR(midpoint AB, midpoint CD)
+     *      r1 = max{dR(A,B)/R, dR(C,D)/R}
+     *      r2 = min{dR(A,B)/R, dR(C,D)/R}
+     *      theta = angle betwen AB and CD
+     *      phi1 = angle between r1 and R
+     *      phi2 = angle between r2 and R
+     *
+     * We can't possibly bin in all of these variables at once
+     * I need to think a bit about what to do here...
+     *
+     * It's also slightly overconstrained, because phi1, phi2 are related
+     *
+     * I think it depends on what we are looking for.
+     *
+     * To look for entanglement:
+     *      I think the most interesting quantity here is either theta, 
+     *      or phi1-phi2
+     * To look for spin interference:
+     *      I think the most interesting quantity here is phi1 and phi2
+     *
+     * In principle the effect size will be a function of r1/R, r2/R
+     * It's not completely obvious to me the size of that effect
+     */
     template <typename T>
     bool runRes4_minR(const jetDetails_t<T>& jetDetails,
-                      [[maybe_unused]] const res4shapesAxes_t& res4ax,
+                      const res4shapesAxes_t& res4ax,
 
                       prev_t<T, 5>& next) noexcept {
         std::array<std::pair<char, T>, 6> dRs;
-        dRs[0].first = 0;
         dRs[0].second = jetDetails.floatDRs[next.is[0]][next.is[1]];
-        dRs[1].first = 1;
         dRs[1].second = jetDetails.floatDRs[next.is[0]][next.is[2]];
-        dRs[2].first = 2;
         dRs[2].second = jetDetails.floatDRs[next.is[0]][next.is[3]];
-        dRs[3].first = 3;
         dRs[3].second = jetDetails.floatDRs[next.is[1]][next.is[2]];
-        dRs[4].first = 4;
         dRs[4].second = jetDetails.floatDRs[next.is[1]][next.is[3]];
-        dRs[5].first = 5;
         dRs[5].second = jetDetails.floatDRs[next.is[2]][next.is[3]];
 
+        dRs[0].first = 0;
+        dRs[1].first = 1;
+        dRs[2].first = 2;
+        dRs[3].first = 3;
+        dRs[4].first = 4;
+        dRs[5].first = 5;
+
+        //sort in increasing order
         std::sort(dRs.begin(), dRs.end(), [](const auto& a, const auto& b) {
             return a.second < b.second;
         });
 
+        //if the smallest distance is 0, we can't do anything
         if (dRs[0].second == 0){
             return false;
         }
-
 
         /*
          * These are set such that 
@@ -107,7 +140,6 @@ namespace fastEEC{
                 return false;
         } //end switch(dRs[0].first)
 
-
         T etaA = jetDetails.etas[A];
         T etaB = jetDetails.etas[B];
         T etaC = jetDetails.etas[C];
@@ -124,41 +156,53 @@ namespace fastEEC{
         T midCD_eta = (etaC + etaD) / 2;
         T midCD_phi = (phiC + phiD) / 2;
 
+        //distances
         T dR_mids = dR(midAB_eta, midAB_phi, midCD_eta, midCD_phi);
         T r1 = dRs[1].second;
         T r2 = dRs[0].second;
 
-        T AB_eta = etaA - etaB;
-        T AB_phi = deltaphi(phiA, phiB);
+        //angle between AB and CD
+        T AB_eta = etaB - etaA;
+        T AB_phi = deltaPhi(phiA, phiB);
 
-        T CD_eta = etaC - etaD;
-        T CD_phi = deltaphi(phiC, phiD);
+        T CD_eta = etaD - etaC;
+        T CD_phi = deltaPhi(phiC, phiD);
 
         T dot = AB_eta * CD_eta + AB_phi * CD_phi;
-        T cosPhi = dot / (r1 * r2);
-        T phi = acos(cosPhi);
-        if (phi > M_PI / 2){
-            phi = M_PI - phi;
+        T cosTheta = dot / (r1 * r2);
+        T theta = acos(cosTheta);
+        if (theta > M_PI / 2){
+            theta = M_PI - theta;
         }
 
-        //printf("%u, %u, %u, %u\n", A, B, C, D);
-        //printf("dRs:\n");
-        //for (const auto& dR : dRs) {
-        //    printf("%d: %f\n", dR.first, dR.second);
-        //}
-        //printf("\n");
+        //angle between r1 and R
+        T mid_eta = midCD_eta - midAB_eta;
+        T mid_phi = deltaPhi(midAB_phi, midCD_phi);
 
-        //printf("dR_mids: %f\n", dR_mids);
-        //printf("r1: %f\n", r1);
-        //printf("r2: %f\n", r2);
-        //printf("phi: %f\n", phi);
-        //printf("\n");
+        dot = CD_eta * mid_eta + CD_phi * mid_phi;
+        T cosPhi1 = dot / (r1 * dR_mids);
+        T phi1 = acos(cosPhi1);
+        if (phi1 > M_PI / 2){
+            phi1 = M_PI - phi1;
+        }
+
+        //angle between r2 and R
+        dot = AB_eta * mid_eta + AB_phi * mid_phi;
+        T cosPhi2 = dot / (r2 * dR_mids);
+        T phi2 = acos(cosPhi2);
+        if (phi2 > M_PI / 2){
+            phi2 = M_PI - phi2;
+        }
+
+        double phidiff = std::abs(phi1 - phi2);
 
         next.isRes4_minR = true;
         next.minR_R_idx = getIndex(dR_mids, res4ax.RL);
-        next.minR_r1_idx = getIndex(r1/dR_mids, res4ax.r_minR);
-        next.minR_r2_idx = getIndex(r2/dR_mids, res4ax.r_minR);
-        next.minR_phi_idx = getIndex(phi, res4ax.phi_minR);
+        next.minR_rmax_idx = getIndex(r1/dR_mids, res4ax.r_minR);
+        next.minR_phi1_idx = getIndex(phi1, res4ax.phi_minR);
+        next.minR_phi2_idx = getIndex(phi2, res4ax.phi_minR);
+        next.minR_phidiff_idx = getIndex(phidiff, res4ax.phi_minR);
+        next.minR_theta_idx = getIndex(theta, res4ax.theta_minR);
 
         return true;
     }//end runRes4_minR

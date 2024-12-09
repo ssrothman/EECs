@@ -163,10 +163,10 @@ namespace fastEEC{
 
         //angle between AB and CD
         T AB_eta = etaB - etaA;
-        T AB_phi = deltaPhi(phiA, phiB);
+        T AB_phi = deltaphi(phiA, phiB);
 
         T CD_eta = etaD - etaC;
-        T CD_phi = deltaPhi(phiC, phiD);
+        T CD_phi = deltaphi(phiC, phiD);
 
         T dot = AB_eta * CD_eta + AB_phi * CD_phi;
         T cosTheta = dot / (r1 * r2);
@@ -177,7 +177,7 @@ namespace fastEEC{
 
         //angle between r1 and R
         T mid_eta = midCD_eta - midAB_eta;
-        T mid_phi = deltaPhi(midAB_phi, midCD_phi);
+        T mid_phi = deltaphi(midAB_phi, midCD_phi);
 
         dot = CD_eta * mid_eta + CD_phi * mid_phi;
         T cosPhi1 = dot / (r1 * dR_mids);

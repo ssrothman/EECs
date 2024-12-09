@@ -159,7 +159,7 @@ namespace fastEEC{
             }
 
             T deta_A4 = eta4 - etaA;
-            T dphi_A4 = deltaPhi(phiA, phi4);
+            T dphi_A4 = deltaphi(phiA, phi4);
 
             const T dR2_A4 = deta_A4*deta_A4 + dphi_A4*dphi_A4;
 
@@ -169,7 +169,7 @@ namespace fastEEC{
             r = rA4/R;
 
             T deta_AB = etaB-etaA;
-            T dphi_AB = deltaPhi(phiA, phiB);
+            T dphi_AB = deltaphi(phiA, phiB);
 
             T RAB = std::sqrt(RS2);
             //T RAC = std::sqrt(RM2);
@@ -186,7 +186,7 @@ namespace fastEEC{
              * If it's negative we're in the lower half of the plane
              */
             T deta_AC = etaC-etaA;
-            T dphi_AC = deltaPhi(phiA, phiC);
+            T dphi_AC = deltaphi(phiA, phiC);
             T AC_dot_A4 = deta_AC * deta_A4 + dphi_AC * dphi_A4;
 
             if (AC_dot_A4 < 0){
@@ -205,8 +205,8 @@ namespace fastEEC{
      *  in either the dipole or tee configurations
      *
      * PRECONDITION:
-     *  deltaPhi(C, D) < pi
-     *  deltaPhi(A, BdetaTeeB*detaTeeB + dphiTeeB*dphiTeeB;) < pi
+     *  deltaphi(C, D) < pi
+     *  deltaphi(A, BdetaTeeB*detaTeeB + dphiTeeB*dphiTeeB;) < pi
      *  deltaR(C, D) < deltaR(A, B)
      *
      * RESULT:
@@ -286,10 +286,10 @@ namespace fastEEC{
                       T& r, T& theta) noexcept {
 
         T etaAB = etaB - etaA;
-        T phiAB = deltaPhi(phiA, phiB);
+        T phiAB = deltaphi(phiA, phiB);
 
         T etaCD = etaD - etaC;
-        T phiCD = deltaPhi(phiC, phiD);
+        T phiCD = deltaphi(phiC, phiD);
 
         T dot = etaAB*etaCD + phiAB*phiCD;
 
@@ -393,8 +393,8 @@ namespace fastEEC{
      *      RAB > RCD
      *      phiC < phiD
      *      phiA < phiB
-     *      deltaPhi(C, D) < pi
-     *      deltaPhi(A, B) < pi
+     *      deltaphi(C, D) < pi
+     *      deltaphi(A, B) < pi
      */
     template <typename T>
     void getEtasPhis(const jetDetails_t<T>& jetDetails,

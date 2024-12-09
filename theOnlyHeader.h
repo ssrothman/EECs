@@ -1,6 +1,8 @@
 #ifndef SROTHMAN_EECS_ONLYHEADER_H
 #define SROTHMAN_EECS_ONLYHEADER_H
 
+#define ALT_RES3
+
 #include "fastStructs.h"
 #include "flags.h"
 

@@ -26,7 +26,18 @@ namespace fastEEC{
             std::swap(RS, RM);
         }
         //they're now sorted
+
         T xi, phi;
+
+#ifdef ALT_RES3
+        xi = RS/RL;
+        //want angle between RS and RL
+        T cosphi = (square(RL) + square(RS) - square(RM))/(2*RL*RS);
+        phi = std::acos(cosphi);
+        if (phi > M_PI/2){
+            phi = M_PI - phi;
+        }
+#else
         if (RM == 0){
             xi = 0;
             phi = 0;
@@ -38,6 +49,7 @@ namespace fastEEC{
                 phi = std::abs(std::asin(std::sqrt(1 - square((RL-RM)/RS))));
             }
         }
+#endif
 
         next.RL_res3_idx = getIndex(RL, res3ax.RL);
         next.xi_res3_idx = getIndex(xi, res3ax.xi);

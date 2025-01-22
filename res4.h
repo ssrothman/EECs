@@ -297,7 +297,13 @@ namespace fastEEC{
         
         r = RS/RL;
         if (cosTheta > 1){
-            printf("I hope this doesn't actually ever happen...\n");
+            if (cosTheta > 1.000001){
+                printf("I hope this doesn't actually ever happen...\n");
+                printf("\tetaAB = %f, phiAB = %f\n", etaAB, phiAB);
+                printf("\tetaCD = %f, phiCD = %f\n", etaCD, phiCD);
+                printf("\tRL = %f, RS = %f\n", RL, RS);
+                printf("\tdot = %f, cosTheta = %f\n", dot, cosTheta);
+            }
             theta = 0;
         } else {
             theta = std::acos(cosTheta);

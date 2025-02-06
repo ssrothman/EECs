@@ -8,17 +8,10 @@ constexpr double triangle_ratio_LM = 5.0/4.0;
 constexpr double triangle_ratio_MS = 4.0/3.0;
 
 static void compute_c(
-        const double eta1, const double phi1,
-        const double eta2, const double phi2,
-        const double eta3, const double phi3,
-        const double eta4, const double phi4,
+        const double deta12, const double dphi12,
+        const double deta34, const double dphi34,
         const double dR12, const double dR34,
         double& c){
-
-    double deta12 = deltaEta(eta1, eta2);
-    double dphi12 = deltaPhi(phi1, phi2);
-    double deta34 = deltaEta(eta3, eta4);
-    double dphi34 = deltaPhi(phi3, phi4);
 
     double dot = deta12*deta34 + dphi12*dphi34;
     double ct = dot/(dR12*dR34);
@@ -95,6 +88,11 @@ static void check_tee_dipole(
         const double dR12,
         const double dR34,
 
+        const double deta12,
+        const double dphi12,
+        const double deta34,
+        const double dphi34,
+
         const double wt,
 
         const double tolerance2,
@@ -142,10 +140,8 @@ static void check_tee_dipole(
     if(isTee || isDipole){
         double R,r,c;
         compute_r_R(dR12, dR34, r, R);
-        compute_c(eta1, phi1,
-                  eta2, phi2,
-                  eta3, phi3,
-                  eta4, phi4,
+        compute_c(deta12, dphi12,
+                  deta34, dphi34,
                   dR12, dR34,
                   c);
 
@@ -167,14 +163,22 @@ template <class Container>
 static void check_triangle(
         standaloneEEC::res4_result<Container>& ans,
 
-        const double eta1, const double phi1,
-        const double eta2, const double phi2,
-        const double eta3, const double phi3,
-        const double eta4, const double phi4,
-
         const double dR12, const double dR13,
         const double dR14, const double dR23,
         const double dR24, const double dR34,
+
+        [[maybe_unused]] const double deta12, 
+        [[maybe_unused]] const double dphi12,
+        [[maybe_unused]] const double deta13, 
+        [[maybe_unused]] const double dphi13,
+        [[maybe_unused]] const double deta14, 
+        [[maybe_unused]] const double dphi14,
+        [[maybe_unused]] const double deta23, 
+        [[maybe_unused]] const double dphi23,
+        [[maybe_unused]] const double deta24, 
+        [[maybe_unused]] const double dphi24,
+        [[maybe_unused]] const double deta34, 
+        [[maybe_unused]] const double dphi34,
 
         const double wt,
 
@@ -209,122 +213,124 @@ static void check_triangle(
      * this also means that A is the right-angle corner
      */
 
-    double etaA, phiA;
-    double etaB, phiB;
-    double etaC, phiC;
     double RAB, RAC, RBC;
-    double RA4; //distance of 4th particle from right angle
+
+    double RA4; //for r
+    //for c dot products
+    double detaA4, dphiA4; 
+    double detaAC, dphiAC;
+    double detaAB, dphiAB;
 
     if(dR12 > dR13){
         if(dR13 > dR23){
             // (12) > (13) > (23)
             // so A = 3, B = 2, C = 1
-            etaA = eta3;
-            phiA = phi3;
-            
-            etaB = eta2;
-            phiB = phi2;
-            
-            etaC = eta1;
-            phiC = phi1;
-
             RAB = dR23;
             RAC = dR13;
             RBC = dR12;
 
             RA4 = dR34;
             
+            detaA4 = deta34;
+            dphiA4 = dphi34;
+
+            detaAC = deta13;
+            dphiAC = dphi13;
+
+            detaAB = deta23;
+            dphiAB = dphi23;
+
         } else if (dR12 > dR23){
             // (12) > (23) > (13)
             // so A = 3, B = 1, C = 2
-            etaA = eta3;
-            phiA = phi3;
-
-            etaB = eta1;
-            phiB = phi1;
-
-            etaC = eta2;
-            phiC = phi2;
-
             RAB = dR13;
             RAC = dR23;
             RBC = dR12;
 
             RA4 = dR34;
 
+            detaA4 = deta34;
+            dphiA4 = dphi34;
+
+            detaAC = deta23;
+            dphiAC = dphi23;
+
+            detaAB = deta13;
+            dphiAB = dphi13;
+
         } else {
             // (23) > (12) > (13)
             // so A = 1, B = 3, C = 2
-            etaA = eta1;
-            phiA = phi1;
-
-            etaB = eta3;
-            phiB = phi3;
-
-            etaC = eta2;
-            phiC = phi2;
-
             RAB = dR13;
             RAC = dR12;
             RBC = dR23;
 
             RA4 = dR14;
+
+            detaA4 = deta14;
+            dphiA4 = dphi14;
+
+            detaAC = deta12;
+            dphiAC = dphi12;
+
+            detaAB = deta23;
+            dphiAB = dphi23;
 
         }
     } else{
         if(dR12 > dR23){ 
             // (13) > (12) > (23)
             // so A = 2, B = 3, C = 1
-            etaA = eta2;
-            phiA = phi2;
-
-            etaB = eta3;
-            phiB = phi3;
-
-            etaC = eta1;
-            phiC = phi1;
-
             RAB = dR23;
             RAC = dR12;
             RBC = dR13;
 
             RA4 = dR24;
 
+            detaA4 = deta24;
+            dphiA4 = dphi24;
+
+            detaAC = deta12;
+            dphiAC = dphi12;
+
+            detaAB = deta23;
+            dphiAB = dphi23;
+
         } else if(dR13 > dR23){ 
             // (13) > (23) > (12)
             // so A = 2, B = 1, C = 3
-            etaA = eta2;
-            phiA = phi2;
-
-            etaB = eta1;
-            phiB = phi1;
-
-            etaC = eta3;
-            phiC = phi3;
-
             RAB = dR12;
             RAC = dR23;
             RBC = dR13;
 
             RA4 = dR24;
 
+            detaA4 = deta24;
+            dphiA4 = dphi24;
+
+            detaAC = deta23;
+            dphiAC = dphi23;
+
+            detaAB = deta12;
+            dphiAB = dphi12;
+
         } else {
             // (23) > (13) > (12)
             // so A = 1, B = 2, C = 3
-            etaA = eta1;
-            phiA = phi1;
-
-            etaB = eta2;
-            phiB = phi2;
-
-            etaC = eta3;
-            phiC = phi3;
-
             RAB = dR12;
             RAC = dR13;
             RBC = dR23;
 
             RA4 = dR14;
+
+            detaA4 = deta14;
+            dphiA4 = dphi14;
+
+            detaAC = deta13;
+            dphiAC = dphi13;
+
+            detaAB = deta12;
+            dphiAB = dphi12;
         }
     }
 
@@ -340,12 +346,6 @@ static void check_triangle(
         R = RAC;
         r = RA4/RAC;
 
-        double detaA4 = deltaEta(etaA, eta4);
-        double dphiA4 = deltaPhi(phiA, phi4);
-
-        double detaAC = deltaEta(etaA, etaC);
-        double dphiAC = deltaPhi(phiA, phiC);
-
         double dotA4AC = detaA4*detaAC + dphiA4*dphiAC;
 
         double cosc = dotA4AC/(RA4*RAC);
@@ -359,9 +359,6 @@ static void check_triangle(
          * we therefore need to check the other dot product 
          * to place c in the correct quadrant
          */
-
-        double detaAB = deltaEta(etaA, etaB);
-        double dphiAB = deltaPhi(phiA, phiB);
 
         double dotA4AB = detaA4*detaAB + dphiA4*dphiAB;
 
@@ -406,27 +403,43 @@ static void res4_mainloop(
         double phi1 = thejet.phis[i1];
 
         for (unsigned i2=i1+1; i2<thejet.N; ++i2){
-            double E2 = thejet.Es[i2];
+            double E12 = E1 * thejet.Es[i2];
             double eta2 = thejet.etas[i2];
             double phi2 = thejet.phis[i2];
+
             double dR12 = deltaR(eta1, phi1, eta2, phi2);
+            double deta12 = deltaEta(eta1, eta2);
+            double dphi12 = deltaPhi(phi1, phi2);
 
             for(unsigned i3=i2+1; i3<thejet.N; ++i3){
-                double E3 = thejet.Es[i3];
+                double E123 = E12 * thejet.Es[i3];
                 double eta3 = thejet.etas[i3];
                 double phi3 = thejet.phis[i3];
+
                 double dR13 = deltaR(eta1, phi1, eta3, phi3);
+                double deta13 = deltaEta(eta1, eta3);
+                double dphi13 = deltaPhi(phi1, phi3);
+
                 double dR23 = deltaR(eta2, phi2, eta3, phi3);
+                double deta23 = deltaEta(eta2, eta3);
+                double dphi23 = deltaPhi(phi2, phi3);
 
                 for(unsigned i4=i3+1; i4<thejet.N; ++i4){
-                    double E4 = thejet.Es[i4];
+                    double wt = E123 * thejet.Es[i4];
                     double eta4 = thejet.etas[i4];
                     double phi4 = thejet.phis[i4];
-                    double dR14 = deltaR(eta1, phi1, eta4, phi4);
-                    double dR24 = deltaR(eta2, phi2, eta4, phi4);
-                    double dR34 = deltaR(eta3, phi3, eta4, phi4);
 
-                    double wt = E1*E2*E3*E4;
+                    double dR14 = deltaR(eta1, phi1, eta4, phi4);
+                    double deta14 = deltaEta(eta1, eta4);
+                    double dphi14 = deltaPhi(phi1, phi4);
+
+                    double dR24 = deltaR(eta2, phi2, eta4, phi4);
+                    double deta24 = deltaEta(eta2, eta4);
+                    double dphi24 = deltaPhi(phi2, phi4);
+
+                    double dR34 = deltaR(eta3, phi3, eta4, phi4);
+                    double deta34 = deltaEta(eta3, eta4);
+                    double dphi34 = deltaPhi(phi3, phi4);
 
                     /*
                      * Now we check the three permutations
@@ -451,6 +464,8 @@ static void res4_mainloop(
                             eta3, phi3,
                             eta4, phi4,
                             dR12, dR34,
+                            deta12, dphi12,
+                            deta34, dphi34,
                             wt,
                             tolerance2,
                             ax_R,
@@ -467,6 +482,8 @@ static void res4_mainloop(
                             eta2, phi2,
                             eta4, phi4,
                             dR13, dR24,
+                            deta13, dphi13,
+                            deta24, dphi24,
                             wt,
                             tolerance2,
                             ax_R,
@@ -483,6 +500,8 @@ static void res4_mainloop(
                             eta2, phi2,
                             eta3, phi3,
                             dR14, dR23,
+                            deta14, dphi14,
+                            deta23, dphi23,
                             wt,
                             tolerance2,
                             ax_R,
@@ -500,14 +519,17 @@ static void res4_mainloop(
                     //(123)(4)
                     check_triangle(
                             ans,
-                            eta1, phi1,
-                            eta2, phi2,
-                            eta3, phi3,
-                            eta4, phi4,
 
                             dR12, dR13, 
                             dR14, dR23,
                             dR24, dR34,
+
+                            deta12, dphi12,
+                            deta13, dphi13,
+                            deta14, dphi14,
+                            deta23, dphi23,
+                            deta24, dphi24,
+                            deta34, dphi34,
 
                             wt,
 
@@ -520,14 +542,17 @@ static void res4_mainloop(
                     //(124)(3)
                     check_triangle(
                             ans,
-                            eta1, phi1,
-                            eta2, phi2,
-                            eta4, phi4,
-                            eta3, phi3,
 
                             dR12, dR14, 
                             dR13, dR24,
                             dR23, dR34,
+
+                            deta12, dphi12,
+                            deta14, dphi14,
+                            deta13, dphi13,
+                            deta24, dphi24,
+                            deta23, dphi23,
+                            deta34, dphi34,
 
                             wt,
 
@@ -540,14 +565,17 @@ static void res4_mainloop(
                     //(143)(2)
                     check_triangle(
                             ans,
-                            eta1, phi1,
-                            eta4, phi4,
-                            eta3, phi3,
-                            eta2, phi2,
 
                             dR14, dR13, 
                             dR12, dR34,
                             dR24, dR23,
+
+                            deta14, dphi14,
+                            deta13, dphi13,
+                            deta12, dphi12,
+                            deta34, dphi34,
+                            deta24, dphi24,
+                            deta23, dphi23,
 
                             wt,
 
@@ -560,14 +588,17 @@ static void res4_mainloop(
                     //(423)(1)
                     check_triangle(
                             ans,
-                            eta4, phi4,
-                            eta2, phi2,
-                            eta3, phi3,
-                            eta1, phi1,
 
                             dR24, dR34, 
                             dR14, dR23,
                             dR12, dR13,
+
+                            deta24, dphi24,
+                            deta34, dphi34,
+                            deta14, dphi14,
+                            deta23, dphi23,
+                            deta12, dphi12,
+                            deta13, dphi13,
 
                             wt,
 

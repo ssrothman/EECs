@@ -40,7 +40,6 @@ namespace fastEEC{
                 phi = std::abs(std::asin(std::sqrt(1 - square((RL-RM)/RS))));
             }
         }
-#endif
 
         next.RL_res3_idx = getIndex(RL, res3ax.RL);
         next.xi_res3_idx = getIndex(xi, res3ax.xi);

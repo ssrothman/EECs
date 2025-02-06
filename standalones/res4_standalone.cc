@@ -8,6 +8,13 @@
 constexpr double triangle_ratio_LM = 5.0/4.0;
 constexpr double triangle_ratio_MS = 4.0/3.0;
 
+/*
+ * Compute angle between vectors (12) and (34)
+ * the precomputed detas, dphis, and dRs are passed
+ * 
+ * the result is stored into c
+ *      and is in the range [0, pi/2]
+ */
 static void compute_c(
         const double deta12, const double dphi12,
         const double deta34, const double dphi34,
@@ -28,6 +35,11 @@ static void compute_c(
     }
 }
 
+/*
+ * Given two distances dR12 and dR34, compute R and r such that:
+ *      R = max(dR12, dR34)
+ *      r = min(dR12, dR34)/R
+ */
 static void compute_r_R(
         const double dR12,
         const double dR34,
@@ -43,14 +55,14 @@ static void compute_r_R(
     }
 }
 
+/*
+ * Compute the midpoint of two polar angles,
+ * wrapping around as necessary
+ * This is useful for the dipole and tee axes
+ */
 static double angle_midpoint(
         const double phi1, 
         const double phi2){
-    /*
-     * Compute the midpoint of two polar angles,
-     * wrapping around as necessary
-     * This is useful for the dipole and tee axes
-     */
     double result;
 
     /*
@@ -73,7 +85,19 @@ static double angle_midpoint(
     return result;
 }
 
-template <class Container>
+/*
+ * Check a given permutation of four particles 
+ * for tee and dipole configurations
+ *
+ * If they are found, the result is stored into ans
+ *
+ * NOTE: particle order matters. 
+ *     We check the configuration (12)(34)
+ *
+ * A boolean template parameter tracks whether the 
+ * distances passed are squared or not
+ */
+template <class Container, bool distances_squared>
 static void check_tee_dipole(
         standaloneEEC::res4_result<Container>& ans,
 
@@ -139,8 +163,14 @@ static void check_tee_dipole(
     }
 
     if(isTee || isDipole){
-        double dR12 = std::sqrt(dR12_2);
-        double dR34 = std::sqrt(dR34_2);
+        double dR12, dR34;
+        if constexpr(distances_squared){
+            dR12 = std::sqrt(dR12_2);
+            dR34 = std::sqrt(dR34_2);
+        } else {
+            dR12 = dR12_2;
+            dR34 = dR34_2;
+        }
 
         double R,r,c;
         compute_r_R(dR12, dR34, r, R);
@@ -163,7 +193,21 @@ static void check_tee_dipole(
     }
 }
 
-template <class Container>
+/*
+ * Check a given permutation of four particles
+ * for triangle configurations
+ *
+ * If they are found, the result is stored into ans
+ *
+ * NOTE: particle order matters
+ *    We check the configuration (123)(4)
+ *    But order in the (123) does NOT matter
+ *    And the function checks all 6 permutations
+ *
+ * A boolean template parameter tracks whether the 
+ * distances passed are squared or not
+ */
+template <class Container, bool distances_squared>
 static void check_triangle(
         standaloneEEC::res4_result<Container>& ans,
 
@@ -186,7 +230,7 @@ static void check_triangle(
 
         const double wt,
 
-        const double tolerance2,
+        const double tri_tolerance,
 
         const standaloneEEC::axis& ax_R,
         const standaloneEEC::axis& ax_r_triangle,
@@ -342,14 +386,28 @@ static void check_triangle(
      * Now we have the order of the triangle sides
      * we can compute the angles and distances
      */
-    bool passLM = std::abs(std::sqrt(RBC_2/RAC_2) - triangle_ratio_LM) < tolerance2;
-    bool passMS = std::abs(std::sqrt(RAC_2/RAB_2) - triangle_ratio_MS) < tolerance2;
+    bool passLM; 
+    bool passMS; 
+    
+    if constexpr(distances_squared){
+        passLM = std::abs(std::sqrt(RBC_2/RAC_2) - triangle_ratio_LM) < tri_tolerance;
+        passMS = std::abs(std::sqrt(RAC_2/RAB_2) - triangle_ratio_MS) < tri_tolerance;
+    } else {
+        passLM = std::abs(RBC_2/RAC_2 - triangle_ratio_LM) < tri_tolerance;
+        passMS = std::abs(RAC_2/RAB_2 - triangle_ratio_MS) < tri_tolerance;
+    }
 
     if(passLM && passMS){
         double R, r, c;
 
-        double RAC = std::sqrt(RAC_2);
-        double RA4 = std::sqrt(RA4_2);
+        double RAC, RA4;
+        if constexpr(distances_squared){
+            RAC = std::sqrt(RAC_2);
+            RA4 = std::sqrt(RA4_2);
+        } else{
+            RAC = RAC_2;
+            RA4 = RA4_2;
+        }
 
         R = RAC;
         r = RA4/RAC;
@@ -381,6 +439,236 @@ static void check_triangle(
     }
 }
 
+template <class Container, bool distances_squared>
+static void innermost_level(
+        standaloneEEC::res4_result<Container>& ans,
+
+        const double eta1, const double phi1,
+        const double eta2, const double phi2,
+        const double eta3, const double phi3, 
+        const double eta4, const double phi4,
+
+        const double deta12, const double dphi12,
+        const double deta13, const double dphi13,
+        const double deta14, const double dphi14,
+        const double deta23, const double dphi23,
+        const double deta24, const double dphi24,
+        const double deta34, const double dphi34,
+
+        const double dR12_2, const double dR13_2, 
+        const double dR14_2, const double dR23_2, 
+        const double dR24_2, const double dR34_2,
+
+        const double wt,
+
+        const standaloneEEC::axis& ax_R,
+        const standaloneEEC::axis& ax_r_dipole,
+        const standaloneEEC::axis& ax_c_dipole,
+        const standaloneEEC::axis& ax_r_tee,
+        const standaloneEEC::axis& ax_c_tee,
+        const standaloneEEC::axis& ax_r_triangle,
+        const standaloneEEC::axis& ax_c_triangle,
+
+        const double tolerance2,
+        const double tri_tolerance){
+    /*
+     * Now we check the three permutations
+     * of pairs of four particles
+     * for tees and dipoles
+     *
+     * NB we do these checks together 
+     * because they share the 
+     * r, c, R calculations
+     *
+     * The permuatations are:
+     * (12)(34)
+     * (13)(24)
+     * (14)(23)
+     */
+
+    //(12)(34)
+    check_tee_dipole<Container, distances_squared>(
+            ans,
+            eta1, phi1,
+            eta2, phi2,
+            eta3, phi3,
+            eta4, phi4,
+            dR12_2, dR34_2,
+            deta12, dphi12,
+            deta34, dphi34,
+            wt,
+            tolerance2,
+            ax_R,
+            ax_r_dipole,
+            ax_c_dipole,
+            ax_r_tee,
+            ax_c_tee);
+
+    //(13)(24)
+    check_tee_dipole<Container, distances_squared>(
+            ans,
+            eta1, phi1,
+            eta3, phi3,
+            eta2, phi2,
+            eta4, phi4,
+            dR13_2, dR24_2,
+            deta13, dphi13,
+            deta24, dphi24,
+            wt,
+            tolerance2,
+            ax_R,
+            ax_r_dipole,
+            ax_c_dipole,
+            ax_r_tee,
+            ax_c_tee);
+
+    //(14)(23)
+    check_tee_dipole<Container, distances_squared>(
+            ans,
+            eta1, phi1,
+            eta4, phi4,
+            eta2, phi2,
+            eta3, phi3,
+            dR14_2, dR23_2,
+            deta14, dphi14,
+            deta23, dphi23,
+            wt,
+            tolerance2,
+            ax_R,
+            ax_r_dipole,
+            ax_c_dipole,
+            ax_r_tee,
+            ax_c_tee);
+
+    /*
+     * Now we need to check for triangles
+     * There are four triangle configurations
+     * (ie 4 choose 3)
+     */
+
+    //(123)(4)
+    check_triangle<Container, distances_squared>(
+            ans,
+
+            dR12_2, dR13_2, 
+            dR14_2, dR23_2,
+            dR24_2, dR34_2,
+
+            deta12, dphi12,
+            deta13, dphi13,
+            deta14, dphi14,
+            deta23, dphi23,
+            deta24, dphi24,
+            deta34, dphi34,
+
+            wt,
+
+            tri_tolerance,
+
+            ax_R,
+            ax_r_triangle,
+            ax_c_triangle);
+
+    //(124)(3)
+    check_triangle<Container, distances_squared>(
+            ans,
+
+            dR12_2, dR14_2, 
+            dR13_2, dR24_2,
+            dR23_2, dR34_2,
+
+            deta12, dphi12,
+            deta14, dphi14,
+            deta13, dphi13,
+            deta24, dphi24,
+            deta23, dphi23,
+            deta34, dphi34,
+
+            wt,
+
+            tri_tolerance,
+
+            ax_R,
+            ax_r_triangle,
+            ax_c_triangle);
+
+    //(143)(2)
+    check_triangle<Container, distances_squared>(
+            ans,
+
+            dR14_2, dR13_2, 
+            dR12_2, dR34_2,
+            dR24_2, dR23_2,
+
+            deta14, dphi14,
+            deta13, dphi13,
+            deta12, dphi12,
+            deta34, dphi34,
+            deta24, dphi24,
+            deta23, dphi23,
+
+            wt,
+
+            tri_tolerance,
+
+            ax_R,
+            ax_r_triangle,
+            ax_c_triangle);
+
+    //(423)(1)
+    check_triangle<Container, distances_squared>(
+            ans,
+
+            dR24_2, dR34_2, 
+            dR14_2, dR23_2,
+            dR12_2, dR13_2,
+
+            deta24, dphi24,
+            deta34, dphi34,
+            deta14, dphi14,
+            deta23, dphi23,
+            deta12, dphi12,
+            deta13, dphi13,
+
+            wt,
+
+            tri_tolerance,
+
+            ax_R,
+            ax_r_triangle,
+            ax_c_triangle);
+}
+
+/*
+ * This is the main loop over four particles
+ *
+ * NB in the specific case of res4 we are only interested
+ * in the case where the four particles are distinct
+ * This allows us to save some loops
+ * This also means we don't have to worry about 
+ * symmetry factors
+ *
+ * Probably an unnecessary mount of effort was made
+ * to avoid ANY repeated computations
+ *
+ * Thus all of the particle coordinates and pairwise 
+ * quantities are computed at the top of each loop level
+ * and passed down to inner loops
+ *
+ * We opt to only precompute the /squared/ distances
+ * and leave the square root for later.
+ * In principle this can lead to repeated square roots.
+ * However, this is more than made up for by the fact
+ * that the vast majority of cases are not an interesting
+ * configuration, so we can avoid the square root altogether
+ *
+ * We template on the container type to allow for two 
+ * versions of this method to share the same code
+ * without any costly virtual function calls.
+ * The two versions are:
+ *     Filling a histogram directly via a multi_array
+ *     Growing a vector of entries with bin indices and weights
+ */
 template <class Container>
 static void res4_mainloop(
         standaloneEEC::res4_result<Container>& ans,
@@ -394,237 +682,189 @@ static void res4_mainloop(
         const standaloneEEC::axis& ax_r_triangle,
         const standaloneEEC::axis& ax_c_triangle,
 
-        double tolerance2){
-    /*
-     * This is the main loop over four particles
-     * NB in the specific case of res4 we are only interested
-     * in the case where the four particles are distinct
-     *
-     * This allows us to save some loops
-     * This also means we don't have to worry about 
-     * symmetry factors
-     */
+        const double tolerance2,
+        const double tri_tolerance){
 
     for (unsigned i1=0; i1<thejet.N; ++i1){
-        double E1 = thejet.Es[i1];
-        double eta1 = thejet.etas[i1];
-        double phi1 = thejet.phis[i1];
+        const auto&[E1, eta1, phi1] = thejet.singles[i1];
 
         for (unsigned i2=i1+1; i2<thejet.N; ++i2){
-            double E12 = E1 * thejet.Es[i2];
-            double eta2 = thejet.etas[i2];
-            double phi2 = thejet.phis[i2];
+            const auto&[E2, eta2, phi2] = thejet.singles[i2];
 
-            double deta12 = deltaEta(eta1, eta2);
-            double dphi12 = deltaPhi(phi1, phi2);
-            double dR12_2 = square(deta12) + square(dphi12);
+            const double E12 = E1 * E2;
+
+            const double deta12 = deltaEta(eta1, eta2);
+            const double dphi12 = deltaPhi(phi1, phi2);
+            const double dR12_2 = square(deta12) + square(dphi12);
 
             for(unsigned i3=i2+1; i3<thejet.N; ++i3){
-                double E123 = E12 * thejet.Es[i3];
-                double eta3 = thejet.etas[i3];
-                double phi3 = thejet.phis[i3];
+                const auto&[E3, eta3, phi3] = thejet.singles[i3];
 
-                double deta13 = deltaEta(eta1, eta3);
-                double dphi13 = deltaPhi(phi1, phi3);
-                double dR13_2 = square(deta13) + square(dphi13);
+                const double E123 = E12 * E3;
 
-                double deta23 = deltaEta(eta2, eta3);
-                double dphi23 = deltaPhi(phi2, phi3);
-                double dR23_2 = square(deta23) + square(dphi23);
+                const double deta13 = deltaEta(eta1, eta3);
+                const double dphi13 = deltaPhi(phi1, phi3);
+                const double dR13_2 = square(deta13) + square(dphi13);
+
+                const double deta23 = deltaEta(eta2, eta3);
+                const double dphi23 = deltaPhi(phi2, phi3);
+                const double dR23_2 = square(deta23) + square(dphi23);
 
                 for(unsigned i4=i3+1; i4<thejet.N; ++i4){
-                    double wt = E123 * thejet.Es[i4];
-                    double eta4 = thejet.etas[i4];
-                    double phi4 = thejet.phis[i4];
+                    const auto&[E4, eta4, phi4] = thejet.singles[i4];
 
-                    double deta14 = deltaEta(eta1, eta4);
-                    double dphi14 = deltaPhi(phi1, phi4);
-                    double dR14_2 = square(deta14) 
+                    const double wt = E123 * E4;
+
+                    const double deta14 = deltaEta(eta1, eta4);
+                    const double dphi14 = deltaPhi(phi1, phi4);
+                    const double dR14_2 = square(deta14) 
                         + square(dphi14);
 
-                    double deta24 = deltaEta(eta2, eta4);
-                    double dphi24 = deltaPhi(phi2, phi4);
-                    double dR24_2 = square(deta24) 
+                    const double deta24 = deltaEta(eta2, eta4);
+                    const double dphi24 = deltaPhi(phi2, phi4);
+                    const double dR24_2 = square(deta24) 
                         + square(dphi24);
 
-                    double deta34 = deltaEta(eta3, eta4);
-                    double dphi34 = deltaPhi(phi3, phi4);
-                    double dR34_2 = square(deta34) 
+                    const double deta34 = deltaEta(eta3, eta4);
+                    const double dphi34 = deltaPhi(phi3, phi4);
+                    const double dR34_2 = square(deta34) 
                         + square(dphi34);
 
-                    /*
-                     * Now we check the three permutations
-                     * of pairs of four particles
-                     * for tees and dipoles
-                     *
-                     * NB we do these checks together 
-                     * because they share the 
-                     * r, c, R calculations
-                     *
-                     * The permuatations are:
-                     * (12)(34)
-                     * (13)(24)
-                     * (14)(23)
-                     */
-
-                    //(12)(34)
-                    check_tee_dipole(
+                    innermost_level<Container, true>(
                             ans,
+
                             eta1, phi1,
                             eta2, phi2,
                             eta3, phi3,
                             eta4, phi4,
-                            dR12_2, dR34_2,
+
                             deta12, dphi12,
-                            deta34, dphi34,
-                            wt,
-                            tolerance2,
-                            ax_R,
-                            ax_r_dipole,
-                            ax_c_dipole,
-                            ax_r_tee,
-                            ax_c_tee);
-
-                    //(13)(24)
-                    check_tee_dipole(
-                            ans,
-                            eta1, phi1,
-                            eta3, phi3,
-                            eta2, phi2,
-                            eta4, phi4,
-                            dR13_2, dR24_2,
                             deta13, dphi13,
-                            deta24, dphi24,
-                            wt,
-                            tolerance2,
-                            ax_R,
-                            ax_r_dipole,
-                            ax_c_dipole,
-                            ax_r_tee,
-                            ax_c_tee);
-
-                    //(14)(23)
-                    check_tee_dipole(
-                            ans,
-                            eta1, phi1,
-                            eta4, phi4,
-                            eta2, phi2,
-                            eta3, phi3,
-                            dR14_2, dR23_2,
                             deta14, dphi14,
                             deta23, dphi23,
-                            wt,
-                            tolerance2,
-                            ax_R,
-                            ax_r_dipole,
-                            ax_c_dipole,
-                            ax_r_tee,
-                            ax_c_tee);
+                            deta24, dphi24,
+                            deta34, dphi34,
 
-                    /*
-                     * Now we need to check for triangles
-                     * There are four triangle configurations
-                     * (ie 4 choose 3)
-                     */
-
-                    //(123)(4)
-                    check_triangle(
-                            ans,
-
-                            dR12_2, dR13_2, 
+                            dR12_2, dR13_2,
                             dR14_2, dR23_2,
                             dR24_2, dR34_2,
 
-                            deta12, dphi12,
-                            deta13, dphi13,
-                            deta14, dphi14,
-                            deta23, dphi23,
-                            deta24, dphi24,
-                            deta34, dphi34,
-
                             wt,
 
-                            tolerance2,
-
                             ax_R,
+                            ax_r_dipole,
+                            ax_c_dipole,
+                            ax_r_tee,
+                            ax_c_tee,
                             ax_r_triangle,
-                            ax_c_triangle);
-
-                    //(124)(3)
-                    check_triangle(
-                            ans,
-
-                            dR12_2, dR14_2, 
-                            dR13_2, dR24_2,
-                            dR23_2, dR34_2,
-
-                            deta12, dphi12,
-                            deta14, dphi14,
-                            deta13, dphi13,
-                            deta24, dphi24,
-                            deta23, dphi23,
-                            deta34, dphi34,
-
-                            wt,
+                            ax_c_triangle,
 
                             tolerance2,
-
-                            ax_R,
-                            ax_r_triangle,
-                            ax_c_triangle);
-
-                    //(143)(2)
-                    check_triangle(
-                            ans,
-
-                            dR14_2, dR13_2, 
-                            dR12_2, dR34_2,
-                            dR24_2, dR23_2,
-
-                            deta14, dphi14,
-                            deta13, dphi13,
-                            deta12, dphi12,
-                            deta34, dphi34,
-                            deta24, dphi24,
-                            deta23, dphi23,
-
-                            wt,
-
-                            tolerance2,
-
-                            ax_R,
-                            ax_r_triangle,
-                            ax_c_triangle);
-
-                    //(423)(1)
-                    check_triangle(
-                            ans,
-
-                            dR24_2, dR34_2, 
-                            dR14_2, dR23_2,
-                            dR12_2, dR13_2,
-
-                            deta24, dphi24,
-                            deta34, dphi34,
-                            deta14, dphi14,
-                            deta23, dphi23,
-                            deta12, dphi12,
-                            deta13, dphi13,
-
-                            wt,
-
-                            tolerance2,
-
-                            ax_R,
-                            ax_r_triangle,
-                            ax_c_triangle);
-
+                            tri_tolerance);
                 }//end loop over i4
             }//end loop over i3
         }//end loop over i2
     }//end loop over i1
 }//end res4_standalone()
  
+template <class Container>
+static void res4_mainloop_precomputed(
+        standaloneEEC::res4_result<Container>& ans,
+
+        const standaloneEEC::EECjet_precomputed& thejet,
+        const standaloneEEC::axis& ax_R,
+        const standaloneEEC::axis& ax_r_dipole,
+        const standaloneEEC::axis& ax_c_dipole,
+        const standaloneEEC::axis& ax_r_tee,
+        const standaloneEEC::axis& ax_c_tee,
+        const standaloneEEC::axis& ax_r_triangle,
+        const standaloneEEC::axis& ax_c_triangle,
+
+        const double tolerance2,
+        const double tri_tolerance){
+
+    for (unsigned i1=0; i1<thejet.N; ++i1){
+        const auto&[E1, eta1, phi1] = thejet.singles[i1];
+
+        for (unsigned i2=i1+1; i2<thejet.N; ++i2){
+            const auto&[E2, eta2, phi2] = thejet.singles[i2];
+
+            const double E12 = E1 * E2;
+
+            const auto&[deta12, dphi12, dR12] = thejet.pairs[i1][i2];
+
+            for(unsigned i3=i2+1; i3<thejet.N; ++i3){
+                const auto&[E3, eta3, phi3] = thejet.singles[i3];
+
+                const double E123 = E12 * E3;
+
+                const auto&[deta13, dphi13, dR13] = thejet.pairs[i1][i3];
+                const auto&[deta23, dphi23, dR23] = thejet.pairs[i2][i3];
+
+                for(unsigned i4=i3+1; i4<thejet.N; ++i4){
+                    const auto&[E4, eta4, phi4] = thejet.singles[i4];
+
+                    const double wt = E123 * E4;
+
+                    const auto&[deta14, dphi14, dR14] = thejet.pairs[i1][i4];
+                    const auto&[deta24, dphi24, dR24] = thejet.pairs[i2][i4];
+                    const auto&[deta34, dphi34, dR34] = thejet.pairs[i3][i4];
+
+                    innermost_level<Container, false>(
+                            ans,
+
+                            eta1, phi1,
+                            eta2, phi2,
+                            eta3, phi3,
+                            eta4, phi4,
+
+                            deta12, dphi12,
+                            deta13, dphi13,
+                            deta14, dphi14,
+                            deta23, dphi23,
+                            deta24, dphi24,
+                            deta34, dphi34,
+
+                            dR12, dR13,
+                            dR14, dR23,
+                            dR24, dR34,
+
+                            wt,
+
+                            ax_R,
+                            ax_r_dipole,
+                            ax_c_dipole,
+                            ax_r_tee,
+                            ax_c_tee,
+                            ax_r_triangle,
+                            ax_c_triangle,
+
+                            tolerance2,
+                            tri_tolerance);
+                }//end loop over i4
+            }//end loop over i3
+        }//end loop over i2
+    }//end loop over i1
+}//end res4_standalone()
+
+/*
+ * This is the entry point for the res4 calculation 
+ * with the multi_array container backend
+ *
+ * In this mode the result is accumulated directly into a
+ * multi_array object representing the histogram. 
+ *
+ * Pros: dense representation is easier to work with
+ *       fixed maximum size in memory
+ *       no need for dynamic allocation to grow vectors
+ *
+ * Cons: less flexible
+ *       can't benefit from any sparsity in memory usage
+ *       requires seeking through large arrays to fill bins
+ * 
+ * I intent to test explicitely which backend is better,
+ * but for now I expose both
+ */
 void standaloneEEC::res4_standalone_multi_array(
         standaloneEEC::res4_result_multi_array& ans,
         
@@ -639,7 +879,8 @@ void standaloneEEC::res4_standalone_multi_array(
         const standaloneEEC::axis& ax_r_triangle,
         const standaloneEEC::axis& ax_c_triangle,
 
-        double tolerance){
+        const double tolerance,
+        const double tri_tolerance){
 
     standaloneEEC::EECjet thejet(J, nt);
 
@@ -648,9 +889,53 @@ void standaloneEEC::res4_standalone_multi_array(
             ax_r_dipole, ax_c_dipole, 
             ax_r_tee, ax_c_tee, 
             ax_r_triangle, ax_c_triangle,
-            tolerance*tolerance);
+            tolerance*tolerance,
+            tri_tolerance);
+}
+
+void standaloneEEC::res4_standalone_multi_array_precomputed(
+        standaloneEEC::res4_result_multi_array& ans,
+        
+        const simon_jet& J,
+        const normType& nt,
+
+        const standaloneEEC::axis& ax_R,
+        const standaloneEEC::axis& ax_r_dipole,
+        const standaloneEEC::axis& ax_c_dipole,
+        const standaloneEEC::axis& ax_r_tee,
+        const standaloneEEC::axis& ax_c_tee,
+        const standaloneEEC::axis& ax_r_triangle,
+        const standaloneEEC::axis& ax_c_triangle,
+
+        const double tolerance,
+        const double tri_tolerance){
+
+    standaloneEEC::EECjet_precomputed thejet(J, nt);
+
+    res4_mainloop_precomputed<res4_multi_array_container>(ans, thejet, 
+            ax_R, 
+            ax_r_dipole, ax_c_dipole, 
+            ax_r_tee, ax_c_tee, 
+            ax_r_triangle, ax_c_triangle,
+            tolerance*tolerance,
+            tri_tolerance);
 }
  
+/*
+ * This is the entry point for the res4 calculation 
+ * with the vector container backend
+ *
+ * In this mode the result is accumulated directly into a
+ * multi_array object representing the histogram. 
+ *
+ * Cons: dense representation is easier to work with
+ *       no maximum size in memory
+ *       need for dynamic allocation to grow vectors
+ *
+ * Pros: more flexible
+ *       benefits from sparsity in memory usage
+ *       no seeking through large arrays to fill bins
+ */
 void standaloneEEC::res4_standalone_vector(
         standaloneEEC::res4_result_vector& ans,
         
@@ -665,7 +950,8 @@ void standaloneEEC::res4_standalone_vector(
         const standaloneEEC::axis& ax_r_triangle,
         const standaloneEEC::axis& ax_c_triangle,
 
-        double tolerance){
+        const double tolerance,
+        const double tri_tolerance){
 
     standaloneEEC::EECjet thejet(J, nt);
 
@@ -674,5 +960,34 @@ void standaloneEEC::res4_standalone_vector(
             ax_r_dipole, ax_c_dipole, 
             ax_r_tee, ax_c_tee, 
             ax_r_triangle, ax_c_triangle,
-            tolerance*tolerance);
+            tolerance*tolerance,
+            tri_tolerance);
+}
+
+void standaloneEEC::res4_standalone_vector_precomputed(
+        standaloneEEC::res4_result_vector& ans,
+        
+        const simon_jet& J,
+        const normType& nt,
+
+        const standaloneEEC::axis& ax_R,
+        const standaloneEEC::axis& ax_r_dipole,
+        const standaloneEEC::axis& ax_c_dipole,
+        const standaloneEEC::axis& ax_r_tee,
+        const standaloneEEC::axis& ax_c_tee,
+        const standaloneEEC::axis& ax_r_triangle,
+        const standaloneEEC::axis& ax_c_triangle,
+
+        const double tolerance,
+        const double tri_tolerance){
+
+    standaloneEEC::EECjet_precomputed thejet(J, nt);
+
+    res4_mainloop_precomputed<res4_vector_container>(ans, thejet, 
+            ax_R, 
+            ax_r_dipole, ax_c_dipole, 
+            ax_r_tee, ax_c_tee, 
+            ax_r_triangle, ax_c_triangle,
+            tolerance*tolerance,
+            tri_tolerance);
 }

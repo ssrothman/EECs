@@ -17,8 +17,14 @@ namespace standaloneEEC{
 
     class EECjet {
     public:
+        struct oneentry{
+            double eta;
+            double phi;
+            double E;
+        };
+
         size_t N;
-        vector<double> etas, phis, Es;
+        vector<oneentry> singles;
 
         EECjet(const simon_jet& J, const normType& nt);
     };
@@ -29,13 +35,11 @@ namespace standaloneEEC{
             double floatDR;
             double dphi;
             double deta;
-            unsigned dRbin;
         };
         multi_array<pairentry, 2> pairs;
 
         EECjet_precomputed(const simon_jet& J, 
-                           const normType& nt,
-                           const axis& ax);
+                           const normType& nt);
     };
 };
 

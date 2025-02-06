@@ -29,15 +29,6 @@ namespace fastEEC{
 
         T xi, phi;
 
-#ifdef ALT_RES3
-        xi = RS/RL;
-        //want angle between RS and RL
-        T cosphi = (square(RL) + square(RS) - square(RM))/(2*RL*RS);
-        phi = std::acos(cosphi);
-        if (phi > M_PI/2){
-            phi = M_PI - phi;
-        }
-#else
         if (RM == 0){
             xi = 0;
             phi = 0;

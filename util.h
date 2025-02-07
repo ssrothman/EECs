@@ -136,7 +136,7 @@ namespace fastEEC{
                 if (DR < 1e-10){
                     DR = 0;
                 }
-                unsigned idx = static_cast<unsigned>(ax->index(deltaR) + 1);
+                unsigned idx = static_cast<unsigned>(ax->index(DR) + 1);
                 ans[i0][i1] = idx;
             }
         }

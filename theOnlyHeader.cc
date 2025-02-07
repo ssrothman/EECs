@@ -2,7 +2,7 @@
 
 void runFastEEC(fastEEC::result_t<double>& ans,
 
-        const jet& J,
+        const simon_jet& J,
         const fastEEC::axisptr& ax,
         const fastEEC::normType nt,
         const unsigned maxOrder,
@@ -29,7 +29,7 @@ void runFastEEC(fastEEC::result_t<double>& ans,
         const double shapetol = 0,
 
 [[maybe_unused]] const std::vector<bool>* const PU = nullptr,
-        const jet* const J_Reco = nullptr,
+        const simon_jet* const J_Reco = nullptr,
         const Eigen::MatrixXd* ptrans = nullptr){
             
             fastEEC::runSuperSpecific<double>(

@@ -115,26 +115,26 @@ namespace fastEEC{
     };
 
     template <typename T>
-    void getFloatDRs(multi_array<T, 2>& ans, const jet& J){
+    void getFloatDRs(multi_array<T, 2>& ans, const simon_jet& J){
         ans.resize(extents[J.nPart][J.nPart]);
         for (unsigned i0=0; i0<J.nPart; ++i0){
             for (unsigned i1=0; i1<J.nPart; ++i1){
-                T deltaR = dR(J.particles[i0], J.particles[i1]);
-                if(deltaR < 1e-10){
-                    deltaR = 0;
+                T DR = deltaR(J.particles[i0], J.particles[i1]);
+                if(DR < 1e-10){
+                    DR = 0;
                 }
-                ans[i0][i1] = deltaR;
+                ans[i0][i1] = DR;
             }
         }
     }
     
-    inline void getDRbins(umat& ans, const jet& J, const axisptr& ax){
+    inline void getDRbins(umat& ans, const simon_jet& J, const axisptr& ax){
         ans.resize(extents[J.nPart][J.nPart]);
         for (unsigned i0=0; i0<J.nPart; ++i0){
             for (unsigned i1=0; i1<J.nPart; ++i1){
-                double deltaR = dR(J.particles[i0], J.particles[i1]);
-                if (deltaR < 1e-10){
-                    deltaR = 0;
+                double DR = deltaR(J.particles[i0], J.particles[i1]);
+                if (DR < 1e-10){
+                    DR = 0;
                 }
                 unsigned idx = static_cast<unsigned>(ax->index(deltaR) + 1);
                 ans[i0][i1] = idx;
@@ -142,7 +142,7 @@ namespace fastEEC{
         }
     }
 
-    inline double getNormFact(const jet& J, const normType& nt){
+    inline double getNormFact(const simon_jet& J, const normType& nt){
         switch (nt){
             case RAWPT:
                 return J.rawpt;
@@ -156,7 +156,7 @@ namespace fastEEC{
     }
 
     template <typename T>
-    void getEs(vector<T>& ans, const jet& J, const normType nt){
+    void getEs(vector<T>& ans, const simon_jet& J, const normType nt){
         ans.clear();
         ans.reserve(J.nPart);
 
@@ -167,7 +167,7 @@ namespace fastEEC{
     }
 
     template <typename T>
-    void getEtasPhis(vector<T>& etas, vector<T>& phis, const jet& J){
+    void getEtasPhis(vector<T>& etas, vector<T>& phis, const simon_jet& J){
         etas.clear();
         phis.clear();
 

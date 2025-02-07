@@ -17,7 +17,7 @@ namespace fastEEC{
              unsigned maxOrder>
     void run(result_t<T>& ans,
 
-             const jet& J,
+             const simon_jet& J,
              const axisptr& ax,
              const normType nt,
 
@@ -42,7 +42,7 @@ namespace fastEEC{
              const T shapetol = 0,
 
              [[maybe_unused]] const std::vector<bool>* const PU = nullptr,
-             const jet* const J_Reco = nullptr,
+             const simon_jet* const J_Reco = nullptr,
              const Eigen::MatrixXd* ptrans = nullptr){
 
         struct jetDetails_t<T> jetDetails(J, ax, nt);
@@ -132,7 +132,7 @@ namespace fastEEC{
     template <typename T, unsigned flags>
     void runSpecific(result_t<T>& ans,
             
-            const jet& J,
+            const simon_jet& J,
             const axisptr& ax,
             const normType nt,
             const unsigned maxOrder,
@@ -158,7 +158,7 @@ namespace fastEEC{
             const T shapetol = 0,
 
             [[maybe_unused]] const std::vector<bool>* const PU = nullptr,
-            const jet* const J_Reco = nullptr,
+            const simon_jet* const J_Reco = nullptr,
             const Eigen::MatrixXd* ptrans = nullptr){
         switch(maxOrder){
             case 2:
@@ -249,7 +249,7 @@ namespace fastEEC{
     template <typename T>
     void runSuperSpecific(result_t<T>& ans,
 
-            const jet& J,
+            const simon_jet& J,
             const axisptr& ax,
             const normType nt,
             const unsigned maxOrder,
@@ -276,7 +276,7 @@ namespace fastEEC{
             const T shapetol = 0,
 
              [[maybe_unused]] const std::vector<bool>* const PU = nullptr,
-             const jet* const J_Reco = nullptr,
+             const simon_jet* const J_Reco = nullptr,
              const Eigen::MatrixXd* ptrans = nullptr){
 
 

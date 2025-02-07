@@ -31,7 +31,9 @@ namespace standaloneEEC{
             res4_vector_container(
                 [[maybe_unused]] const size_t nR, 
                 [[maybe_unused]] const size_t nr, 
-                [[maybe_unused]] const size_t nc) {}
+                [[maybe_unused]] const size_t nc) {
+                data.reserve(100);
+            }
 
             void fill(unsigned iR, unsigned ir, 
                       unsigned ic, double wt){

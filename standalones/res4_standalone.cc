@@ -157,22 +157,22 @@ static void check_tee_dipole(
     double mideta34 = (eta3 + eta4)/2.0;
     double midphi34 = angle_midpoint(phi3, phi4);
 
-    double dR2_midpoints = deltaR2(mideta12, midphi12,
+    double dR2_midpoints = simon::deltaR2(mideta12, midphi12,
                                mideta34, midphi34);
     isDipole = dR2_midpoints < tolerance2;
 
     if (dR12_2 < dR34_2){
-        double dR2_mid12_3 = deltaR2(mideta12, midphi12,
+        double dR2_mid12_3 = simon::deltaR2(mideta12, midphi12,
                                 eta3, phi3);
-        double dR2_mid12_4 = deltaR2(mideta12, midphi12,
+        double dR2_mid12_4 = simon::deltaR2(mideta12, midphi12,
                                 eta4, phi4);
 
         isTee = (dR2_mid12_3 < tolerance2) 
              || (dR2_mid12_4 < tolerance2);
     } else {
-        double dR2_mid34_1 = deltaR2(mideta34, midphi34,
+        double dR2_mid34_1 = simon::deltaR2(mideta34, midphi34,
                                 eta1, phi1);
-        double dR2_mid34_2 = deltaR2(mideta34, midphi34,
+        double dR2_mid34_2 = simon::deltaR2(mideta34, midphi34,
                                 eta2, phi2);
 
         isTee = (dR2_mid34_1 < tolerance2) 
@@ -196,10 +196,10 @@ static void check_tee_dipole(
                   dR12, dR34,
                   c);
 
-        unsigned idx_R = getIndex(R, ax_R);
+        unsigned idx_R = simon::getIndex(R, ax_R);
         if(isDipole){
-            unsigned idx_r = getIndex(r, ax_r_dipole);
-            unsigned idx_c = getIndex(c, ax_c_dipole);
+            unsigned idx_r = simon::getIndex(r, ax_r_dipole);
+            unsigned idx_c = simon::getIndex(c, ax_c_dipole);
             if constexpr (actually_fill){
                 ans.fill_dipole(idx_R, idx_r, idx_c, wt);
             }
@@ -209,8 +209,8 @@ static void check_tee_dipole(
             dipole_entry.isShape = true;
         }
         if (isTee){
-            unsigned idx_r = getIndex(r, ax_r_tee);
-            unsigned idx_c = getIndex(c, ax_c_tee);
+            unsigned idx_r = simon::getIndex(r, ax_r_tee);
+            unsigned idx_c = simon::getIndex(c, ax_c_tee);
             if constexpr (actually_fill){
                 ans.fill_tee(idx_R, idx_r, idx_c, wt);
             }
@@ -468,9 +468,9 @@ static void check_triangle(
             c = -c;
         }
 
-        unsigned idx_R = getIndex(R, ax_R);
-        unsigned idx_r = getIndex(r, ax_r_triangle);
-        unsigned idx_c = getIndex(c, ax_c_triangle);
+        unsigned idx_R = simon::getIndex(R, ax_R);
+        unsigned idx_r = simon::getIndex(r, ax_r_triangle);
+        unsigned idx_c = simon::getIndex(c, ax_c_triangle);
         if constexpr(actually_fill){
             ans.fill_triangle(idx_R, idx_r, idx_c, wt);
         }
@@ -749,42 +749,42 @@ static void res4_mainloop(
 
             const double E12 = E1 * E2;
 
-            const double deta12 = deltaEta(eta1, eta2);
-            const double dphi12 = deltaPhi(phi1, phi2);
-            const double dR12_2 = square(deta12) + square(dphi12);
+            const double deta12 = simon::deltaEta(eta1, eta2);
+            const double dphi12 = simon::deltaPhi(phi1, phi2);
+            const double dR12_2 = simon::square(deta12) + simon::square(dphi12);
 
             for(unsigned i3=i2+1; i3<thisjet.N; ++i3){
                 const auto&[E3, eta3, phi3] = thisjet.singles[i3];
 
                 const double E123 = E12 * E3;
 
-                const double deta13 = deltaEta(eta1, eta3);
-                const double dphi13 = deltaPhi(phi1, phi3);
-                const double dR13_2 = square(deta13) + square(dphi13);
+                const double deta13 = simon::deltaEta(eta1, eta3);
+                const double dphi13 = simon::deltaPhi(phi1, phi3);
+                const double dR13_2 = simon::square(deta13) + simon::square(dphi13);
 
-                const double deta23 = deltaEta(eta2, eta3);
-                const double dphi23 = deltaPhi(phi2, phi3);
-                const double dR23_2 = square(deta23) + square(dphi23);
+                const double deta23 = simon::deltaEta(eta2, eta3);
+                const double dphi23 = simon::deltaPhi(phi2, phi3);
+                const double dR23_2 = simon::square(deta23) + simon::square(dphi23);
 
                 for(unsigned i4=i3+1; i4<thisjet.N; ++i4){
                     const auto&[E4, eta4, phi4] = thisjet.singles[i4];
 
                     const double wt = E123 * E4;
 
-                    const double deta14 = deltaEta(eta1, eta4);
-                    const double dphi14 = deltaPhi(phi1, phi4);
-                    const double dR14_2 = square(deta14) 
-                        + square(dphi14);
+                    const double deta14 = simon::deltaEta(eta1, eta4);
+                    const double dphi14 = simon::deltaPhi(phi1, phi4);
+                    const double dR14_2 = simon::square(deta14) 
+                        + simon::square(dphi14);
 
-                    const double deta24 = deltaEta(eta2, eta4);
-                    const double dphi24 = deltaPhi(phi2, phi4);
-                    const double dR24_2 = square(deta24) 
-                        + square(dphi24);
+                    const double deta24 = simon::deltaEta(eta2, eta4);
+                    const double dphi24 = simon::deltaPhi(phi2, phi4);
+                    const double dR24_2 = simon::square(deta24) 
+                        + simon::square(dphi24);
 
-                    const double deta34 = deltaEta(eta3, eta4);
-                    const double dphi34 = deltaPhi(phi3, phi4);
-                    const double dR34_2 = square(deta34) 
-                        + square(dphi34);
+                    const double deta34 = simon::deltaEta(eta3, eta4);
+                    const double dphi34 = simon::deltaPhi(phi3, phi4);
+                    const double dR34_2 = simon::square(deta34) 
+                        + simon::square(dphi34);
 
                     std::array<res4_entry, 3> dipole_entries;
                     std::array<res4_entry, 3> tee_entries;
@@ -940,7 +940,7 @@ static void res4_mainloop_precomputed(
 void standaloneEEC::res4_standalone_multi_array(
         standaloneEEC::res4_result_multi_array& ans,
         
-        const simon_jet& J,
+        const simon::jet& J,
         const normType& nt,
 
         const standaloneEEC::axis& ax_R,
@@ -968,7 +968,7 @@ void standaloneEEC::res4_standalone_multi_array(
 void standaloneEEC::res4_standalone_multi_array_precomputed(
         standaloneEEC::res4_result_multi_array& ans,
         
-        const simon_jet& J,
+        const simon::jet& J,
         const normType& nt,
 
         const standaloneEEC::axis& ax_R,
@@ -1011,7 +1011,7 @@ void standaloneEEC::res4_standalone_multi_array_precomputed(
 void standaloneEEC::res4_standalone_vector(
         standaloneEEC::res4_result_vector& ans,
         
-        const simon_jet& J,
+        const simon::jet& J,
         const normType& nt,
 
         const standaloneEEC::axis& ax_R,
@@ -1039,7 +1039,7 @@ void standaloneEEC::res4_standalone_vector(
 void standaloneEEC::res4_standalone_vector_precomputed(
         standaloneEEC::res4_result_vector& ans,
         
-        const simon_jet& J,
+        const simon::jet& J,
         const normType& nt,
 
         const standaloneEEC::axis& ax_R,
@@ -1357,8 +1357,8 @@ void standaloneEEC::res4_standalone_transfer_multi_array(
         standaloneEEC::res4_result_multi_array& ans,
         standaloneEEC::res4_transfer_result_multi_array& transfer_ans,
 
-        const simon_jet& J1,
-        const simon_jet& J2,
+        const simon::jet& J1,
+        const simon::jet& J2,
         const normType& nt,
 
         const Eigen::MatrixXd& adjmat,
@@ -1395,8 +1395,8 @@ void standaloneEEC::res4_standalone_transfer_vector(
         standaloneEEC::res4_result_multi_array& ans,
         standaloneEEC::res4_transfer_result_vector& transfer_ans,
 
-        const simon_jet& J1,
-        const simon_jet& J2,
+        const simon::jet& J1,
+        const simon::jet& J2,
         const normType& nt,
 
         const Eigen::MatrixXd& adjmat,

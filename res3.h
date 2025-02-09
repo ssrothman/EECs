@@ -37,7 +37,7 @@ namespace fastEEC{
             if (RS == 0){
                 phi = 0;
             } else {
-                phi = std::abs(std::asin(std::sqrt(1 - square((RL-RM)/RS))));
+                phi = std::abs(std::asin(std::sqrt(1 - simon::square((RL-RM)/RS))));
             }
         }
 

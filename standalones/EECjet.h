@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "usings.h"
-#include "SRothman/SimonTools/src/simon_jet.h"
+#include "SRothman/SimonTools/src/jet.h"
 
 namespace standaloneEEC{
     enum normType{
@@ -26,7 +26,7 @@ namespace standaloneEEC{
         size_t N;
         vector<oneentry> singles;
 
-        EECjet(const simon_jet& J, const normType& nt);
+        EECjet(const simon::jet& J, const normType& nt);
     };
 
     class EECjet_precomputed : public EECjet {
@@ -38,7 +38,7 @@ namespace standaloneEEC{
         };
         multi_array<pairentry, 2> pairs;
 
-        EECjet_precomputed(const simon_jet& J, 
+        EECjet_precomputed(const simon::jet& J, 
                            const normType& nt) noexcept ;
     };
 };

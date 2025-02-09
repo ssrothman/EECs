@@ -367,7 +367,7 @@ namespace fastEEC{
             Es(0)
         {}
 
-        jetDetails_t(const simon_jet& J, const axisptr& ax, const normType nt) noexcept:
+        jetDetails_t(const simon::jet& J, const axisptr& ax, const normType nt) noexcept:
             jetDetails_t()
         {
             getFloatDRs(floatDRs, J);
@@ -410,7 +410,7 @@ namespace fastEEC{
         std::shared_ptr<adjacency> adj;
         std::shared_ptr<Eigen::MatrixXd> ptrans;
 
-        void setup(const simon_jet * recoJet,
+        void setup(const simon::jet * recoJet,
                    const Eigen::MatrixXd * ptrans,
                    const axisptr& ax,
                    const normType nt) noexcept {

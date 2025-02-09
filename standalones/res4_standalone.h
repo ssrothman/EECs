@@ -26,7 +26,7 @@ namespace standaloneEEC{
     void res4_standalone_multi_array(
             res4_result_multi_array& res4,
             
-            const simon_jet& J,
+            const simon::jet& J,
             const normType& nt,
 
             const axis& RL,
@@ -43,7 +43,7 @@ namespace standaloneEEC{
     void res4_standalone_multi_array_precomputed(
             res4_result_multi_array& res4,
             
-            const simon_jet& J,
+            const simon::jet& J,
             const normType& nt,
 
             const axis& RL,
@@ -60,7 +60,7 @@ namespace standaloneEEC{
     void res4_standalone_vector(
             res4_result_vector& res4,
             
-            const simon_jet& J,
+            const simon::jet& J,
             const normType& nt,
 
             const axis& RL,
@@ -77,7 +77,7 @@ namespace standaloneEEC{
     void res4_standalone_vector_precomputed(
             res4_result_vector& res4,
             
-            const simon_jet& J,
+            const simon::jet& J,
             const normType& nt,
 
             const axis& RL,
@@ -95,8 +95,8 @@ namespace standaloneEEC{
             res4_result_multi_array& ans,
             res4_transfer_result_multi_array& transfer_ans,
 
-            const simon_jet& J1,
-            const simon_jet& J2,
+            const simon::jet& J1,
+            const simon::jet& J2,
             const normType& nt,
 
             const Eigen::MatrixXd& adjmat,
@@ -116,8 +116,8 @@ namespace standaloneEEC{
             res4_result_multi_array& ans,
             res4_transfer_result_vector& transfer_ans,
 
-            const simon_jet& J1,
-            const simon_jet& J2,
+            const simon::jet& J1,
+            const simon::jet& J2,
             const normType& nt,
 
             const Eigen::MatrixXd& adjmat,

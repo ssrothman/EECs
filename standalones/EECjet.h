@@ -39,7 +39,7 @@ namespace standaloneEEC{
         multi_array<pairentry, 2> pairs;
 
         EECjet_precomputed(const simon_jet& J, 
-                           const normType& nt);
+                           const normType& nt) noexcept ;
     };
 };
 

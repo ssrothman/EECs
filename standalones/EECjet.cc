@@ -35,7 +35,7 @@ standaloneEEC::EECjet::EECjet(const simon_jet& J, const normType& nt) {
 }
 
 standaloneEEC::EECjet_precomputed::EECjet_precomputed(
-        const simon_jet& J, const normType& nt) :
+        const simon_jet& J, const normType& nt) noexcept  :
     EECjet(J, nt) {
 
     pairs.resize(extents[J.nPart][J.nPart]);

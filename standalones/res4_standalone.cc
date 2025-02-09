@@ -23,7 +23,7 @@ static void compute_c(
         const double deta12, const double dphi12,
         const double deta34, const double dphi34,
         const double dR12, const double dR34,
-        double& c){
+        double& c) noexcept {
 
     double dot = deta12*deta34 + dphi12*dphi34;
     double ct = dot/(dR12*dR34);
@@ -48,7 +48,7 @@ static void compute_r_R(
         const double dR12,
         const double dR34,
         double& r,
-        double& R){
+        double& R) noexcept {
 
     if(dR12 > dR34){
         R = dR12;
@@ -66,7 +66,7 @@ static void compute_r_R(
  */
 static double angle_midpoint(
         const double phi1, 
-        const double phi2){
+        const double phi2) noexcept {
     double result;
 
     /*
@@ -138,7 +138,7 @@ static void check_tee_dipole(
         const standaloneEEC::axis& ax_r_dipole,
         const standaloneEEC::axis& ax_c_dipole,
         const standaloneEEC::axis& ax_r_tee,
-        const standaloneEEC::axis& ax_c_tee){
+        const standaloneEEC::axis& ax_c_tee) noexcept {
 
     /*
      * Check the configuration (12)(23) for tees and dipoles
@@ -260,7 +260,7 @@ static void check_triangle(
 
         const standaloneEEC::axis& ax_R,
         const standaloneEEC::axis& ax_r_triangle,
-        const standaloneEEC::axis& ax_c_triangle){
+        const standaloneEEC::axis& ax_c_triangle) noexcept {
 
     /*
      * Check the configuration (123)(4) for a triangle
@@ -506,7 +506,7 @@ static void innermost_level(
         const standaloneEEC::axis& ax_c_triangle,
 
         const double tolerance2,
-        const double tri_tolerance){
+        const double tri_tolerance) noexcept {
     /*
      * Now we check the three permutations
      * of pairs of four particles
@@ -729,7 +729,7 @@ static void res4_mainloop(
         const standaloneEEC::axis& ax_c_triangle,
 
         const double tolerance2,
-        const double tri_tolerance){
+        const double tri_tolerance) noexcept {
 
     for (unsigned i1=0; i1<thisjet.N; ++i1){
         const auto&[E1, eta1, phi1] = thisjet.singles[i1];
@@ -835,7 +835,7 @@ static void res4_mainloop_precomputed(
         const standaloneEEC::axis& ax_c_triangle,
 
         const double tolerance2,
-        const double tri_tolerance){
+        const double tri_tolerance) noexcept {
 
     for (unsigned i1=0; i1<thisjet.N; ++i1){
         const auto&[E1, eta1, phi1] = thisjet.singles[i1];
@@ -942,7 +942,7 @@ void standaloneEEC::res4_standalone_multi_array(
         const standaloneEEC::axis& ax_c_triangle,
 
         const double tolerance,
-        const double tri_tolerance){
+        const double tri_tolerance) noexcept {
 
     standaloneEEC::EECjet thisjet(J, nt);
 
@@ -970,7 +970,7 @@ void standaloneEEC::res4_standalone_multi_array_precomputed(
         const standaloneEEC::axis& ax_c_triangle,
 
         const double tolerance,
-        const double tri_tolerance){
+        const double tri_tolerance) noexcept {
 
     standaloneEEC::EECjet_precomputed thisjet(J, nt);
 
@@ -1013,7 +1013,7 @@ void standaloneEEC::res4_standalone_vector(
         const standaloneEEC::axis& ax_c_triangle,
 
         const double tolerance,
-        const double tri_tolerance){
+        const double tri_tolerance) noexcept {
 
     standaloneEEC::EECjet thisjet(J, nt);
 
@@ -1041,7 +1041,7 @@ void standaloneEEC::res4_standalone_vector_precomputed(
         const standaloneEEC::axis& ax_c_triangle,
 
         const double tolerance,
-        const double tri_tolerance){
+        const double tri_tolerance) noexcept {
 
     standaloneEEC::EECjet_precomputed thisjet(J, nt);
 
@@ -1080,7 +1080,7 @@ static void res4_transferloop(
         const double tolerance2,
         const double tri_tolerance,
 
-        const double wt){
+        const double wt) noexcept {
 
     for(const standaloneEEC::neighbor& j1: *n1){
         const double twt1 = wt * j1.wt;
@@ -1241,7 +1241,7 @@ static void res4_mainloop_transfer_precomputed(
         const standaloneEEC::axis& ax_c_triangle,
 
         const double tolerance2,
-        const double tri_tolerance){
+        const double tri_tolerance) noexcept {
 
     for (unsigned i1=0; i1<thisjet.N; ++i1){
         const auto&[E1, eta1, phi1] = thisjet.singles[i1];
@@ -1362,7 +1362,7 @@ void standaloneEEC::res4_standalone_transfer_multi_array(
         const standaloneEEC::axis& ax_c_triangle,
 
         const double tolerance,
-        const double tri_tolerance){
+        const double tri_tolerance) noexcept {
 
     standaloneEEC::EECjet_precomputed thisjet(J1, nt);
     standaloneEEC::EECjet_precomputed otherjet(J2, nt);
@@ -1400,7 +1400,7 @@ void standaloneEEC::res4_standalone_transfer_vector(
         const standaloneEEC::axis& ax_c_triangle,
 
         const double tolerance,
-        const double tri_tolerance){
+        const double tri_tolerance) noexcept {
 
     standaloneEEC::EECjet_precomputed thisjet(J1, nt);
     standaloneEEC::EECjet_precomputed otherjet(J2, nt);

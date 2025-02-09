@@ -17,7 +17,7 @@ namespace standaloneEEC{
         std::vector<neighborhood> adj; //the adjacency list
         std::vector<bool> hasMatch; // = adj[i].size() > 0
         
-        adjacency(const Eigen::MatrixXd& tmat) {
+        adjacency(const Eigen::MatrixXd& tmat)  noexcept {
             adj.resize(tmat.rows());
             hasMatch.resize(tmat.rows());
             for (unsigned i = 0; i < tmat.rows(); i++) {

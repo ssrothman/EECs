@@ -38,7 +38,7 @@ namespace standaloneEEC{
             const axis& c_triangle,
 
             const double tolerance,
-            const double tri_tolerance);
+            const double tri_tolerance) noexcept ;
 
     void res4_standalone_multi_array_precomputed(
             res4_result_multi_array& res4,
@@ -55,7 +55,7 @@ namespace standaloneEEC{
             const axis& c_triangle,
 
             const double tolerance,
-            const double tri_tolerance);
+            const double tri_tolerance) noexcept ;
 
     void res4_standalone_vector(
             res4_result_vector& res4,
@@ -72,7 +72,7 @@ namespace standaloneEEC{
             const axis& c_triangle,
 
             const double tolerance,
-            const double tri_tolerance);
+            const double tri_tolerance) noexcept ;
 
     void res4_standalone_vector_precomputed(
             res4_result_vector& res4,
@@ -89,7 +89,7 @@ namespace standaloneEEC{
             const axis& c_triangle,
 
             const double tolerance,
-            const double tri_tolerance);
+            const double tri_tolerance) noexcept ;
 
     void res4_standalone_transfer_multi_array(
             res4_result_multi_array& ans,
@@ -110,7 +110,7 @@ namespace standaloneEEC{
             const standaloneEEC::axis& ax_c_triangle,
 
             const double tolerance,
-            const double tri_tolerance);
+            const double tri_tolerance) noexcept ;
 
     void res4_standalone_transfer_vector(
             res4_result_multi_array& ans,
@@ -131,7 +131,7 @@ namespace standaloneEEC{
             const standaloneEEC::axis& ax_c_triangle,
 
             const double tolerance,
-            const double tri_tolerance);
+            const double tri_tolerance) noexcept ;
 };
 
 #endif

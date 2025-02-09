@@ -28,6 +28,11 @@ static void compute_c(
     double dot = deta12*deta34 + dphi12*dphi34;
     double ct = dot/(dR12*dR34);
 
+    if (ct > 1){
+        ct = 1;
+    } else if (ct < -1){
+        ct = -1;
+    }
     c = std::acos(ct);
     /*
      * std::acos yields a result in [0, pi]
@@ -441,6 +446,11 @@ static void check_triangle(
         double dotA4AC = detaA4*detaAC + dphiA4*dphiAC;
 
         double cosc = dotA4AC/(RA4*RAC);
+        if (cosc > 1){
+            cosc = 1;
+        } else if (cosc < -1){
+            cosc = -1;
+        }
         c = std::acos(cosc);
         
         /*

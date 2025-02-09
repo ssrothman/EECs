@@ -38,6 +38,10 @@ namespace standaloneEEC{
                            std::plus<double>());
             return *this;
         }
+
+        double total_weight() const noexcept {
+            return std::accumulate(data.data(), data.data() + data.num_elements(), 0.0);
+        }
     private:
         data_t data;
     };
@@ -83,6 +87,11 @@ namespace standaloneEEC{
         res4_transfer_vector_container& operator+=(const res4_transfer_vector_container& other) noexcept {
             data.insert(data.end(), other.data.begin(), other.data.end());
             return *this;
+        }
+
+        double total_weight() const noexcept {
+            return std::accumulate(data.begin(), data.end(), 0.0,
+                                   [](double sum, const entry& e) { return sum + e.wt; });
         }
     private:
         data_t data;
@@ -161,6 +170,17 @@ namespace standaloneEEC{
             return *this;
         }
 
+        double total_dipole_weight() const noexcept {
+            return dipole.total_weight();
+        }
+
+        double total_tee_weight() const noexcept {
+            return tee.total_weight();
+        }
+
+        double total_triangle_weight() const noexcept {
+            return triangle.total_weight();
+        }
     private:
         TransferContainer dipole;
         TransferContainer tee;

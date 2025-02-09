@@ -5,6 +5,54 @@
 #include "boost/multi_array.hpp"
 
 namespace standaloneEEC{
+    class res4_vector_container{
+    public:
+        struct entry{
+            unsigned iR;
+            unsigned ir;
+            unsigned ic;
+            double wt;
+            entry(unsigned iR, unsigned ir, unsigned ic, double wt) noexcept :
+                iR(iR), ir(ir), ic(ic), wt(wt) {}
+        };
+        using data_t = std::vector<entry>;
+
+        res4_vector_container(
+                const size_t nR, 
+                const size_t nr, 
+                const size_t nc)  noexcept :
+            nR(nR), nr(nr), nc(nc){
+
+            data.reserve(100);
+        }
+
+        void fill(unsigned iR, unsigned ir, 
+                  unsigned ic, double wt) noexcept{
+            data.emplace_back(iR, ir, ic, wt);
+        }
+
+        const data_t& get_data() const noexcept{
+            return data;
+        }
+
+        res4_vector_container& operator+=(const res4_vector_container& other) noexcept{
+            data.insert(data.end(), other.data.begin(), other.data.end());
+            return *this;
+        }
+
+        double total_weight() const noexcept{
+            return std::accumulate(data.begin(), data.end(), 0.0,
+                                   [](double acc, const entry& e){
+                                       return acc + e.wt;
+                                   });
+        }
+
+        const size_t nR, nr, nc;
+    private:
+        data_t data;
+    };
+
+
     class res4_multi_array_container{
     public:
         using data_t = multi_array<double, 3>;
@@ -12,9 +60,20 @@ namespace standaloneEEC{
         res4_multi_array_container(
                 const size_t nR, 
                 const size_t nr, 
-                const size_t nc) noexcept {
+                const size_t nc) noexcept : 
+            nR(nR), nr(nr), nc(nc){
+
             data.resize(boost::extents[nR][nr][nc]);
             std::fill(data.data(), data.data() + data.num_elements(), 0);
+        }
+
+        res4_multi_array_container(
+                const res4_vector_container& other) noexcept:
+            res4_multi_array_container(other.nR, other.nr, other.nc){
+
+            for (const auto& e : other.get_data()){
+                fill(e.iR, e.ir, e.ic, e.wt);
+            }
         }
 
         void fill(unsigned iR, unsigned ir, 
@@ -33,45 +92,60 @@ namespace standaloneEEC{
                            std::plus<double>());
             return *this;
         }
+
+        double total_weight() const noexcept{
+            return std::accumulate(data.data(), data.data() + data.num_elements(), 0.0);
+        }
+
+        bool operator==(const res4_multi_array_container& other) const noexcept{
+            for(size_t iR=0; iR<nR; ++iR){
+                for(size_t ir=0; ir<nr; ++ir){
+                    for(size_t ic=0; ic<nc; ++ic){
+                        if (data[iR][ir][ic] > 0 || other.data[iR][ir][ic] > 0){
+                            //printf("(%lu, %lu, %lu): this = %g, other = %g\n", iR, ir, ic, data[iR][ir][ic], other.data[iR][ir][ic]);
+                        }
+                    }
+                }
+            }
+            return std::equal(data.data(), data.data() + data.num_elements(),
+                              other.data.data(),
+                              [](double a, double b){
+                                  return std::abs(a - b) < 1e-6;
+                              });
+        }
+
+        const size_t nR, nr, nc;
     private:
         data_t data;
     };
 
-    class res4_vector_container{
-    public:
-        struct entry{
-            unsigned iR;
-            unsigned ir;
-            unsigned ic;
-            double wt;
-            entry(unsigned iR, unsigned ir, unsigned ic, double wt) noexcept :
-                iR(iR), ir(ir), ic(ic), wt(wt) {}
-        };
-        using data_t = std::vector<entry>;
+    bool operator==(const res4_vector_container& a, const res4_vector_container& b) noexcept{
+        return res4_multi_array_container(a) == res4_multi_array_container(b);
+    }
 
-        res4_vector_container(
-                [[maybe_unused]] const size_t nR, 
-                [[maybe_unused]] const size_t nr, 
-                [[maybe_unused]] const size_t nc)  noexcept{
-            data.reserve(100);
-        }
+    bool operator==(const res4_vector_container& a, const res4_multi_array_container& b) noexcept{
+        return res4_multi_array_container(a) == b;
+    }
+    
+    bool operator==(const res4_multi_array_container& a, const res4_vector_container& b) noexcept{
+        return a == res4_multi_array_container(b);
+    }
 
-        void fill(unsigned iR, unsigned ir, 
-                  unsigned ic, double wt) noexcept{
-            data.emplace_back(iR, ir, ic, wt);
+    void print_nonzero(const res4_multi_array_container& a){
+        for(size_t iR=0; iR<a.nR; ++iR){
+            for(size_t ir=0; ir<a.nr; ++ir){
+                for(size_t ic=0; ic<a.nc; ++ic){
+                    if (a.get_data()[iR][ir][ic] > 0){
+                        printf("(%lu, %lu, %lu): %g\n", iR, ir, ic, a.get_data()[iR][ir][ic]);
+                    }
+                }
+            }
         }
+    }
 
-        const data_t& get_data() const noexcept{
-            return data;
-        }
-
-        res4_vector_container& operator+=(const res4_vector_container& other) noexcept{
-            data.insert(data.end(), other.data.begin(), other.data.end());
-            return *this;
-        }
-    private:
-        data_t data;
-    };
+    void print_nonzero(const res4_vector_container& a){
+        print_nonzero(res4_multi_array_container(a));
+    }
 
     template <class Container>
     class res4_result{
@@ -104,16 +178,35 @@ namespace standaloneEEC{
             triangle.fill(iR, ir, ic, wt);
         }
 
-        const typename Container::data_t& get_dipole_data() const noexcept{
-            return dipole.get_data();
+        const Container& get_dipole() const noexcept{
+            return dipole;
         }
 
-        const typename Container::data_t& get_tee_data() const noexcept{
-            return tee.get_data();
+        const Container& get_tee() const noexcept{
+            return tee;
         }
 
-        const typename Container::data_t& get_triangle_data() const noexcept{
-            return triangle.get_data();
+        const Container& get_triangle() const noexcept{
+            return triangle;
+        }
+
+        double total_dipole_weight() const noexcept{
+            return dipole.total_weight();
+        }
+
+        double total_tee_weight() const noexcept{
+            return tee.total_weight();
+        }
+
+        double total_triangle_weight() const noexcept{
+            return triangle.total_weight();
+        }
+
+        template <class OtherContainer>
+        bool operator==(const res4_result<OtherContainer>& other) const noexcept{
+            return dipole == other.get_dipole() &&
+                   tee == other.get_tee() &&
+                   triangle == other.get_triangle();
         }
     private:
         Container dipole;

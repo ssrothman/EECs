@@ -18,9 +18,9 @@ namespace standaloneEEC{
     class EECjet {
     public:
         struct oneentry{
+            double E;
             double eta;
             double phi;
-            double E;
         };
 
         size_t N;
@@ -32,9 +32,9 @@ namespace standaloneEEC{
     class EECjet_precomputed : public EECjet {
     public:
         struct pairentry {
-            double floatDR;
-            double dphi;
             double deta;
+            double dphi;
+            double floatDR;
         };
         multi_array<pairentry, 2> pairs;
 

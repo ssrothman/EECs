@@ -90,6 +90,48 @@ namespace standaloneEEC{
 
             const double tolerance,
             const double tri_tolerance);
+
+    void res4_standalone_transfer_multi_array(
+            res4_result_multi_array& ans,
+            res4_transfer_result_multi_array& transfer_ans,
+
+            const simon_jet& J1,
+            const simon_jet& J2,
+            const normType& nt,
+
+            const Eigen::MatrixXd& adjmat,
+
+            const standaloneEEC::axis& ax_R,
+            const standaloneEEC::axis& ax_r_dipole,
+            const standaloneEEC::axis& ax_c_dipole,
+            const standaloneEEC::axis& ax_r_tee,
+            const standaloneEEC::axis& ax_c_tee,
+            const standaloneEEC::axis& ax_r_triangle,
+            const standaloneEEC::axis& ax_c_triangle,
+
+            const double tolerance,
+            const double tri_tolerance);
+
+    void res4_standalone_transfer_vector(
+            res4_result_multi_array& ans,
+            res4_transfer_result_vector& transfer_ans,
+
+            const simon_jet& J1,
+            const simon_jet& J2,
+            const normType& nt,
+
+            const Eigen::MatrixXd& adjmat,
+
+            const standaloneEEC::axis& ax_R,
+            const standaloneEEC::axis& ax_r_dipole,
+            const standaloneEEC::axis& ax_c_dipole,
+            const standaloneEEC::axis& ax_r_tee,
+            const standaloneEEC::axis& ax_c_tee,
+            const standaloneEEC::axis& ax_r_triangle,
+            const standaloneEEC::axis& ax_c_triangle,
+
+            const double tolerance,
+            const double tri_tolerance);
 };
 
 #endif

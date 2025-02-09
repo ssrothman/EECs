@@ -6,41 +6,48 @@
 
 namespace standaloneEEC{
     class res4_multi_array_container{
-        public:
-            res4_multi_array_container(
-                    const size_t nR, 
-                    const size_t nr, 
-                    const size_t nc){
-                data.resize(boost::extents[nR][nr][nc]);
-                std::fill(data.data(), data.data() + data.num_elements(), 0);
-            }
+    public:
+        res4_multi_array_container(
+                const size_t nR, 
+                const size_t nr, 
+                const size_t nc){
+            data.resize(boost::extents[nR][nr][nc]);
+            std::fill(data.data(), data.data() + data.num_elements(), 0);
+        }
 
-            void fill(unsigned iR, unsigned ir, 
-                      unsigned ic, double wt){
-                data[iR][ir][ic] += wt;
-            }
-        private:
-            multi_array<double, 3> data;
+        void fill(unsigned iR, unsigned ir, 
+                  unsigned ic, double wt){
+            data[iR][ir][ic] += wt;
+        }
+    private:
+        multi_array<double, 3> data;
     };
 
     class res4_vector_container{
-        public:
-            using entry_t = std::tuple<unsigned, unsigned, unsigned, double>;
-            using data_t = std::vector<entry_t>;
+    public:
+        struct entry{
+            unsigned iR;
+            unsigned ir;
+            unsigned ic;
+            double wt;
+            entry(unsigned iR, unsigned ir, unsigned ic, double wt) :
+                iR(iR), ir(ir), ic(ic), wt(wt) {}
+        };
+        using data_t = std::vector<entry>;
 
-            res4_vector_container(
+        res4_vector_container(
                 [[maybe_unused]] const size_t nR, 
                 [[maybe_unused]] const size_t nr, 
                 [[maybe_unused]] const size_t nc) {
-                data.reserve(100);
-            }
+            data.reserve(100);
+        }
 
-            void fill(unsigned iR, unsigned ir, 
-                      unsigned ic, double wt){
-                data.emplace_back(iR, ir, ic, wt);
-            }
-        private:
-            data_t data;
+        void fill(unsigned iR, unsigned ir, 
+                  unsigned ic, double wt){
+            data.emplace_back(iR, ir, ic, wt);
+        }
+    private:
+        data_t data;
     };
 
     template <class Container>

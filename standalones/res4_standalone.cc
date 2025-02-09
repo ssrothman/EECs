@@ -1,7 +1,11 @@
 #include "res4_standalone.h"
+#include "adjacency.h"
+
 #include "SRothman/SimonTools/src/deltaR.h"
 #include "SRothman/SimonTools/src/histutil.h"
 #include "SRothman/SimonTools/src/util.h"
+
+#include <array>
 
 //this is in principle configurable
 //but it is important that the target ratios not be 1
@@ -85,6 +89,11 @@ static double angle_midpoint(
     return result;
 }
 
+struct res4_entry{
+    unsigned idx_R, idx_r, idx_c;
+    bool isShape=false;
+};
+
 /*
  * Check a given permutation of four particles 
  * for tee and dipole configurations
@@ -97,9 +106,12 @@ static double angle_midpoint(
  * A boolean template parameter tracks whether the 
  * distances passed are squared or not
  */
-template <class Container, bool distances_squared>
+template <class ResultType, bool distances_squared, bool actually_fill>
 static void check_tee_dipole(
-        standaloneEEC::res4_result<Container>& ans,
+        ResultType& ans,
+
+        res4_entry& dipole_entry,
+        res4_entry& tee_entry,
 
         const double eta1, 
         const double phi1,
@@ -183,12 +195,24 @@ static void check_tee_dipole(
         if(isDipole){
             unsigned idx_r = getIndex(r, ax_r_dipole);
             unsigned idx_c = getIndex(c, ax_c_dipole);
-            ans.fill_dipole(idx_R, idx_r, idx_c, wt);
+            if constexpr (actually_fill){
+                ans.fill_dipole(idx_R, idx_r, idx_c, wt);
+            }
+            dipole_entry.idx_R = idx_R;
+            dipole_entry.idx_r = idx_r;
+            dipole_entry.idx_c = idx_c;
+            dipole_entry.isShape = true;
         }
         if (isTee){
             unsigned idx_r = getIndex(r, ax_r_tee);
             unsigned idx_c = getIndex(c, ax_c_tee);
-            ans.fill_tee(idx_R, idx_r, idx_c, wt);
+            if constexpr (actually_fill){
+                ans.fill_tee(idx_R, idx_r, idx_c, wt);
+            }
+            tee_entry.idx_R = idx_R;
+            tee_entry.idx_r = idx_r;
+            tee_entry.idx_c = idx_c;
+            tee_entry.isShape = true;
         }
     }
 }
@@ -207,9 +231,11 @@ static void check_tee_dipole(
  * A boolean template parameter tracks whether the 
  * distances passed are squared or not
  */
-template <class Container, bool distances_squared>
+template <class ResultType, bool distances_squared, bool actually_fill>
 static void check_triangle(
-        standaloneEEC::res4_result<Container>& ans,
+        ResultType& ans,
+
+        res4_entry& triangle_entry,
 
         const double dR12_2, const double dR13_2,
         const double dR14_2, const double dR23_2,
@@ -435,13 +461,23 @@ static void check_triangle(
         unsigned idx_R = getIndex(R, ax_R);
         unsigned idx_r = getIndex(r, ax_r_triangle);
         unsigned idx_c = getIndex(c, ax_c_triangle);
-        ans.fill_triangle(idx_R, idx_r, idx_c, wt);
+        if constexpr(actually_fill){
+            ans.fill_triangle(idx_R, idx_r, idx_c, wt);
+        }
+        triangle_entry.idx_R = idx_R;
+        triangle_entry.idx_r = idx_r;
+        triangle_entry.idx_c = idx_c;
+        triangle_entry.isShape = true;
     }
 }
 
-template <class Container, bool distances_squared>
+template <class ResultType, bool distances_squared, bool actually_fill>
 static void innermost_level(
-        standaloneEEC::res4_result<Container>& ans,
+        ResultType& ans,
+
+        std::array<res4_entry, 3>& dipole_entries,
+        std::array<res4_entry, 3>& tee_entries,
+        std::array<res4_entry, 4>& triangle_entries,
 
         const double eta1, const double phi1,
         const double eta2, const double phi2,
@@ -487,8 +523,10 @@ static void innermost_level(
      */
 
     //(12)(34)
-    check_tee_dipole<Container, distances_squared>(
+    check_tee_dipole<ResultType, distances_squared, actually_fill>(
             ans,
+            dipole_entries[0], 
+            tee_entries[0],
             eta1, phi1,
             eta2, phi2,
             eta3, phi3,
@@ -505,8 +543,10 @@ static void innermost_level(
             ax_c_tee);
 
     //(13)(24)
-    check_tee_dipole<Container, distances_squared>(
+    check_tee_dipole<ResultType, distances_squared, actually_fill>(
             ans,
+            dipole_entries[1],
+            tee_entries[1],
             eta1, phi1,
             eta3, phi3,
             eta2, phi2,
@@ -523,8 +563,10 @@ static void innermost_level(
             ax_c_tee);
 
     //(14)(23)
-    check_tee_dipole<Container, distances_squared>(
+    check_tee_dipole<ResultType, distances_squared, actually_fill>(
             ans,
+            dipole_entries[2],
+            tee_entries[2],
             eta1, phi1,
             eta4, phi4,
             eta2, phi2,
@@ -547,8 +589,9 @@ static void innermost_level(
      */
 
     //(123)(4)
-    check_triangle<Container, distances_squared>(
+    check_triangle<ResultType, distances_squared, actually_fill>(
             ans,
+            triangle_entries[0],
 
             dR12_2, dR13_2, 
             dR14_2, dR23_2,
@@ -570,8 +613,9 @@ static void innermost_level(
             ax_c_triangle);
 
     //(124)(3)
-    check_triangle<Container, distances_squared>(
+    check_triangle<ResultType, distances_squared, actually_fill>(
             ans,
+            triangle_entries[1],
 
             dR12_2, dR14_2, 
             dR13_2, dR24_2,
@@ -593,8 +637,9 @@ static void innermost_level(
             ax_c_triangle);
 
     //(143)(2)
-    check_triangle<Container, distances_squared>(
+    check_triangle<ResultType, distances_squared, actually_fill>(
             ans,
+            triangle_entries[2],
 
             dR14_2, dR13_2, 
             dR12_2, dR34_2,
@@ -616,8 +661,9 @@ static void innermost_level(
             ax_c_triangle);
 
     //(423)(1)
-    check_triangle<Container, distances_squared>(
+    check_triangle<ResultType, distances_squared, actually_fill>(
             ans,
+            triangle_entries[3],
 
             dR24_2, dR34_2, 
             dR14_2, dR23_2,
@@ -669,11 +715,11 @@ static void innermost_level(
  *     Filling a histogram directly via a multi_array
  *     Growing a vector of entries with bin indices and weights
  */
-template <class Container>
+template <class BasicContainer>
 static void res4_mainloop(
-        standaloneEEC::res4_result<Container>& ans,
+        standaloneEEC::res4_result<BasicContainer>& ans,
 
-        const standaloneEEC::EECjet& thejet,
+        const standaloneEEC::EECjet& thisjet,
         const standaloneEEC::axis& ax_R,
         const standaloneEEC::axis& ax_r_dipole,
         const standaloneEEC::axis& ax_c_dipole,
@@ -685,11 +731,11 @@ static void res4_mainloop(
         const double tolerance2,
         const double tri_tolerance){
 
-    for (unsigned i1=0; i1<thejet.N; ++i1){
-        const auto&[E1, eta1, phi1] = thejet.singles[i1];
+    for (unsigned i1=0; i1<thisjet.N; ++i1){
+        const auto&[E1, eta1, phi1] = thisjet.singles[i1];
 
-        for (unsigned i2=i1+1; i2<thejet.N; ++i2){
-            const auto&[E2, eta2, phi2] = thejet.singles[i2];
+        for (unsigned i2=i1+1; i2<thisjet.N; ++i2){
+            const auto&[E2, eta2, phi2] = thisjet.singles[i2];
 
             const double E12 = E1 * E2;
 
@@ -697,8 +743,8 @@ static void res4_mainloop(
             const double dphi12 = deltaPhi(phi1, phi2);
             const double dR12_2 = square(deta12) + square(dphi12);
 
-            for(unsigned i3=i2+1; i3<thejet.N; ++i3){
-                const auto&[E3, eta3, phi3] = thejet.singles[i3];
+            for(unsigned i3=i2+1; i3<thisjet.N; ++i3){
+                const auto&[E3, eta3, phi3] = thisjet.singles[i3];
 
                 const double E123 = E12 * E3;
 
@@ -710,8 +756,8 @@ static void res4_mainloop(
                 const double dphi23 = deltaPhi(phi2, phi3);
                 const double dR23_2 = square(deta23) + square(dphi23);
 
-                for(unsigned i4=i3+1; i4<thejet.N; ++i4){
-                    const auto&[E4, eta4, phi4] = thejet.singles[i4];
+                for(unsigned i4=i3+1; i4<thisjet.N; ++i4){
+                    const auto&[E4, eta4, phi4] = thisjet.singles[i4];
 
                     const double wt = E123 * E4;
 
@@ -730,8 +776,16 @@ static void res4_mainloop(
                     const double dR34_2 = square(deta34) 
                         + square(dphi34);
 
-                    innermost_level<Container, true>(
+                    std::array<res4_entry, 3> dipole_entries;
+                    std::array<res4_entry, 3> tee_entries;
+                    std::array<res4_entry, 4> triangle_entries;
+
+                    innermost_level<standaloneEEC::res4_result<BasicContainer>, true, true>(
                             ans,
+
+                            dipole_entries,
+                            tee_entries,
+                            triangle_entries,
 
                             eta1, phi1,
                             eta2, phi2,
@@ -767,11 +821,11 @@ static void res4_mainloop(
     }//end loop over i1
 }//end res4_standalone()
  
-template <class Container>
+template <class BasicContainer>
 static void res4_mainloop_precomputed(
-        standaloneEEC::res4_result<Container>& ans,
+        standaloneEEC::res4_result<BasicContainer>& ans,
 
-        const standaloneEEC::EECjet_precomputed& thejet,
+        const standaloneEEC::EECjet_precomputed& thisjet,
         const standaloneEEC::axis& ax_R,
         const standaloneEEC::axis& ax_r_dipole,
         const standaloneEEC::axis& ax_c_dipole,
@@ -783,35 +837,43 @@ static void res4_mainloop_precomputed(
         const double tolerance2,
         const double tri_tolerance){
 
-    for (unsigned i1=0; i1<thejet.N; ++i1){
-        const auto&[E1, eta1, phi1] = thejet.singles[i1];
+    for (unsigned i1=0; i1<thisjet.N; ++i1){
+        const auto&[E1, eta1, phi1] = thisjet.singles[i1];
 
-        for (unsigned i2=i1+1; i2<thejet.N; ++i2){
-            const auto&[E2, eta2, phi2] = thejet.singles[i2];
+        for (unsigned i2=i1+1; i2<thisjet.N; ++i2){
+            const auto&[E2, eta2, phi2] = thisjet.singles[i2];
 
             const double E12 = E1 * E2;
 
-            const auto&[deta12, dphi12, dR12] = thejet.pairs[i1][i2];
+            const auto&[deta12, dphi12, dR12] = thisjet.pairs[i1][i2];
 
-            for(unsigned i3=i2+1; i3<thejet.N; ++i3){
-                const auto&[E3, eta3, phi3] = thejet.singles[i3];
+            for(unsigned i3=i2+1; i3<thisjet.N; ++i3){
+                const auto&[E3, eta3, phi3] = thisjet.singles[i3];
 
                 const double E123 = E12 * E3;
 
-                const auto&[deta13, dphi13, dR13] = thejet.pairs[i1][i3];
-                const auto&[deta23, dphi23, dR23] = thejet.pairs[i2][i3];
+                const auto&[deta13, dphi13, dR13] = thisjet.pairs[i1][i3];
+                const auto&[deta23, dphi23, dR23] = thisjet.pairs[i2][i3];
 
-                for(unsigned i4=i3+1; i4<thejet.N; ++i4){
-                    const auto&[E4, eta4, phi4] = thejet.singles[i4];
+                for(unsigned i4=i3+1; i4<thisjet.N; ++i4){
+                    const auto&[E4, eta4, phi4] = thisjet.singles[i4];
 
                     const double wt = E123 * E4;
 
-                    const auto&[deta14, dphi14, dR14] = thejet.pairs[i1][i4];
-                    const auto&[deta24, dphi24, dR24] = thejet.pairs[i2][i4];
-                    const auto&[deta34, dphi34, dR34] = thejet.pairs[i3][i4];
+                    const auto&[deta14, dphi14, dR14] = thisjet.pairs[i1][i4];
+                    const auto&[deta24, dphi24, dR24] = thisjet.pairs[i2][i4];
+                    const auto&[deta34, dphi34, dR34] = thisjet.pairs[i3][i4];
 
-                    innermost_level<Container, false>(
+                    std::array<res4_entry, 3> dipole_entries;
+                    std::array<res4_entry, 3> tee_entries;
+                    std::array<res4_entry, 4> triangle_entries;
+
+                    innermost_level<standaloneEEC::res4_result<BasicContainer>, false, true>(
                             ans,
+
+                            dipole_entries,
+                            tee_entries,
+                            triangle_entries,
 
                             eta1, phi1,
                             eta2, phi2,
@@ -882,9 +944,9 @@ void standaloneEEC::res4_standalone_multi_array(
         const double tolerance,
         const double tri_tolerance){
 
-    standaloneEEC::EECjet thejet(J, nt);
+    standaloneEEC::EECjet thisjet(J, nt);
 
-    res4_mainloop<res4_multi_array_container>(ans, thejet, 
+    res4_mainloop<res4_multi_array_container>(ans, thisjet, 
             ax_R, 
             ax_r_dipole, ax_c_dipole, 
             ax_r_tee, ax_c_tee, 
@@ -910,9 +972,9 @@ void standaloneEEC::res4_standalone_multi_array_precomputed(
         const double tolerance,
         const double tri_tolerance){
 
-    standaloneEEC::EECjet_precomputed thejet(J, nt);
+    standaloneEEC::EECjet_precomputed thisjet(J, nt);
 
-    res4_mainloop_precomputed<res4_multi_array_container>(ans, thejet, 
+    res4_mainloop_precomputed<res4_multi_array_container>(ans, thisjet, 
             ax_R, 
             ax_r_dipole, ax_c_dipole, 
             ax_r_tee, ax_c_tee, 
@@ -953,9 +1015,9 @@ void standaloneEEC::res4_standalone_vector(
         const double tolerance,
         const double tri_tolerance){
 
-    standaloneEEC::EECjet thejet(J, nt);
+    standaloneEEC::EECjet thisjet(J, nt);
 
-    res4_mainloop<res4_vector_container>(ans, thejet, 
+    res4_mainloop<res4_vector_container>(ans, thisjet, 
             ax_R, 
             ax_r_dipole, ax_c_dipole, 
             ax_r_tee, ax_c_tee, 
@@ -981,12 +1043,377 @@ void standaloneEEC::res4_standalone_vector_precomputed(
         const double tolerance,
         const double tri_tolerance){
 
-    standaloneEEC::EECjet_precomputed thejet(J, nt);
+    standaloneEEC::EECjet_precomputed thisjet(J, nt);
 
-    res4_mainloop_precomputed<res4_vector_container>(ans, thejet, 
+    res4_mainloop_precomputed<res4_vector_container>(ans, thisjet, 
             ax_R, 
             ax_r_dipole, ax_c_dipole, 
             ax_r_tee, ax_c_tee, 
+            ax_r_triangle, ax_c_triangle,
+            tolerance*tolerance,
+            tri_tolerance);
+}
+
+template <class TransferContainer, class BasicContainer>
+static void res4_transferloop(
+        standaloneEEC::res4_transfer_result<TransferContainer, BasicContainer>& ans,
+
+        std::array<res4_entry, 3>& dipole_entries_1,
+        std::array<res4_entry, 3>& tee_entries_1,
+        std::array<res4_entry, 4>& triangle_entries_1,
+
+        const standaloneEEC::EECjet_precomputed& otherjet,
+
+        const standaloneEEC::neighborhood* const n1,
+        const standaloneEEC::neighborhood* const n2,
+        const standaloneEEC::neighborhood* const n3,
+        const standaloneEEC::neighborhood* const n4,
+
+        const standaloneEEC::axis& ax_R,
+        const standaloneEEC::axis& ax_r_dipole,
+        const standaloneEEC::axis& ax_c_dipole,
+        const standaloneEEC::axis& ax_r_tee,
+        const standaloneEEC::axis& ax_c_tee,
+        const standaloneEEC::axis& ax_r_triangle,
+        const standaloneEEC::axis& ax_c_triangle,
+
+        const double tolerance2,
+        const double tri_tolerance,
+
+        const double wt){
+
+    for(const standaloneEEC::neighbor& j1: *n1){
+        const double twt1 = wt * j1.wt;
+        const auto&[E1, eta1, phi1] = otherjet.singles[j1.idx];
+
+        for(const standaloneEEC::neighbor& j2: *n2){
+            const double twt2 = twt1 * j2.wt;
+            const auto&[E2, eta2, phi2] = otherjet.singles[j2.idx];
+            
+            const auto&[deta12, dphi12, dR12] = otherjet.pairs[j1.idx][j2.idx];
+
+            for(const standaloneEEC::neighbor& j3 : *n3){
+                const double twt3 = twt2 * j3.wt;
+                const auto&[E3, eta3, phi3] = otherjet.singles[j3.idx];
+
+                const auto&[deta13, dphi13, dR13] = otherjet.pairs[j1.idx][j3.idx];
+                const auto&[deta23, dphi23, dR23] = otherjet.pairs[j2.idx][j3.idx];
+
+                for(const standaloneEEC::neighbor& j4 : *n4){
+                    const double twt4 = twt3 * j4.wt;
+                    const auto&[E4, eta4, phi4] = otherjet.singles[j4.idx];
+
+                    const auto&[deta14, dphi14, dR14] = otherjet.pairs[j1.idx][j4.idx];
+                    const auto&[deta24, dphi24, dR24] = otherjet.pairs[j2.idx][j4.idx];
+                    const auto&[deta34, dphi34, dR34] = otherjet.pairs[j3.idx][j4.idx];
+
+                    std::array<res4_entry, 3> dipole_entries_2;
+                    std::array<res4_entry, 3> tee_entries_2;
+                    std::array<res4_entry, 4> triangle_entries_2;
+
+                    innermost_level<standaloneEEC::res4_transfer_result<TransferContainer, BasicContainer>, false, false>(
+                            ans,
+
+                            dipole_entries_2,
+                            tee_entries_2,
+                            triangle_entries_2,
+
+                            eta1, phi1,
+                            eta2, phi2,
+                            eta3, phi3,
+                            eta4, phi4,
+
+                            deta12, dphi12,
+                            deta13, dphi13,
+                            deta14, dphi14,
+                            deta23, dphi23,
+                            deta24, dphi24,
+                            deta34, dphi34,
+
+                            dR12, dR13,
+                            dR14, dR23,
+                            dR24, dR34,
+
+                            twt4,
+
+                            ax_R,
+                            ax_r_dipole,
+                            ax_c_dipole,
+                            ax_r_tee,
+                            ax_c_tee,
+                            ax_r_triangle,
+                            ax_c_triangle,
+
+                            tolerance2,
+                            tri_tolerance);
+
+                    for(unsigned i=0; i<3; ++i){
+                        if(dipole_entries_1[i].isShape && dipole_entries_2[i].isShape){
+                            ans.fill_dipole(dipole_entries_1[i].idx_R, 
+                                            dipole_entries_1[i].idx_r, 
+                                            dipole_entries_1[i].idx_c,
+                                            dipole_entries_2[i].idx_R, 
+                                            dipole_entries_2[i].idx_r, 
+                                            dipole_entries_2[i].idx_c,
+                                            twt4);
+                        } else if(dipole_entries_1[i].isShape){
+                            ans.unmatched1.fill_dipole(
+                                    dipole_entries_1[i].idx_R, 
+                                    dipole_entries_1[i].idx_r, 
+                                    dipole_entries_1[i].idx_c,
+                                    twt4);
+                        } else if(dipole_entries_2[i].isShape){
+                            ans.unmatched2.fill_dipole(
+                                    dipole_entries_2[i].idx_R, 
+                                    dipole_entries_2[i].idx_r, 
+                                    dipole_entries_2[i].idx_c,
+                                    twt4);
+                        }//end if dipole entries match
+
+                        if(tee_entries_1[i].isShape && tee_entries_2[i].isShape){
+                            ans.fill_tee(tee_entries_1[i].idx_R, 
+                                         tee_entries_1[i].idx_r, 
+                                         tee_entries_1[i].idx_c,
+                                         tee_entries_2[i].idx_R, 
+                                         tee_entries_2[i].idx_r, 
+                                         tee_entries_2[i].idx_c,
+                                         twt4);
+                        } else if(tee_entries_1[i].isShape){
+                            ans.unmatched1.fill_tee(
+                                    tee_entries_1[i].idx_R, 
+                                    tee_entries_1[i].idx_r, 
+                                    tee_entries_1[i].idx_c,
+                                    twt4);
+                        } else if(tee_entries_2[i].isShape){
+                            ans.unmatched2.fill_tee(
+                                    tee_entries_2[i].idx_R, 
+                                    tee_entries_2[i].idx_r, 
+                                    tee_entries_2[i].idx_c,
+                                    twt4);
+                        }//end if tee entries match
+                    }//end loop over tee/dipole entries
+
+                    for(unsigned i=0; i<4; ++i){
+                        if(triangle_entries_1[i].isShape && triangle_entries_2[i].isShape){
+                            ans.fill_triangle(triangle_entries_1[i].idx_R, 
+                                              triangle_entries_1[i].idx_r, 
+                                              triangle_entries_1[i].idx_c,
+                                              triangle_entries_2[i].idx_R, 
+                                              triangle_entries_2[i].idx_r, 
+                                              triangle_entries_2[i].idx_c,
+                                              twt4);
+                        } else if(triangle_entries_1[i].isShape){
+                            ans.unmatched1.fill_triangle(
+                                    triangle_entries_1[i].idx_R, 
+                                    triangle_entries_1[i].idx_r, 
+                                    triangle_entries_1[i].idx_c,
+                                    twt4);
+                        } else if(triangle_entries_2[i].isShape){
+                            ans.unmatched2.fill_triangle(
+                                    triangle_entries_2[i].idx_R, 
+                                    triangle_entries_2[i].idx_r, 
+                                    triangle_entries_2[i].idx_c,
+                                    twt4);
+                        }//end if triangle entries match
+                    }//end loop over triangle entries
+                }//end loop over j4
+            }//end loop over j3
+        }//end loop over j2
+    }//end loop over j1
+}//end res4_transferloop()
+
+template <class BasicContainer, class TransferContainer>
+static void res4_mainloop_transfer_precomputed(
+        standaloneEEC::res4_result<BasicContainer>& ans,
+        standaloneEEC::res4_transfer_result<TransferContainer, BasicContainer>& transfer_ans,
+
+        const standaloneEEC::EECjet_precomputed& thisjet,
+        const standaloneEEC::EECjet_precomputed& otherjet,
+
+        const standaloneEEC::adjacency& adj,
+
+        const standaloneEEC::axis& ax_R,
+        const standaloneEEC::axis& ax_r_dipole,
+        const standaloneEEC::axis& ax_c_dipole,
+        const standaloneEEC::axis& ax_r_tee,
+        const standaloneEEC::axis& ax_c_tee,
+        const standaloneEEC::axis& ax_r_triangle,
+        const standaloneEEC::axis& ax_c_triangle,
+
+        const double tolerance2,
+        const double tri_tolerance){
+
+    for (unsigned i1=0; i1<thisjet.N; ++i1){
+        const auto&[E1, eta1, phi1] = thisjet.singles[i1];
+        const bool hasMatch1 = adj.hasMatch[i1];
+        const standaloneEEC::neighborhood* const n1 = hasMatch1 ? &adj.adj[i1] : nullptr;
+
+        for (unsigned i2=i1+1; i2<thisjet.N; ++i2){
+            const auto&[E2, eta2, phi2] = thisjet.singles[i2];
+            const bool hasMatch2 = hasMatch1 && adj.hasMatch[i2];
+            const standaloneEEC::neighborhood* const n2 = hasMatch2 ? &adj.adj[i2] : nullptr;
+
+            const double E12 = E1 * E2;
+
+            const auto&[deta12, dphi12, dR12] = thisjet.pairs[i1][i2];
+
+            for(unsigned i3=i2+1; i3<thisjet.N; ++i3){
+                const auto&[E3, eta3, phi3] = thisjet.singles[i3];
+                const bool hasMatch3 = hasMatch2 && adj.hasMatch[i3];
+                const standaloneEEC::neighborhood* const n3 = hasMatch3 ? &adj.adj[i3] : nullptr;
+
+                const double E123 = E12 * E3;
+
+                const auto&[deta13, dphi13, dR13] = thisjet.pairs[i1][i3];
+                const auto&[deta23, dphi23, dR23] = thisjet.pairs[i2][i3];
+
+                for(unsigned i4=i3+1; i4<thisjet.N; ++i4){
+                    const auto&[E4, eta4, phi4] = thisjet.singles[i4];
+                    const bool hasMatch4 = hasMatch3 && adj.hasMatch[i4];
+                    const standaloneEEC::neighborhood* const n4 = hasMatch4 ? &adj.adj[i4] : nullptr;
+
+                    const double wt = E123 * E4;
+
+                    const auto&[deta14, dphi14, dR14] = thisjet.pairs[i1][i4];
+                    const auto&[deta24, dphi24, dR24] = thisjet.pairs[i2][i4];
+                    const auto&[deta34, dphi34, dR34] = thisjet.pairs[i3][i4];
+
+                    std::array<res4_entry, 3> dipole_entries;
+                    std::array<res4_entry, 3> tee_entries;
+                    std::array<res4_entry, 4> triangle_entries;
+
+                    innermost_level<standaloneEEC::res4_result<BasicContainer>, false, true>(
+                            ans,
+
+                            dipole_entries,
+                            tee_entries,
+                            triangle_entries,
+
+                            eta1, phi1,
+                            eta2, phi2,
+                            eta3, phi3,
+                            eta4, phi4,
+
+                            deta12, dphi12,
+                            deta13, dphi13,
+                            deta14, dphi14,
+                            deta23, dphi23,
+                            deta24, dphi24,
+                            deta34, dphi34,
+
+                            dR12, dR13,
+                            dR14, dR23,
+                            dR24, dR34,
+
+                            wt,
+
+                            ax_R,
+                            ax_r_dipole,
+                            ax_c_dipole,
+                            ax_r_tee,
+                            ax_c_tee,
+                            ax_r_triangle,
+                            ax_c_triangle,
+
+                            tolerance2,
+                            tri_tolerance);
+
+                    if(hasMatch4){
+                        res4_transferloop<TransferContainer, BasicContainer>(
+                            transfer_ans,
+                            dipole_entries,
+                            tee_entries,
+                            triangle_entries,
+                            otherjet,
+                            n1, n2, n3, n4,
+                            ax_R,
+                            ax_r_dipole,
+                            ax_c_dipole,
+                            ax_r_tee,
+                            ax_c_tee,
+                            ax_r_triangle,
+                            ax_c_triangle,
+                            tolerance2,
+                            tri_tolerance,
+                            wt);
+                    }
+                }//end loop over i4
+            }//end loop over i3
+        }//end loop over i2
+    }//end loop over i1
+}//end res4_standalone()
+
+void standaloneEEC::res4_standalone_transfer_multi_array(
+        standaloneEEC::res4_result_multi_array& ans,
+        standaloneEEC::res4_transfer_result_multi_array& transfer_ans,
+
+        const simon_jet& J1,
+        const simon_jet& J2,
+        const normType& nt,
+
+        const Eigen::MatrixXd& adjmat,
+
+        const standaloneEEC::axis& ax_R,
+        const standaloneEEC::axis& ax_r_dipole,
+        const standaloneEEC::axis& ax_c_dipole,
+        const standaloneEEC::axis& ax_r_tee,
+        const standaloneEEC::axis& ax_c_tee,
+        const standaloneEEC::axis& ax_r_triangle,
+        const standaloneEEC::axis& ax_c_triangle,
+
+        const double tolerance,
+        const double tri_tolerance){
+
+    standaloneEEC::EECjet_precomputed thisjet(J1, nt);
+    standaloneEEC::EECjet_precomputed otherjet(J2, nt);
+
+    standaloneEEC::adjacency adj(adjmat);
+
+    res4_mainloop_transfer_precomputed<res4_multi_array_container, res4_transfer_multi_array_container>(
+            ans, transfer_ans,
+            thisjet, otherjet,
+            adj,
+            ax_R,
+            ax_r_dipole, ax_c_dipole,
+            ax_r_tee, ax_c_tee,
+            ax_r_triangle, ax_c_triangle,
+            tolerance*tolerance,
+            tri_tolerance);
+}
+
+void standaloneEEC::res4_standalone_transfer_vector(
+        standaloneEEC::res4_result_multi_array& ans,
+        standaloneEEC::res4_transfer_result_vector& transfer_ans,
+
+        const simon_jet& J1,
+        const simon_jet& J2,
+        const normType& nt,
+
+        const Eigen::MatrixXd& adjmat,
+
+        const standaloneEEC::axis& ax_R,
+        const standaloneEEC::axis& ax_r_dipole,
+        const standaloneEEC::axis& ax_c_dipole,
+        const standaloneEEC::axis& ax_r_tee,
+        const standaloneEEC::axis& ax_c_tee,
+        const standaloneEEC::axis& ax_r_triangle,
+        const standaloneEEC::axis& ax_c_triangle,
+
+        const double tolerance,
+        const double tri_tolerance){
+
+    standaloneEEC::EECjet_precomputed thisjet(J1, nt);
+    standaloneEEC::EECjet_precomputed otherjet(J2, nt);
+
+    standaloneEEC::adjacency adj(adjmat);
+
+    res4_mainloop_transfer_precomputed<res4_multi_array_container, res4_transfer_vector_container>(
+            ans, transfer_ans,
+            thisjet, otherjet,
+            adj,
+            ax_R,
+            ax_r_dipole, ax_c_dipole,
+            ax_r_tee, ax_c_tee,
             ax_r_triangle, ax_c_triangle,
             tolerance*tolerance,
             tri_tolerance);

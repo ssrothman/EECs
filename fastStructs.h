@@ -300,52 +300,52 @@ namespace fastEEC{
 
         void summarize() const noexcept{
             for(unsigned o=0; o<5; ++o){
-                printf("\torder %u: %g\n", o+2, recursive_reduce(*(wts[o]), 0.0));
+                printf("\torder %u: %g\n", o+2, simon::recursive_reduce(*(wts[o]), 0.0));
             }
             if(resolved3){
-                printf("\tres3: %g\n", recursive_reduce(*resolved3, 0.0));
+                printf("\tres3: %g\n", simon::recursive_reduce(*resolved3, 0.0));
             }
             if(resolved4_shapes){
-                printf("\tdipole: %g\n", recursive_reduce(*(resolved4_shapes->dipole), 0.0));
-                printf("\ttee: %g\n", recursive_reduce(*(resolved4_shapes->tee), 0.0));
-                printf("\ttriangle: %g\n", recursive_reduce(*(resolved4_shapes->triangle), 0.0));
+                printf("\tdipole: %g\n", simon::recursive_reduce(*(resolved4_shapes->dipole), 0.0));
+                printf("\ttee: %g\n", simon::recursive_reduce(*(resolved4_shapes->tee), 0.0));
+                printf("\ttriangle: %g\n", simon::recursive_reduce(*(resolved4_shapes->triangle), 0.0));
             }
 
             if(wts_PU[0]){
                 for(unsigned o=0; o<5; ++o){
-                    printf("\torder %u PU: %g\n", o+2, recursive_reduce(*(wts_PU[o]), 0.0));
+                    printf("\torder %u PU: %g\n", o+2, simon::recursive_reduce(*(wts_PU[o]), 0.0));
                 }
             }
 
             if(resolved3_PU){
-                printf("\tres3 PU: %g\n", recursive_reduce(*resolved3_PU, 0.0));
+                printf("\tres3 PU: %g\n", simon::recursive_reduce(*resolved3_PU, 0.0));
             }
 
             if(resolved4_shapes_PU){
-                printf("\tdipole PU: %g\n", recursive_reduce(*(resolved4_shapes_PU->dipole), 0.0));
-                printf("\ttee PU: %g\n", recursive_reduce(*(resolved4_shapes_PU->tee), 0.0));
-                printf("\ttriangle PU: %g\n", recursive_reduce(*(resolved4_shapes_PU->triangle), 0.0));
+                printf("\tdipole PU: %g\n", simon::recursive_reduce(*(resolved4_shapes_PU->dipole), 0.0));
+                printf("\ttee PU: %g\n", simon::recursive_reduce(*(resolved4_shapes_PU->tee), 0.0));
+                printf("\ttriangle PU: %g\n", simon::recursive_reduce(*(resolved4_shapes_PU->triangle), 0.0));
             }
 
             if(transfer_wts[0]){
                 for(unsigned o=0; o<5; ++o){
-                    double total = recursive_reduce(*(wts[o]), 0.0);
-                    printf("\torder %u transfer: %g\n", o+2, recursive_reduce(*(transfer_wts[o]), 0.0));
+                    double total = simon::recursive_reduce(*(wts[o]), 0.0);
+                    printf("\torder %u transfer: %g\n", o+2, simon::recursive_reduce(*(transfer_wts[o]), 0.0));
                 }
             }
 
             if(transfer_res3){
-                double total = recursive_reduce(*resolved3, 0.0);
-                printf("\tres3 transfer: %g\n", recursive_reduce(*transfer_res3, 0.0));
+                double total = simon::recursive_reduce(*resolved3, 0.0);
+                printf("\tres3 transfer: %g\n", simon::recursive_reduce(*transfer_res3, 0.0));
             }
 
             if(transfer_res4_shapes){
-                double total_dipole = recursive_reduce(*(resolved4_shapes->dipole), 0.0);
-                double total_tee = recursive_reduce(*(resolved4_shapes->tee), 0.0);
-                double total_triangle = recursive_reduce(*(resolved4_shapes->triangle), 0.0);
-                printf("\tdipole transfer: %g\n", recursive_reduce(*(transfer_res4_shapes->dipole), 0.0));
-                printf("\ttee transfer: %g\n", recursive_reduce(*(transfer_res4_shapes->tee), 0.0));
-                printf("\ttriangle transfer: %g\n", recursive_reduce(*(transfer_res4_shapes->triangle), 0.0));
+                double total_dipole = simon::recursive_reduce(*(resolved4_shapes->dipole), 0.0);
+                double total_tee = simon::recursive_reduce(*(resolved4_shapes->tee), 0.0);
+                double total_triangle = simon::recursive_reduce(*(resolved4_shapes->triangle), 0.0);
+                printf("\tdipole transfer: %g\n", simon::recursive_reduce(*(transfer_res4_shapes->dipole), 0.0));
+                printf("\ttee transfer: %g\n", simon::recursive_reduce(*(transfer_res4_shapes->tee), 0.0));
+                printf("\ttriangle transfer: %g\n", simon::recursive_reduce(*(transfer_res4_shapes->triangle), 0.0));
             }
         }
     };

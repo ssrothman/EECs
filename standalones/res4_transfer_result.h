@@ -65,13 +65,13 @@ namespace standaloneEEC{
         using data_t = std::vector<entry>;
 
         res4_transfer_vector_container(
-                [[maybe_unused]] const size_t nR_1, 
+                const size_t nR_1, 
                 [[maybe_unused]] const size_t nr_1, 
                 [[maybe_unused]] const size_t nc_1,
                 [[maybe_unused]] const size_t nR_2, 
                 [[maybe_unused]] const size_t nr_2, 
                 [[maybe_unused]] const size_t nc_2) noexcept  {
-            data.reserve(100);
+            data.reserve(nR_1);
         }
 
         void fill(unsigned iR1, unsigned ir1, unsigned ic1,

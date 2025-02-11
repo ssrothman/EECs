@@ -2,22 +2,32 @@
 #define SROTHMAN_EECS_RES4_RESULT_H
 
 #include "usings.h"
-#include "boost/multi_array.hpp"
+#include "Res4Axes.h"
+#include "Res4Calculator.h"
 
-namespace standaloneEEC{
-    class res4_vector_container{
+#include "SRothman/SimonTools/src/histutil.h"
+
+#include <vector>
+#include <numeric>
+#include <algorithm>
+#include <boost/multi_array.hpp>
+
+namespace EEC{
+
+    class Res4VectorContainer{
     public:
         struct entry{
             unsigned iR;
             unsigned ir;
             unsigned ic;
             double wt;
-            entry(unsigned iR, unsigned ir, unsigned ic, double wt) noexcept :
+            entry(unsigned iR, unsigned ir, 
+                  unsigned ic, double wt) noexcept :
                 iR(iR), ir(ir), ic(ic), wt(wt) {}
         };
         using data_t = std::vector<entry>;
 
-        res4_vector_container(
+        Res4VectorContainer(
                 const size_t nR, 
                 const size_t nr, 
                 const size_t nc)  noexcept :
@@ -25,6 +35,9 @@ namespace standaloneEEC{
 
             data.reserve(100);
         }
+
+        Res4VectorContainer() noexcept :
+            Res4VectorContainer(0, 0, 0) {}
 
         void fill(unsigned iR, unsigned ir, 
                   unsigned ic, double wt) noexcept{
@@ -35,16 +48,19 @@ namespace standaloneEEC{
             return data;
         }
 
-        res4_vector_container& operator+=(const res4_vector_container& other) noexcept{
-            data.insert(data.end(), other.data.begin(), other.data.end());
+        Res4VectorContainer& operator+=(const Res4VectorContainer& other) noexcept{
+            data.insert(data.end(), 
+                        other.data.begin(), 
+                        other.data.end());
             return *this;
         }
 
         double total_weight() const noexcept{
-            return std::accumulate(data.begin(), data.end(), 0.0,
-                                   [](double acc, const entry& e){
-                                       return acc + e.wt;
-                                   });
+            return std::accumulate(
+                    data.begin(), data.end(), 0.0,
+                    [](double acc, const entry& e){
+                        return acc + e.wt;
+                    });
         }
 
         const size_t nR, nr, nc;
@@ -53,23 +69,29 @@ namespace standaloneEEC{
     };
 
 
-    class res4_multi_array_container{
+    class Res4MultiArrayContainer{
     public:
         using data_t = multi_array<double, 3>;
 
-        res4_multi_array_container(
+        Res4MultiArrayContainer() noexcept :
+            Res4MultiArrayContainer(0, 0, 0) {}
+
+        Res4MultiArrayContainer(
                 const size_t nR, 
                 const size_t nr, 
                 const size_t nc) noexcept : 
             nR(nR), nr(nr), nc(nc){
 
             data.resize(boost::extents[nR][nr][nc]);
-            std::fill(data.data(), data.data() + data.num_elements(), 0);
+            std::fill(data.data(), 
+                      data.data() + data.num_elements(), 0);
         }
 
-        res4_multi_array_container(
-                const res4_vector_container& other) noexcept:
-            res4_multi_array_container(other.nR, other.nr, other.nc){
+        Res4MultiArrayContainer(
+                const Res4VectorContainer& other) noexcept:
+            Res4MultiArrayContainer(other.nR, 
+                                    other.nr, 
+                                    other.nc){
 
             for (const auto& e : other.get_data()){
                 fill(e.iR, e.ir, e.ic, e.wt);
@@ -85,29 +107,24 @@ namespace standaloneEEC{
             return data;
         }
 
-        res4_multi_array_container& operator+=(const res4_multi_array_container& other) noexcept{
+        Res4MultiArrayContainer& operator+=(const Res4MultiArrayContainer& other) noexcept{
             assert(data.num_elements() == other.data.num_elements());
-            std::transform(data.data(), data.data() + data.num_elements(),
+            std::transform(data.data(), 
+                           data.data() + data.num_elements(),
                            other.data.data(), data.data(),
                            std::plus<double>());
             return *this;
         }
 
         double total_weight() const noexcept{
-            return std::accumulate(data.data(), data.data() + data.num_elements(), 0.0);
+            return std::accumulate(
+                    data.data(), 
+                    data.data() + data.num_elements(), 0.0);
         }
 
-        bool operator==(const res4_multi_array_container& other) const noexcept{
-            for(size_t iR=0; iR<nR; ++iR){
-                for(size_t ir=0; ir<nr; ++ir){
-                    for(size_t ic=0; ic<nc; ++ic){
-                        if (data[iR][ir][ic] > 0 || other.data[iR][ir][ic] > 0){
-                            //printf("(%lu, %lu, %lu): this = %g, other = %g\n", iR, ir, ic, data[iR][ir][ic], other.data[iR][ir][ic]);
-                        }
-                    }
-                }
-            }
-            return std::equal(data.data(), data.data() + data.num_elements(),
+        bool operator==(const Res4MultiArrayContainer& other) const noexcept{
+            return std::equal(data.data(), 
+                              data.data() + data.num_elements(),
                               other.data.data(),
                               [](double a, double b){
                                   return std::abs(a - b) < 1e-6;
@@ -119,19 +136,19 @@ namespace standaloneEEC{
         data_t data;
     };
 
-    bool operator==(const res4_vector_container& a, const res4_vector_container& b) noexcept{
-        return res4_multi_array_container(a) == res4_multi_array_container(b);
+    inline bool operator==(const Res4VectorContainer& a, const Res4VectorContainer& b) noexcept{
+        return Res4MultiArrayContainer(a) == Res4MultiArrayContainer(b);
     }
 
-    bool operator==(const res4_vector_container& a, const res4_multi_array_container& b) noexcept{
-        return res4_multi_array_container(a) == b;
+    inline bool operator==(const Res4VectorContainer& a, const Res4MultiArrayContainer& b) noexcept{
+        return Res4MultiArrayContainer(a) == b;
     }
     
-    bool operator==(const res4_multi_array_container& a, const res4_vector_container& b) noexcept{
-        return a == res4_multi_array_container(b);
+    inline bool operator==(const Res4MultiArrayContainer& a, const Res4VectorContainer& b) noexcept{
+        return a == Res4MultiArrayContainer(b);
     }
 
-    void print_nonzero(const res4_multi_array_container& a){
+    inline void print_nonzero(const Res4MultiArrayContainer& a){
         for(size_t iR=0; iR<a.nR; ++iR){
             for(size_t ir=0; ir<a.nr; ++ir){
                 for(size_t ic=0; ic<a.nc; ++ic){
@@ -143,14 +160,21 @@ namespace standaloneEEC{
         }
     }
 
-    void print_nonzero(const res4_vector_container& a){
-        print_nonzero(res4_multi_array_container(a));
+    inline void print_nonzero(const Res4VectorContainer& a){
+        print_nonzero(Res4MultiArrayContainer(a));
     }
 
     template <class Container>
-    class res4_result{
+    class Res4Result{
     public:
-        res4_result(
+        Res4Result() : 
+            dipole(),
+            tee(),
+            triangle(),
+            pt_denom_set(false),
+            pt_denom(-1) {}
+
+        Res4Result(
                 const size_t nR, 
                 const size_t nr_dipole,
                 const size_t nc_dipole,
@@ -160,7 +184,24 @@ namespace standaloneEEC{
                 const size_t nc_triangle) noexcept :
             dipole(nR, nr_dipole, nc_dipole),
             tee(nR, nr_tee, nc_tee),
-            triangle(nR, nr_triangle, nc_triangle)  {}
+            triangle(nR, nr_triangle, nc_triangle),
+            pt_denom_set(false),
+            pt_denom(-1) {}
+
+        Res4Result(const Res4Axes& axes) noexcept :
+                Res4Result(simon::AXextent(axes.R),
+                           simon::AXextent(axes.r_dipole),
+                           simon::AXextent(axes.c_dipole),
+                           simon::AXextent(axes.r_tee),
+                           simon::AXextent(axes.c_tee),
+                           simon::AXextent(axes.r_triangle),
+                           simon::AXextent(axes.c_triangle)) {}
+        
+        Res4Result(const Res4Calculator& calculator) noexcept :
+            Res4Result(calculator.get_axes()) {}
+
+        Res4Result(const Res4TransferCalculator& calculator) noexcept :
+            Res4Result(calculator.get_axes_gen()) {}
 
         void fill_dipole(
                 unsigned iR, unsigned ir, 
@@ -176,6 +217,23 @@ namespace standaloneEEC{
                 unsigned iR, unsigned ir,
                 unsigned ic, double wt) noexcept{
             triangle.fill(iR, ir, ic, wt);
+        }
+
+        void set_pt_denom(double pt_denom_) {
+            if (pt_denom_set){
+                throw std::runtime_error("pt_denom already set");
+            } else {
+                pt_denom = pt_denom_;
+                pt_denom_set = true;
+            }
+        }
+
+        double get_pt_denom() const {
+            if (!pt_denom_set){
+                throw std::runtime_error("pt_denom not set");
+            } else {
+                return pt_denom;
+            }
         }
 
         const Container& get_dipole() const noexcept{
@@ -203,19 +261,23 @@ namespace standaloneEEC{
         }
 
         template <class OtherContainer>
-        bool operator==(const res4_result<OtherContainer>& other) const noexcept{
+        bool operator==(const Res4Result<OtherContainer>& other) const noexcept{
             return dipole == other.get_dipole() &&
                    tee == other.get_tee() &&
                    triangle == other.get_triangle();
         }
+
     private:
         Container dipole;
         Container tee;
         Container triangle;
+        
+        bool pt_denom_set;
+        double pt_denom;
     };
 
-    using res4_result_multi_array = res4_result<res4_multi_array_container>;
-    using res4_result_vector = res4_result<res4_vector_container>;
+    using Res4Result_MultiArray = Res4Result<Res4MultiArrayContainer>;
+    using Res4Result_Vector = Res4Result<Res4VectorContainer>;
 };
 
 #endif

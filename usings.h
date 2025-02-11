@@ -1,17 +1,13 @@
-#ifndef EECS_FAST_USINGS_H
-#define EECS_FAST_USINGS_H
+#ifndef SROTHMAN_EECS_STANDALONE_USINGS_H
+#define SROTHMAN_EECS_STANDALONE_USINGS_H
 
-namespace fastEEC{
-    using namespace boost;
+#include <boost/histogram.hpp>
+
+namespace EEC{
     using namespace std;
+    using namespace boost;
 
-    using uvec = std::vector<unsigned>;
-
-    using axis_t = histogram::axis::variable<double>;
-    using axisptr = std::shared_ptr<axis_t>;
-
-    using umat = multi_array<unsigned, 2>;
-    using umatptr = std::shared_ptr<umat>;
+    using axis = histogram::axis::variable<double>;
 }
 
 #endif

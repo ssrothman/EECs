@@ -4,20 +4,20 @@
 #include <vector>
 #include <Eigen/Dense>
 
-namespace standaloneEEC{
+namespace EEC{
     struct neighbor{
         unsigned idx;
         double wt;
     };
     using neighborhood = std::vector<neighbor>; // vector of neighbors
 
-    class adjacency {
+    class Adjacency {
     public:
 
         std::vector<neighborhood> adj; //the adjacency list
         std::vector<bool> hasMatch; // = adj[i].size() > 0
         
-        adjacency(const Eigen::MatrixXd& tmat)  noexcept {
+        Adjacency(const Eigen::MatrixXd& tmat)  noexcept {
             adj.resize(tmat.rows());
             hasMatch.resize(tmat.rows());
             for (unsigned i = 0; i < tmat.rows(); i++) {

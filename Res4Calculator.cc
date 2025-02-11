@@ -1,9 +1,12 @@
-#include "res4_standalone.h"
-#include "adjacency.h"
+#include "Res4Calculator.h"
+#include "Adjacency.h"
+#include "Res4Result.h"
+#include "Res4TransferResult.h"
 
 #include "SRothman/SimonTools/src/deltaR.h"
 #include "SRothman/SimonTools/src/histutil.h"
 #include "SRothman/SimonTools/src/util.h"
+
 
 #include <array>
 
@@ -139,11 +142,7 @@ static void check_tee_dipole(
 
         const double tolerance2,
 
-        const standaloneEEC::axis& ax_R,
-        const standaloneEEC::axis& ax_r_dipole,
-        const standaloneEEC::axis& ax_c_dipole,
-        const standaloneEEC::axis& ax_r_tee,
-        const standaloneEEC::axis& ax_c_tee) noexcept {
+        const EEC::Res4Axes axes) noexcept {
 
     /*
      * Check the configuration (12)(23) for tees and dipoles
@@ -196,10 +195,10 @@ static void check_tee_dipole(
                   dR12, dR34,
                   c);
 
-        unsigned idx_R = simon::getIndex(R, ax_R);
+        unsigned idx_R = simon::getIndex(R, axes.R);
         if(isDipole){
-            unsigned idx_r = simon::getIndex(r, ax_r_dipole);
-            unsigned idx_c = simon::getIndex(c, ax_c_dipole);
+            unsigned idx_r = simon::getIndex(r, axes.r_dipole);
+            unsigned idx_c = simon::getIndex(c, axes.c_dipole);
             if constexpr (actually_fill){
                 ans.fill_dipole(idx_R, idx_r, idx_c, wt);
             }
@@ -209,8 +208,8 @@ static void check_tee_dipole(
             dipole_entry.isShape = true;
         }
         if (isTee){
-            unsigned idx_r = simon::getIndex(r, ax_r_tee);
-            unsigned idx_c = simon::getIndex(c, ax_c_tee);
+            unsigned idx_r = simon::getIndex(r, axes.r_tee);
+            unsigned idx_c = simon::getIndex(c, axes.c_tee);
             if constexpr (actually_fill){
                 ans.fill_tee(idx_R, idx_r, idx_c, wt);
             }
@@ -263,9 +262,7 @@ static void check_triangle(
 
         const double tri_tolerance,
 
-        const standaloneEEC::axis& ax_R,
-        const standaloneEEC::axis& ax_r_triangle,
-        const standaloneEEC::axis& ax_c_triangle) noexcept {
+        const EEC::Res4Axes& axes) noexcept {
 
     /*
      * Check the configuration (123)(4) for a triangle
@@ -468,9 +465,9 @@ static void check_triangle(
             c = -c;
         }
 
-        unsigned idx_R = simon::getIndex(R, ax_R);
-        unsigned idx_r = simon::getIndex(r, ax_r_triangle);
-        unsigned idx_c = simon::getIndex(c, ax_c_triangle);
+        unsigned idx_R = simon::getIndex(R, axes.R);
+        unsigned idx_r = simon::getIndex(r, axes.r_triangle);
+        unsigned idx_c = simon::getIndex(c, axes.c_triangle);
         if constexpr(actually_fill){
             ans.fill_triangle(idx_R, idx_r, idx_c, wt);
         }
@@ -507,13 +504,7 @@ static void innermost_level(
 
         const double wt,
 
-        const standaloneEEC::axis& ax_R,
-        const standaloneEEC::axis& ax_r_dipole,
-        const standaloneEEC::axis& ax_c_dipole,
-        const standaloneEEC::axis& ax_r_tee,
-        const standaloneEEC::axis& ax_c_tee,
-        const standaloneEEC::axis& ax_r_triangle,
-        const standaloneEEC::axis& ax_c_triangle,
+        const EEC::Res4Axes& axes,
 
         const double tolerance2,
         const double tri_tolerance) noexcept {
@@ -546,11 +537,7 @@ static void innermost_level(
             deta34, dphi34,
             wt,
             tolerance2,
-            ax_R,
-            ax_r_dipole,
-            ax_c_dipole,
-            ax_r_tee,
-            ax_c_tee);
+            axes);
 
     //(13)(24)
     check_tee_dipole<ResultType, distances_squared, actually_fill>(
@@ -566,11 +553,7 @@ static void innermost_level(
             deta24, dphi24,
             wt,
             tolerance2,
-            ax_R,
-            ax_r_dipole,
-            ax_c_dipole,
-            ax_r_tee,
-            ax_c_tee);
+            axes);
 
     //(14)(23)
     check_tee_dipole<ResultType, distances_squared, actually_fill>(
@@ -586,11 +569,7 @@ static void innermost_level(
             deta23, dphi23,
             wt,
             tolerance2,
-            ax_R,
-            ax_r_dipole,
-            ax_c_dipole,
-            ax_r_tee,
-            ax_c_tee);
+            axes);
 
     /*
      * Now we need to check for triangles
@@ -618,9 +597,7 @@ static void innermost_level(
 
             tri_tolerance,
 
-            ax_R,
-            ax_r_triangle,
-            ax_c_triangle);
+            axes);
 
     //(124)(3)
     check_triangle<ResultType, distances_squared, actually_fill>(
@@ -642,9 +619,7 @@ static void innermost_level(
 
             tri_tolerance,
 
-            ax_R,
-            ax_r_triangle,
-            ax_c_triangle);
+            axes);
 
     //(143)(2)
     check_triangle<ResultType, distances_squared, actually_fill>(
@@ -666,9 +641,7 @@ static void innermost_level(
 
             tri_tolerance,
 
-            ax_R,
-            ax_r_triangle,
-            ax_c_triangle);
+            axes);
 
     //(423)(1)
     check_triangle<ResultType, distances_squared, actually_fill>(
@@ -690,9 +663,7 @@ static void innermost_level(
 
             tri_tolerance,
 
-            ax_R,
-            ax_r_triangle,
-            ax_c_triangle);
+            axes);
 }
 
 /*
@@ -725,160 +696,49 @@ static void innermost_level(
  *     Filling a histogram directly via a multi_array
  *     Growing a vector of entries with bin indices and weights
  */
-template <class BasicContainer>
+template <class BasicContainer, class PairsType>
 static void res4_mainloop(
-        standaloneEEC::res4_result<BasicContainer>& ans,
+        EEC::Res4Result<BasicContainer>& ans,
 
-        const standaloneEEC::EECjet& thisjet,
-        const standaloneEEC::axis& ax_R,
-        const standaloneEEC::axis& ax_r_dipole,
-        const standaloneEEC::axis& ax_c_dipole,
-        const standaloneEEC::axis& ax_r_tee,
-        const standaloneEEC::axis& ax_c_tee,
-        const standaloneEEC::axis& ax_r_triangle,
-        const standaloneEEC::axis& ax_c_triangle,
+        const EEC::EECjet<PairsType>& thisjet,
+
+        const EEC::Res4Axes& axes,
 
         const double tolerance2,
         const double tri_tolerance) noexcept {
 
     for (unsigned i1=0; i1<thisjet.N; ++i1){
-        const auto&[E1, eta1, phi1] = thisjet.singles[i1];
+        const auto&[E1, eta1, phi1] = thisjet.singles.get(i1);
 
         for (unsigned i2=i1+1; i2<thisjet.N; ++i2){
-            const auto&[E2, eta2, phi2] = thisjet.singles[i2];
+            const auto&[E2, eta2, phi2] = thisjet.singles.get(i2);
 
             const double E12 = E1 * E2;
 
-            const double deta12 = simon::deltaEta(eta1, eta2);
-            const double dphi12 = simon::deltaPhi(phi1, phi2);
-            const double dR12_2 = simon::square(deta12) + simon::square(dphi12);
+            const auto&[deta12, dphi12, dR12] = thisjet.pairs.get(i1, i2);
 
             for(unsigned i3=i2+1; i3<thisjet.N; ++i3){
-                const auto&[E3, eta3, phi3] = thisjet.singles[i3];
+                const auto&[E3, eta3, phi3] = thisjet.singles.get(i3);
 
                 const double E123 = E12 * E3;
 
-                const double deta13 = simon::deltaEta(eta1, eta3);
-                const double dphi13 = simon::deltaPhi(phi1, phi3);
-                const double dR13_2 = simon::square(deta13) + simon::square(dphi13);
-
-                const double deta23 = simon::deltaEta(eta2, eta3);
-                const double dphi23 = simon::deltaPhi(phi2, phi3);
-                const double dR23_2 = simon::square(deta23) + simon::square(dphi23);
+                const auto&[deta13, dphi13, dR13] = thisjet.pairs.get(i1, i3);
+                const auto&[deta23, dphi23, dR23] = thisjet.pairs.get(i2, i3);
 
                 for(unsigned i4=i3+1; i4<thisjet.N; ++i4){
-                    const auto&[E4, eta4, phi4] = thisjet.singles[i4];
+                    const auto&[E4, eta4, phi4] = thisjet.singles.get(i4);
 
                     const double wt = E123 * E4;
 
-                    const double deta14 = simon::deltaEta(eta1, eta4);
-                    const double dphi14 = simon::deltaPhi(phi1, phi4);
-                    const double dR14_2 = simon::square(deta14) 
-                        + simon::square(dphi14);
-
-                    const double deta24 = simon::deltaEta(eta2, eta4);
-                    const double dphi24 = simon::deltaPhi(phi2, phi4);
-                    const double dR24_2 = simon::square(deta24) 
-                        + simon::square(dphi24);
-
-                    const double deta34 = simon::deltaEta(eta3, eta4);
-                    const double dphi34 = simon::deltaPhi(phi3, phi4);
-                    const double dR34_2 = simon::square(deta34) 
-                        + simon::square(dphi34);
+                    const auto&[deta14, dphi14, dR14] = thisjet.pairs.get(i1, i4);
+                    const auto&[deta24, dphi24, dR24] = thisjet.pairs.get(i2, i4);
+                    const auto&[deta34, dphi34, dR34] = thisjet.pairs.get(i3, i4);
 
                     std::array<res4_entry, 3> dipole_entries;
                     std::array<res4_entry, 3> tee_entries;
                     std::array<res4_entry, 4> triangle_entries;
 
-                    innermost_level<standaloneEEC::res4_result<BasicContainer>, true, true>(
-                            ans,
-
-                            dipole_entries,
-                            tee_entries,
-                            triangle_entries,
-
-                            eta1, phi1,
-                            eta2, phi2,
-                            eta3, phi3,
-                            eta4, phi4,
-
-                            deta12, dphi12,
-                            deta13, dphi13,
-                            deta14, dphi14,
-                            deta23, dphi23,
-                            deta24, dphi24,
-                            deta34, dphi34,
-
-                            dR12_2, dR13_2,
-                            dR14_2, dR23_2,
-                            dR24_2, dR34_2,
-
-                            wt,
-
-                            ax_R,
-                            ax_r_dipole,
-                            ax_c_dipole,
-                            ax_r_tee,
-                            ax_c_tee,
-                            ax_r_triangle,
-                            ax_c_triangle,
-
-                            tolerance2,
-                            tri_tolerance);
-                }//end loop over i4
-            }//end loop over i3
-        }//end loop over i2
-    }//end loop over i1
-}//end res4_standalone()
- 
-template <class BasicContainer>
-static void res4_mainloop_precomputed(
-        standaloneEEC::res4_result<BasicContainer>& ans,
-
-        const standaloneEEC::EECjet_precomputed& thisjet,
-        const standaloneEEC::axis& ax_R,
-        const standaloneEEC::axis& ax_r_dipole,
-        const standaloneEEC::axis& ax_c_dipole,
-        const standaloneEEC::axis& ax_r_tee,
-        const standaloneEEC::axis& ax_c_tee,
-        const standaloneEEC::axis& ax_r_triangle,
-        const standaloneEEC::axis& ax_c_triangle,
-
-        const double tolerance2,
-        const double tri_tolerance) noexcept {
-
-    for (unsigned i1=0; i1<thisjet.N; ++i1){
-        const auto&[E1, eta1, phi1] = thisjet.singles[i1];
-
-        for (unsigned i2=i1+1; i2<thisjet.N; ++i2){
-            const auto&[E2, eta2, phi2] = thisjet.singles[i2];
-
-            const double E12 = E1 * E2;
-
-            const auto&[deta12, dphi12, dR12] = thisjet.pairs[i1][i2];
-
-            for(unsigned i3=i2+1; i3<thisjet.N; ++i3){
-                const auto&[E3, eta3, phi3] = thisjet.singles[i3];
-
-                const double E123 = E12 * E3;
-
-                const auto&[deta13, dphi13, dR13] = thisjet.pairs[i1][i3];
-                const auto&[deta23, dphi23, dR23] = thisjet.pairs[i2][i3];
-
-                for(unsigned i4=i3+1; i4<thisjet.N; ++i4){
-                    const auto&[E4, eta4, phi4] = thisjet.singles[i4];
-
-                    const double wt = E123 * E4;
-
-                    const auto&[deta14, dphi14, dR14] = thisjet.pairs[i1][i4];
-                    const auto&[deta24, dphi24, dR24] = thisjet.pairs[i2][i4];
-                    const auto&[deta34, dphi34, dR34] = thisjet.pairs[i3][i4];
-
-                    std::array<res4_entry, 3> dipole_entries;
-                    std::array<res4_entry, 3> tee_entries;
-                    std::array<res4_entry, 4> triangle_entries;
-
-                    innermost_level<standaloneEEC::res4_result<BasicContainer>, false, true>(
+                    innermost_level<EEC::Res4Result<BasicContainer>, PairsType::distances_squared, true>(
                             ans,
 
                             dipole_entries,
@@ -903,13 +763,7 @@ static void res4_mainloop_precomputed(
 
                             wt,
 
-                            ax_R,
-                            ax_r_dipole,
-                            ax_c_dipole,
-                            ax_r_tee,
-                            ax_c_tee,
-                            ax_r_triangle,
-                            ax_c_triangle,
+                            axes,
 
                             tolerance2,
                             tri_tolerance);
@@ -937,196 +791,136 @@ static void res4_mainloop_precomputed(
  * I intent to test explicitely which backend is better,
  * but for now I expose both
  */
-void standaloneEEC::res4_standalone_multi_array(
-        standaloneEEC::res4_result_multi_array& ans,
-        
+template <class BasicContainer, class PairsType>
+static void call_res4(
+        EEC::Res4Result<BasicContainer>& ans,
+
         const simon::jet& J,
-        const normType& nt,
+        const EEC::normType& nt,
 
-        const standaloneEEC::axis& ax_R,
-        const standaloneEEC::axis& ax_r_dipole,
-        const standaloneEEC::axis& ax_c_dipole,
-        const standaloneEEC::axis& ax_r_tee,
-        const standaloneEEC::axis& ax_c_tee,
-        const standaloneEEC::axis& ax_r_triangle,
-        const standaloneEEC::axis& ax_c_triangle,
-
-        const double tolerance,
+        const EEC::Res4Axes& axes,
+        const double tolerance2,
         const double tri_tolerance) noexcept {
 
-    standaloneEEC::EECjet thisjet(J, nt);
-
-    res4_mainloop<res4_multi_array_container>(ans, thisjet, 
-            ax_R, 
-            ax_r_dipole, ax_c_dipole, 
-            ax_r_tee, ax_c_tee, 
-            ax_r_triangle, ax_c_triangle,
-            tolerance*tolerance,
+    EEC::EECjet<PairsType> thisjet(J, nt);
+    ans.set_pt_denom(thisjet.singles.get_pt_denom());
+    
+    res4_mainloop<BasicContainer, PairsType>(
+            ans, thisjet, 
+            axes,
+            tolerance2,
             tri_tolerance);
 }
 
-void standaloneEEC::res4_standalone_multi_array_precomputed(
-        standaloneEEC::res4_result_multi_array& ans,
-        
+void EEC::Res4Calculator::compute_JIT(
         const simon::jet& J,
-        const normType& nt,
+        Res4Result_Vector& result) const noexcept {
+    
+    call_res4<Res4VectorContainer, JITPairs>(
+            result, 
+            J, nt, 
+            axes, 
+            tolerance2, 
+            tri_tolerance);
+}
 
-        const standaloneEEC::axis& ax_R,
-        const standaloneEEC::axis& ax_r_dipole,
-        const standaloneEEC::axis& ax_c_dipole,
-        const standaloneEEC::axis& ax_r_tee,
-        const standaloneEEC::axis& ax_c_tee,
-        const standaloneEEC::axis& ax_r_triangle,
-        const standaloneEEC::axis& ax_c_triangle,
+void EEC::Res4Calculator::compute_JIT(
+        const simon::jet& J,
+        Res4Result_MultiArray& result) const noexcept {
 
-        const double tolerance,
-        const double tri_tolerance) noexcept {
+    call_res4<Res4MultiArrayContainer, JITPairs>(
+            result, 
+            J, nt, 
+            axes, 
+            tolerance2,
+            tri_tolerance);
+}
 
-    standaloneEEC::EECjet_precomputed thisjet(J, nt);
+void EEC::Res4Calculator::compute_precomputed(
+        const simon::jet& J,
+        Res4Result_Vector& result) const noexcept {
+    
+    call_res4<Res4VectorContainer, PrecomputedPairs>(
+            result, 
+            J, nt, 
+            axes, 
+            tolerance2, 
+            tri_tolerance);
+}
 
-    res4_mainloop_precomputed<res4_multi_array_container>(ans, thisjet, 
-            ax_R, 
-            ax_r_dipole, ax_c_dipole, 
-            ax_r_tee, ax_c_tee, 
-            ax_r_triangle, ax_c_triangle,
-            tolerance*tolerance,
+void EEC::Res4Calculator::compute_precomputed(
+        const simon::jet& J,
+        Res4Result_MultiArray& result) const noexcept {
+
+    call_res4<Res4MultiArrayContainer, PrecomputedPairs>(
+            result, 
+            J, nt, 
+            axes, 
+            tolerance2, 
             tri_tolerance);
 }
  
-/*
- * This is the entry point for the res4 calculation 
- * with the vector container backend
- *
- * In this mode the result is accumulated directly into a
- * multi_array object representing the histogram. 
- *
- * Cons: dense representation is easier to work with
- *       no maximum size in memory
- *       need for dynamic allocation to grow vectors
- *
- * Pros: more flexible
- *       benefits from sparsity in memory usage
- *       no seeking through large arrays to fill bins
- */
-void standaloneEEC::res4_standalone_vector(
-        standaloneEEC::res4_result_vector& ans,
-        
-        const simon::jet& J,
-        const normType& nt,
-
-        const standaloneEEC::axis& ax_R,
-        const standaloneEEC::axis& ax_r_dipole,
-        const standaloneEEC::axis& ax_c_dipole,
-        const standaloneEEC::axis& ax_r_tee,
-        const standaloneEEC::axis& ax_c_tee,
-        const standaloneEEC::axis& ax_r_triangle,
-        const standaloneEEC::axis& ax_c_triangle,
-
-        const double tolerance,
-        const double tri_tolerance) noexcept {
-
-    standaloneEEC::EECjet thisjet(J, nt);
-
-    res4_mainloop<res4_vector_container>(ans, thisjet, 
-            ax_R, 
-            ax_r_dipole, ax_c_dipole, 
-            ax_r_tee, ax_c_tee, 
-            ax_r_triangle, ax_c_triangle,
-            tolerance*tolerance,
-            tri_tolerance);
-}
-
-void standaloneEEC::res4_standalone_vector_precomputed(
-        standaloneEEC::res4_result_vector& ans,
-        
-        const simon::jet& J,
-        const normType& nt,
-
-        const standaloneEEC::axis& ax_R,
-        const standaloneEEC::axis& ax_r_dipole,
-        const standaloneEEC::axis& ax_c_dipole,
-        const standaloneEEC::axis& ax_r_tee,
-        const standaloneEEC::axis& ax_c_tee,
-        const standaloneEEC::axis& ax_r_triangle,
-        const standaloneEEC::axis& ax_c_triangle,
-
-        const double tolerance,
-        const double tri_tolerance) noexcept {
-
-    standaloneEEC::EECjet_precomputed thisjet(J, nt);
-
-    res4_mainloop_precomputed<res4_vector_container>(ans, thisjet, 
-            ax_R, 
-            ax_r_dipole, ax_c_dipole, 
-            ax_r_tee, ax_c_tee, 
-            ax_r_triangle, ax_c_triangle,
-            tolerance*tolerance,
-            tri_tolerance);
-}
-
-template <class TransferContainer, class BasicContainer>
+template <class TransferContainer, class BasicContainer, class PairsType>
 static void res4_transferloop(
-        standaloneEEC::res4_transfer_result<TransferContainer, BasicContainer>& ans,
+        EEC::Res4TransferResult<TransferContainer, BasicContainer>& ans,
 
-        std::array<res4_entry, 3>& dipole_entries_1,
-        std::array<res4_entry, 3>& tee_entries_1,
-        std::array<res4_entry, 4>& triangle_entries_1,
+        std::array<res4_entry, 3>& dipole_entries_gen,
+        std::array<res4_entry, 3>& tee_entries_gen,
+        std::array<res4_entry, 4>& triangle_entries_gen,
 
-        const standaloneEEC::EECjet_precomputed& otherjet,
+        const EEC::EECjet<PairsType>& thisjet_reco,
 
-        const standaloneEEC::neighborhood* const n1,
-        const standaloneEEC::neighborhood* const n2,
-        const standaloneEEC::neighborhood* const n3,
-        const standaloneEEC::neighborhood* const n4,
+        const EEC::neighborhood* const n1,
+        const EEC::neighborhood* const n2,
+        const EEC::neighborhood* const n3,
+        const EEC::neighborhood* const n4,
 
-        const standaloneEEC::axis& ax_R,
-        const standaloneEEC::axis& ax_r_dipole,
-        const standaloneEEC::axis& ax_c_dipole,
-        const standaloneEEC::axis& ax_r_tee,
-        const standaloneEEC::axis& ax_c_tee,
-        const standaloneEEC::axis& ax_r_triangle,
-        const standaloneEEC::axis& ax_c_triangle,
+        const EEC::Res4Axes& axes_reco,
 
         const double tolerance2,
         const double tri_tolerance,
 
         const double wt) noexcept {
 
-    for(const standaloneEEC::neighbor& j1: *n1){
+    for(const EEC::neighbor& j1: *n1){
         const double twt1 = wt * j1.wt;
-        const auto&[E1, eta1, phi1] = otherjet.singles[j1.idx];
+        //unused E1 throws compiler warnings
+        //this seems to be an unavoidable language limitation
+        //we have to wait until c++26 for a solution 
+        //(https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p2169r0.pdf)
+        const auto&[E1, eta1, phi1] = thisjet_reco.singles.get(j1.idx);
 
-        for(const standaloneEEC::neighbor& j2: *n2){
+        for(const EEC::neighbor& j2: *n2){
             const double twt2 = twt1 * j2.wt;
-            const auto&[E2, eta2, phi2] = otherjet.singles[j2.idx];
+            const auto&[E2, eta2, phi2] = thisjet_reco.singles.get(j2.idx);
             
-            const auto&[deta12, dphi12, dR12] = otherjet.pairs[j1.idx][j2.idx];
+            const auto&[deta12, dphi12, dR12] = thisjet_reco.pairs.get(j1.idx, j2.idx);
 
-            for(const standaloneEEC::neighbor& j3 : *n3){
+            for(const EEC::neighbor& j3 : *n3){
                 const double twt3 = twt2 * j3.wt;
-                const auto&[E3, eta3, phi3] = otherjet.singles[j3.idx];
+                const auto&[E3, eta3, phi3] = thisjet_reco.singles.get(j3.idx);
 
-                const auto&[deta13, dphi13, dR13] = otherjet.pairs[j1.idx][j3.idx];
-                const auto&[deta23, dphi23, dR23] = otherjet.pairs[j2.idx][j3.idx];
+                const auto&[deta13, dphi13, dR13] = thisjet_reco.pairs.get(j1.idx, j3.idx);
+                const auto&[deta23, dphi23, dR23] = thisjet_reco.pairs.get(j2.idx, j3.idx);
 
-                for(const standaloneEEC::neighbor& j4 : *n4){
+                for(const EEC::neighbor& j4 : *n4){
                     const double twt4 = twt3 * j4.wt;
-                    const auto&[E4, eta4, phi4] = otherjet.singles[j4.idx];
+                    const auto&[E4, eta4, phi4] = thisjet_reco.singles.get(j4.idx);
 
-                    const auto&[deta14, dphi14, dR14] = otherjet.pairs[j1.idx][j4.idx];
-                    const auto&[deta24, dphi24, dR24] = otherjet.pairs[j2.idx][j4.idx];
-                    const auto&[deta34, dphi34, dR34] = otherjet.pairs[j3.idx][j4.idx];
+                    const auto&[deta14, dphi14, dR14] = thisjet_reco.pairs.get(j1.idx, j4.idx);
+                    const auto&[deta24, dphi24, dR24] = thisjet_reco.pairs.get(j2.idx, j4.idx);
+                    const auto&[deta34, dphi34, dR34] = thisjet_reco.pairs.get(j3.idx, j4.idx);
 
-                    std::array<res4_entry, 3> dipole_entries_2;
-                    std::array<res4_entry, 3> tee_entries_2;
-                    std::array<res4_entry, 4> triangle_entries_2;
+                    std::array<res4_entry, 3> dipole_entries_reco;
+                    std::array<res4_entry, 3> tee_entries_reco;
+                    std::array<res4_entry, 4> triangle_entries_reco;
 
-                    innermost_level<standaloneEEC::res4_transfer_result<TransferContainer, BasicContainer>, false, false>(
+                    innermost_level<EEC::Res4TransferResult<TransferContainer, BasicContainer>, PairsType::distances_squared, false>(
                             ans,
 
-                            dipole_entries_2,
-                            tee_entries_2,
-                            triangle_entries_2,
+                            dipole_entries_reco,
+                            tee_entries_reco,
+                            triangle_entries_reco,
 
                             eta1, phi1,
                             eta2, phi2,
@@ -1146,83 +940,77 @@ static void res4_transferloop(
 
                             twt4,
 
-                            ax_R,
-                            ax_r_dipole,
-                            ax_c_dipole,
-                            ax_r_tee,
-                            ax_c_tee,
-                            ax_r_triangle,
-                            ax_c_triangle,
+                            axes_reco,
 
                             tolerance2,
                             tri_tolerance);
 
                     for(unsigned i=0; i<3; ++i){
-                        if(dipole_entries_1[i].isShape && dipole_entries_2[i].isShape){
-                            ans.fill_dipole(dipole_entries_1[i].idx_R, 
-                                            dipole_entries_1[i].idx_r, 
-                                            dipole_entries_1[i].idx_c,
-                                            dipole_entries_2[i].idx_R, 
-                                            dipole_entries_2[i].idx_r, 
-                                            dipole_entries_2[i].idx_c,
+                        if(dipole_entries_reco[i].isShape && dipole_entries_reco[i].isShape){
+                            ans.fill_dipole(dipole_entries_reco[i].idx_R, 
+                                            dipole_entries_reco[i].idx_r, 
+                                            dipole_entries_reco[i].idx_c,
+                                            dipole_entries_reco[i].idx_R, 
+                                            dipole_entries_reco[i].idx_r, 
+                                            dipole_entries_reco[i].idx_c,
                                             twt4);
-                        } else if(dipole_entries_1[i].isShape){
-                            ans.unmatched1.fill_dipole(
-                                    dipole_entries_1[i].idx_R, 
-                                    dipole_entries_1[i].idx_r, 
-                                    dipole_entries_1[i].idx_c,
+                        } else if(dipole_entries_reco[i].isShape){
+                            ans.unmatched_reco.fill_dipole(
+                                    dipole_entries_reco[i].idx_R, 
+                                    dipole_entries_reco[i].idx_r, 
+                                    dipole_entries_reco[i].idx_c,
                                     twt4);
-                        } else if(dipole_entries_2[i].isShape){
-                            ans.unmatched2.fill_dipole(
-                                    dipole_entries_2[i].idx_R, 
-                                    dipole_entries_2[i].idx_r, 
-                                    dipole_entries_2[i].idx_c,
+                        } else if(dipole_entries_reco[i].isShape){
+                            ans.unmatched_gen.fill_dipole(
+                                    dipole_entries_reco[i].idx_R, 
+                                    dipole_entries_reco[i].idx_r, 
+                                    dipole_entries_reco[i].idx_c,
                                     twt4);
                         }//end if dipole entries match
 
-                        if(tee_entries_1[i].isShape && tee_entries_2[i].isShape){
-                            ans.fill_tee(tee_entries_1[i].idx_R, 
-                                         tee_entries_1[i].idx_r, 
-                                         tee_entries_1[i].idx_c,
-                                         tee_entries_2[i].idx_R, 
-                                         tee_entries_2[i].idx_r, 
-                                         tee_entries_2[i].idx_c,
+                        if(tee_entries_reco[i].isShape && tee_entries_reco[i].isShape){
+                            ans.fill_tee(tee_entries_reco[i].idx_R, 
+                                         tee_entries_reco[i].idx_r, 
+                                         tee_entries_reco[i].idx_c,
+                                         tee_entries_reco[i].idx_R, 
+                                         tee_entries_reco[i].idx_r, 
+                                         tee_entries_reco[i].idx_c,
                                          twt4);
-                        } else if(tee_entries_1[i].isShape){
-                            ans.unmatched1.fill_tee(
-                                    tee_entries_1[i].idx_R, 
-                                    tee_entries_1[i].idx_r, 
-                                    tee_entries_1[i].idx_c,
+                        } else if(tee_entries_reco[i].isShape){
+                            ans.unmatched_reco.fill_tee(
+                                    tee_entries_reco[i].idx_R, 
+                                    tee_entries_reco[i].idx_r, 
+                                    tee_entries_reco[i].idx_c,
                                     twt4);
-                        } else if(tee_entries_2[i].isShape){
-                            ans.unmatched2.fill_tee(
-                                    tee_entries_2[i].idx_R, 
-                                    tee_entries_2[i].idx_r, 
-                                    tee_entries_2[i].idx_c,
+                        } else if(tee_entries_reco[i].isShape){
+                            ans.unmatched_gen.fill_tee(
+                                    tee_entries_reco[i].idx_R, 
+                                    tee_entries_reco[i].idx_r, 
+                                    tee_entries_reco[i].idx_c,
                                     twt4);
                         }//end if tee entries match
                     }//end loop over tee/dipole entries
 
                     for(unsigned i=0; i<4; ++i){
-                        if(triangle_entries_1[i].isShape && triangle_entries_2[i].isShape){
-                            ans.fill_triangle(triangle_entries_1[i].idx_R, 
-                                              triangle_entries_1[i].idx_r, 
-                                              triangle_entries_1[i].idx_c,
-                                              triangle_entries_2[i].idx_R, 
-                                              triangle_entries_2[i].idx_r, 
-                                              triangle_entries_2[i].idx_c,
+                        if(triangle_entries_reco[i].isShape && triangle_entries_reco[i].isShape){
+                            ans.fill_triangle(triangle_entries_reco[i].idx_R, 
+                                              triangle_entries_reco[i].idx_r, 
+                                              triangle_entries_reco[i].idx_c,
+                                              triangle_entries_reco[i].idx_R, 
+                                              triangle_entries_reco[i].idx_r, 
+                                              triangle_entries_reco[i].idx_c,
                                               twt4);
-                        } else if(triangle_entries_1[i].isShape){
-                            ans.unmatched1.fill_triangle(
-                                    triangle_entries_1[i].idx_R, 
-                                    triangle_entries_1[i].idx_r, 
-                                    triangle_entries_1[i].idx_c,
+                        } else if(triangle_entries_reco[i].isShape){
+                            ans.unmatched_reco.fill_triangle(
+                                    triangle_entries_reco[i].idx_R, 
+                                    triangle_entries_reco[i].idx_r, 
+                                    triangle_entries_reco[i].idx_c,
                                     twt4);
-                        } else if(triangle_entries_2[i].isShape){
-                            ans.unmatched2.fill_triangle(
-                                    triangle_entries_2[i].idx_R, 
-                                    triangle_entries_2[i].idx_r, 
-                                    triangle_entries_2[i].idx_c,
+                        } else if(triangle_entries_reco[i].isShape){
+                            ans.unmatched_gen.fill_triangle(
+                                    triangle_entries_reco[i].idx_R, 
+                                    triangle_entries_reco[i].idx_r, 
+                                    triangle_entries_reco[i].idx_c,
                                     twt4);
                         }//end if triangle entries match
                     }//end loop over triangle entries
@@ -1232,67 +1020,62 @@ static void res4_transferloop(
     }//end loop over j1
 }//end res4_transferloop()
 
-template <class BasicContainer, class TransferContainer>
-static void res4_mainloop_transfer_precomputed(
-        standaloneEEC::res4_result<BasicContainer>& ans,
-        standaloneEEC::res4_transfer_result<TransferContainer, BasicContainer>& transfer_ans,
+template <class BasicContainer, class TransferContainer, class PairsType>
+static void res4_mainloop_transfer(
+        EEC::Res4Result<BasicContainer>& ans,
+        EEC::Res4TransferResult<TransferContainer, BasicContainer>& transfer_ans,
 
-        const standaloneEEC::EECjet_precomputed& thisjet,
-        const standaloneEEC::EECjet_precomputed& otherjet,
+        const EEC::EECjet<PairsType>& thisjet_reco,
+        const EEC::EECjet<PairsType>& thisjet_gen,
 
-        const standaloneEEC::adjacency& adj,
+        const EEC::Adjacency& adj,
 
-        const standaloneEEC::axis& ax_R,
-        const standaloneEEC::axis& ax_r_dipole,
-        const standaloneEEC::axis& ax_c_dipole,
-        const standaloneEEC::axis& ax_r_tee,
-        const standaloneEEC::axis& ax_c_tee,
-        const standaloneEEC::axis& ax_r_triangle,
-        const standaloneEEC::axis& ax_c_triangle,
+        const EEC::Res4Axes& axes_reco,
+        const EEC::Res4Axes& axes_gen,
 
         const double tolerance2,
         const double tri_tolerance) noexcept {
 
-    for (unsigned i1=0; i1<thisjet.N; ++i1){
-        const auto&[E1, eta1, phi1] = thisjet.singles[i1];
+    for (unsigned i1=0; i1<thisjet_gen.N; ++i1){
+        const auto&[E1, eta1, phi1] = thisjet_gen.singles.get(i1);
         const bool hasMatch1 = adj.hasMatch[i1];
-        const standaloneEEC::neighborhood* const n1 = hasMatch1 ? &adj.adj[i1] : nullptr;
+        const EEC::neighborhood* const n1 = hasMatch1 ? &adj.adj[i1] : nullptr;
 
-        for (unsigned i2=i1+1; i2<thisjet.N; ++i2){
-            const auto&[E2, eta2, phi2] = thisjet.singles[i2];
+        for (unsigned i2=i1+1; i2<thisjet_gen.N; ++i2){
+            const auto&[E2, eta2, phi2] = thisjet_gen.singles.get(i2);
             const bool hasMatch2 = hasMatch1 && adj.hasMatch[i2];
-            const standaloneEEC::neighborhood* const n2 = hasMatch2 ? &adj.adj[i2] : nullptr;
+            const EEC::neighborhood* const n2 = hasMatch2 ? &adj.adj[i2] : nullptr;
 
             const double E12 = E1 * E2;
 
-            const auto&[deta12, dphi12, dR12] = thisjet.pairs[i1][i2];
+            const auto&[deta12, dphi12, dR12] = thisjet_gen.pairs.get(i1, i2);
 
-            for(unsigned i3=i2+1; i3<thisjet.N; ++i3){
-                const auto&[E3, eta3, phi3] = thisjet.singles[i3];
+            for(unsigned i3=i2+1; i3<thisjet_gen.N; ++i3){
+                const auto&[E3, eta3, phi3] = thisjet_gen.singles.get(i3);
                 const bool hasMatch3 = hasMatch2 && adj.hasMatch[i3];
-                const standaloneEEC::neighborhood* const n3 = hasMatch3 ? &adj.adj[i3] : nullptr;
+                const EEC::neighborhood* const n3 = hasMatch3 ? &adj.adj[i3] : nullptr;
 
                 const double E123 = E12 * E3;
 
-                const auto&[deta13, dphi13, dR13] = thisjet.pairs[i1][i3];
-                const auto&[deta23, dphi23, dR23] = thisjet.pairs[i2][i3];
+                const auto&[deta13, dphi13, dR13] = thisjet_gen.pairs.get(i1, i3);
+                const auto&[deta23, dphi23, dR23] = thisjet_gen.pairs.get(i2, i3);
 
-                for(unsigned i4=i3+1; i4<thisjet.N; ++i4){
-                    const auto&[E4, eta4, phi4] = thisjet.singles[i4];
+                for(unsigned i4=i3+1; i4<thisjet_gen.N; ++i4){
+                    const auto&[E4, eta4, phi4] = thisjet_gen.singles.get(i4);
                     const bool hasMatch4 = hasMatch3 && adj.hasMatch[i4];
-                    const standaloneEEC::neighborhood* const n4 = hasMatch4 ? &adj.adj[i4] : nullptr;
+                    const EEC::neighborhood* const n4 = hasMatch4 ? &adj.adj[i4] : nullptr;
 
                     const double wt = E123 * E4;
 
-                    const auto&[deta14, dphi14, dR14] = thisjet.pairs[i1][i4];
-                    const auto&[deta24, dphi24, dR24] = thisjet.pairs[i2][i4];
-                    const auto&[deta34, dphi34, dR34] = thisjet.pairs[i3][i4];
+                    const auto&[deta14, dphi14, dR14] = thisjet_gen.pairs.get(i1, i4);
+                    const auto&[deta24, dphi24, dR24] = thisjet_gen.pairs.get(i2, i4);
+                    const auto&[deta34, dphi34, dR34] = thisjet_gen.pairs.get(i3, i4);
 
                     std::array<res4_entry, 3> dipole_entries;
                     std::array<res4_entry, 3> tee_entries;
                     std::array<res4_entry, 4> triangle_entries;
 
-                    innermost_level<standaloneEEC::res4_result<BasicContainer>, false, true>(
+                    innermost_level<EEC::Res4Result<BasicContainer>, PairsType::distances_squared, true>(
                             ans,
 
                             dipole_entries,
@@ -1317,13 +1100,7 @@ static void res4_mainloop_transfer_precomputed(
 
                             wt,
 
-                            ax_R,
-                            ax_r_dipole,
-                            ax_c_dipole,
-                            ax_r_tee,
-                            ax_c_tee,
-                            ax_r_triangle,
-                            ax_c_triangle,
+                            axes_gen,
 
                             tolerance2,
                             tri_tolerance);
@@ -1334,15 +1111,9 @@ static void res4_mainloop_transfer_precomputed(
                             dipole_entries,
                             tee_entries,
                             triangle_entries,
-                            otherjet,
+                            thisjet_reco,
                             n1, n2, n3, n4,
-                            ax_R,
-                            ax_r_dipole,
-                            ax_c_dipole,
-                            ax_r_tee,
-                            ax_c_tee,
-                            ax_r_triangle,
-                            ax_c_triangle,
+                            axes_reco,
                             tolerance2,
                             tri_tolerance,
                             wt);
@@ -1353,78 +1124,200 @@ static void res4_mainloop_transfer_precomputed(
     }//end loop over i1
 }//end res4_standalone()
 
-void standaloneEEC::res4_standalone_transfer_multi_array(
-        standaloneEEC::res4_result_multi_array& ans,
-        standaloneEEC::res4_transfer_result_multi_array& transfer_ans,
+template <class TransferContainer, class BasicContainer, class PairsType>
+static void call_res4_transfer(
+        EEC::Res4Result<BasicContainer>& ans,
+        EEC::Res4TransferResult<TransferContainer, BasicContainer>& transfer_ans,
 
-        const simon::jet& J1,
-        const simon::jet& J2,
-        const normType& nt,
-
-        const Eigen::MatrixXd& adjmat,
-
-        const standaloneEEC::axis& ax_R,
-        const standaloneEEC::axis& ax_r_dipole,
-        const standaloneEEC::axis& ax_c_dipole,
-        const standaloneEEC::axis& ax_r_tee,
-        const standaloneEEC::axis& ax_c_tee,
-        const standaloneEEC::axis& ax_r_triangle,
-        const standaloneEEC::axis& ax_c_triangle,
-
-        const double tolerance,
-        const double tri_tolerance) noexcept {
-
-    standaloneEEC::EECjet_precomputed thisjet(J1, nt);
-    standaloneEEC::EECjet_precomputed otherjet(J2, nt);
-
-    standaloneEEC::adjacency adj(adjmat);
-
-    res4_mainloop_transfer_precomputed<res4_multi_array_container, res4_transfer_multi_array_container>(
-            ans, transfer_ans,
-            thisjet, otherjet,
-            adj,
-            ax_R,
-            ax_r_dipole, ax_c_dipole,
-            ax_r_tee, ax_c_tee,
-            ax_r_triangle, ax_c_triangle,
-            tolerance*tolerance,
-            tri_tolerance);
-}
-
-void standaloneEEC::res4_standalone_transfer_vector(
-        standaloneEEC::res4_result_multi_array& ans,
-        standaloneEEC::res4_transfer_result_vector& transfer_ans,
-
-        const simon::jet& J1,
-        const simon::jet& J2,
-        const normType& nt,
+        const simon::jet& J_reco,
+        const simon::jet& J_gen,
+        const EEC::normType& nt,
 
         const Eigen::MatrixXd& adjmat,
 
-        const standaloneEEC::axis& ax_R,
-        const standaloneEEC::axis& ax_r_dipole,
-        const standaloneEEC::axis& ax_c_dipole,
-        const standaloneEEC::axis& ax_r_tee,
-        const standaloneEEC::axis& ax_c_tee,
-        const standaloneEEC::axis& ax_r_triangle,
-        const standaloneEEC::axis& ax_c_triangle,
+        const EEC::Res4Axes& axes_reco,
+        const EEC::Res4Axes& axes_gen,
 
-        const double tolerance,
+        const double tolerance2,
         const double tri_tolerance) noexcept {
 
-    standaloneEEC::EECjet_precomputed thisjet(J1, nt);
-    standaloneEEC::EECjet_precomputed otherjet(J2, nt);
+    EEC::EECjet<PairsType> thisjet_reco(J_reco, nt);
+    EEC::EECjet<PairsType> thisjet_gen(J_gen, nt);
 
-    standaloneEEC::adjacency adj(adjmat);
+    ans.set_pt_denom(thisjet_gen.singles.get_pt_denom());
+    transfer_ans.set_pt_denom(thisjet_reco.singles.get_pt_denom(),
+                              thisjet_gen.singles.get_pt_denom());
 
-    res4_mainloop_transfer_precomputed<res4_multi_array_container, res4_transfer_vector_container>(
+    EEC::Adjacency adj(adjmat);
+
+    res4_mainloop_transfer(
             ans, transfer_ans,
-            thisjet, otherjet,
+            thisjet_reco, thisjet_gen,
             adj,
-            ax_R,
-            ax_r_dipole, ax_c_dipole,
-            ax_r_tee, ax_c_tee,
-            ax_r_triangle, ax_c_triangle,
-            tolerance*tolerance,
+            axes_reco,
+            axes_gen,
+            tolerance2,
             tri_tolerance);
 }
+
+void EEC::Res4TransferCalculator::compute_JIT(
+        const simon::jet& J_reco,
+        const simon::jet& J_gen, 
+        const Eigen::MatrixXd& tmat,
+        Res4Result_Vector& result,
+        Res4TransferResult_Vector_Vector& tresult) const noexcept{
+
+    call_res4_transfer<Res4TransferVectorContainer, Res4VectorContainer, JITPairs>(
+            result, tresult,
+            J_reco, J_gen, nt,
+            tmat,
+            axes_reco, axes_gen,
+            tolerance2, tri_tolerance);
+}
+
+void EEC::Res4TransferCalculator::compute_JIT(
+        const simon::jet& J_reco,
+        const simon::jet& J_gen, 
+        const Eigen::MatrixXd& tmat,
+        Res4Result_MultiArray& result,
+        Res4TransferResult_Vector_MultiArray& tresult) const noexcept{
+    call_res4_transfer<Res4TransferVectorContainer, Res4MultiArrayContainer, JITPairs>(
+            result, tresult,
+            J_reco, J_gen, nt,
+            tmat,
+            axes_reco, axes_gen,
+            tolerance2, tri_tolerance);
+}
+
+void EEC::Res4TransferCalculator::compute_JIT(
+        const simon::jet& J_reco,
+        const simon::jet& J_gen, 
+        const Eigen::MatrixXd& tmat,
+        Res4Result_Vector& result,
+        Res4TransferResult_MultiArray_Vector& tresult) const noexcept{
+
+    call_res4_transfer<Res4TransferMultiArrayContainer, Res4VectorContainer, JITPairs>(
+            result, tresult,
+            J_reco, J_gen, nt,
+            tmat,
+            axes_reco, axes_gen,
+            tolerance2, tri_tolerance);
+}
+
+void EEC::Res4TransferCalculator::compute_JIT(
+        const simon::jet& J_reco,
+        const simon::jet& J_gen, 
+        const Eigen::MatrixXd& tmat,
+        Res4Result_MultiArray& result,
+        Res4TransferResult_MultiArray_MultiArray& tresult) const noexcept{
+
+    call_res4_transfer<Res4TransferMultiArrayContainer, Res4MultiArrayContainer, JITPairs>(
+            result, tresult,
+            J_reco, J_gen, nt,
+            tmat,
+            axes_reco, axes_gen,
+            tolerance2, tri_tolerance);
+}
+
+void EEC::Res4TransferCalculator::compute_precomputed(
+        const simon::jet& J_reco,
+        const simon::jet& J_gen, 
+        const Eigen::MatrixXd& tmat,
+        Res4Result_Vector& result,
+        Res4TransferResult_Vector_Vector& tresult) const noexcept{
+
+    call_res4_transfer<Res4TransferVectorContainer, Res4VectorContainer, PrecomputedPairs>(
+            result, tresult,
+            J_reco, J_gen, nt,
+            tmat,
+            axes_reco, axes_gen,
+            tolerance2, tri_tolerance);
+}
+
+void EEC::Res4TransferCalculator::compute_precomputed(
+        const simon::jet& J_reco,
+        const simon::jet& J_gen, 
+        const Eigen::MatrixXd& tmat,
+        Res4Result_MultiArray& result,
+        Res4TransferResult_Vector_MultiArray& tresult) const noexcept{
+
+    call_res4_transfer<Res4TransferVectorContainer, Res4MultiArrayContainer, PrecomputedPairs>(
+            result, tresult,
+            J_reco, J_gen, nt,
+            tmat,
+            axes_reco, axes_gen,
+            tolerance2, tri_tolerance);
+}
+
+void EEC::Res4TransferCalculator::compute_precomputed(
+        const simon::jet& J_reco,
+        const simon::jet& J_gen, 
+        const Eigen::MatrixXd& tmat,
+        Res4Result_Vector& result,
+        Res4TransferResult_MultiArray_Vector& tresult) const noexcept{
+
+    call_res4_transfer<Res4TransferMultiArrayContainer, Res4VectorContainer, PrecomputedPairs>(
+            result, tresult,
+            J_reco, J_gen, nt,
+            tmat,
+            axes_reco, axes_gen,
+            tolerance2, tri_tolerance);
+}
+
+void EEC::Res4TransferCalculator::compute_precomputed(
+        const simon::jet& J_reco,
+        const simon::jet& J_gen, 
+        const Eigen::MatrixXd& tmat,
+        Res4Result_MultiArray& result,
+        Res4TransferResult_MultiArray_MultiArray& tresult) const noexcept{
+
+    call_res4_transfer<Res4TransferMultiArrayContainer, Res4MultiArrayContainer, PrecomputedPairs>(
+            result, tresult,
+            J_reco, J_gen, nt,
+            tmat,
+            axes_reco, axes_gen,
+            tolerance2, tri_tolerance);
+}
+
+#ifdef CMSSW_GIT_HASH
+
+EEC::Res4Calculator::Res4Calculator(const edm::ParameterSet& iConfig) :
+    axes(iConfig.getParameter<edm::ParameterSet>("bins")),
+    tolerance2(simon::square(iConfig.getParameter<double>("tolerance"))),
+    tri_tolerance(iConfig.getParameter<double>("tri_tolerance")),
+    nt(normType_from_string(iConfig.getParameter<std::string>("normType"))) {}
+
+void EEC::Res4Calculator::fillPSetDescription(edm::ParameterSetDescription& desc) {
+
+    edm::ParameterSetDescription binsDesc; 
+    Res4Axes::fillPSetDescription(binsDesc);
+    desc.add<edm::ParameterSetDescription>("bins", binsDesc);
+
+    desc.add<double>("tolerance");
+    desc.add<double>("tri_tolerance");
+    desc.add<std::string>("normType");
+}
+
+EEC::Res4TransferCalculator::Res4TransferCalculator(const edm::ParameterSet& iConfig):
+    axes_reco(iConfig.getParameter<edm::ParameterSet>("bins_reco")),
+    axes_gen(iConfig.getParameter<edm::ParameterSet>("bins_gen")),
+    tolerance2(simon::square(iConfig.getParameter<double>("tolerance"))),
+    tri_tolerance(iConfig.getParameter<double>("tri_tolerance")),
+    nt(normType_from_string(iConfig.getParameter<std::string>("normType"))) {}
+
+void EEC::Res4TransferCalculator::fillPSetDescription(edm::ParameterSetDescription& desc) {
+
+    edm::ParameterSetDescription binsRecoDesc;
+    Res4Axes::fillPSetDescription(binsRecoDesc);
+    desc.add<edm::ParameterSetDescription>("bins_reco", binsRecoDesc);
+
+    edm::ParameterSetDescription binsGenDesc;
+    Res4Axes::fillPSetDescription(binsGenDesc);
+    desc.add<edm::ParameterSetDescription>("bins_gen", binsGenDesc);
+
+    desc.add<double>("tolerance");
+    desc.add<double>("tri_tolerance");
+    desc.add<std::string>("normType");
+}
+
+#endif

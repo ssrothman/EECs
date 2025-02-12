@@ -40,7 +40,9 @@ namespace EEC{
     public:
         Singles(const simon::jet& J, const normType& nt);
 
-        inline const oneentry& get(unsigned i) const noexcept {
+        inline const oneentry& get(const unsigned i) const noexcept {
+            //printf("Singles::get(%u)\n",i);
+            //fflush(stdout);
             return singles[i];
         }
 
@@ -63,7 +65,9 @@ namespace EEC{
 
         PrecomputedPairs(const Singles& singles) noexcept;
 
-        inline const pairentry& get(unsigned i, unsigned j) const noexcept{
+        inline const pairentry& get(const unsigned i, const unsigned j) const noexcept{
+            //printf("PrecomputedPairs::get(%u, %u)\n",i,j);
+            //fflush(stdout);
             return pairs[i][j];
         }
     private:
@@ -76,7 +80,9 @@ namespace EEC{
 
         JITPairs(const Singles& singles) noexcept;
 
-        inline const pairentry get(unsigned i, unsigned j) const noexcept {
+        inline const pairentry get(const unsigned i, const unsigned j) const noexcept {
+            //printf("JITPairs::get(%u, %u)\n",i,j);
+            //fflush(stdout);
             const oneentry& singleI = singles.get(i);
             const oneentry& singleJ = singles.get(j);
 

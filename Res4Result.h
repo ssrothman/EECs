@@ -41,6 +41,8 @@ namespace EEC{
 
         void fill(unsigned iR, unsigned ir, 
                   unsigned ic, double wt) noexcept{
+            //printf("Res4VectorContainer::fill(%u, %u, %u, %g)\n", iR, ir, ic, wt);
+            //fflush(stdout);
             data.emplace_back(iR, ir, ic, wt);
         }
 
@@ -100,6 +102,8 @@ namespace EEC{
 
         void fill(unsigned iR, unsigned ir, 
                   unsigned ic, double wt) noexcept {
+            //printf("Res4MultiArrayContainer::fill(%u, %u, %u, %g)\n", iR, ir, ic, wt);
+            //fflush(stdout);
             data[iR][ir][ic] += wt;
         }
 

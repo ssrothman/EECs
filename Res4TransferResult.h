@@ -33,10 +33,10 @@ namespace EEC{
 
         void fill(unsigned iR_reco, unsigned ir_reco, unsigned ic_reco,
                   unsigned iR_gen, unsigned ir_gen, unsigned ic_gen,
-                  double wt) noexcept {
+                  double wt_reco, double wt_gen) noexcept {
             //printf("Res4TransferMultiArrayContainer::fill(%u, %u, %u, %u, %u, %u, %g)\n", iR_reco, ir_reco, ic_reco, iR_gen, ir_gen, ic_gen, wt);
             //fflush(stdout);
-            data[iR_reco][ir_reco][ic_reco][iR_gen][ir_gen][ic_gen] += wt;
+            data[iR_reco][ir_reco][ic_reco][iR_gen][ir_gen][ic_gen] += wt_reco;
         }
 
         const data_t& get_data() const noexcept {
@@ -69,12 +69,14 @@ namespace EEC{
             unsigned iR_gen;
             unsigned ir_gen;
             unsigned ic_gen;
-            double wt;
+            double wt_reco;
+            double wt_gen;
             entry(unsigned iR_reco, unsigned ir_reco, unsigned ic_reco,
                   unsigned iR_gen, unsigned ir_gen, unsigned ic_gen,
-                  double wt) noexcept  :
+                  double wt_reco, double wt_gen) noexcept  :
                 iR_reco(iR_reco), ir_reco(ir_reco), ic_reco(ic_reco),
-                iR_gen(iR_gen), ir_gen(ir_gen), ic_gen(ic_gen), wt(wt) {}
+                iR_gen(iR_gen), ir_gen(ir_gen), ic_gen(ic_gen),
+                wt_reco(wt_reco), wt_gen(wt_gen) {}
         };
         using data_t = std::vector<entry>;
 
@@ -96,10 +98,10 @@ namespace EEC{
 
         void fill(unsigned iR_reco, unsigned ir_reco, unsigned ic_reco,
                   unsigned iR_gen, unsigned ir_gen, unsigned ic_gen,
-                  double wt) noexcept {
+                  double wt_reco, double wt_gen) noexcept {
             //printf("Res4TransferVectorContainer::fill(%u, %u, %u, %u, %u, %u, %g)\n", iR_reco, ir_reco, ic_reco, iR_gen, ir_gen, ic_gen, wt);
             //fflush(stdout);
-            data.emplace_back(iR_reco, ir_reco, ic_reco, iR_gen, ir_gen, ic_gen, wt);
+            data.emplace_back(iR_reco, ir_reco, ic_reco, iR_gen, ir_gen, ic_gen, wt_reco, wt_gen);
         }
 
         const data_t& get_data() const noexcept {
@@ -113,7 +115,7 @@ namespace EEC{
 
         double total_weight() const noexcept {
             return std::accumulate(data.begin(), data.end(), 0.0,
-                                   [](double sum, const entry& e) { return sum + e.wt; });
+                                   [](double sum, const entry& e) { return sum + e.wt_reco; });
         }
         const size_t nR_reco, nr_reco, nc_reco;
         const size_t nR_gen, nr_gen, nc_gen;
@@ -121,14 +123,10 @@ namespace EEC{
         data_t data;
     };
 
-    template <class TransferContainer, class BasicContainer>
+    template <class TransferContainer>
     class Res4TransferResult{
     public:
-        Res4Result<BasicContainer> unmatched_reco;
-        Res4Result<BasicContainer> unmatched_gen;
-
         Res4TransferResult() noexcept  :
-            unmatched_reco(), unmatched_gen(),
             dipole(), tee(), triangle(),
             pt_denom_set(false),
             pt_denom_reco(-1), pt_denom_gen(-1) {}
@@ -148,12 +146,6 @@ namespace EEC{
                 const size_t nc_tee_gen,
                 const size_t nr_triangle_gen,
                 const size_t nc_triangle_gen) noexcept  :
-            unmatched_reco(nR_reco, nr_dipole_reco, nc_dipole_reco,
-                       nr_tee_reco, nc_tee_reco,
-                       nr_triangle_reco, nc_triangle_reco),
-            unmatched_gen(nR_gen, nr_dipole_gen, nc_dipole_gen,
-                       nr_tee_gen, nc_tee_gen,
-                       nr_triangle_gen, nc_triangle_gen),
             dipole(nR_reco, nr_dipole_reco, nc_dipole_reco, 
                     nR_gen, nr_dipole_gen, nc_dipole_gen),
             tee(nR_reco, nr_tee_reco, nc_tee_reco,
@@ -187,20 +179,20 @@ namespace EEC{
         
         void fill_dipole(unsigned iR_reco, unsigned ir_reco, unsigned ic_reco,
                          unsigned iR_gen, unsigned ir_gen, unsigned ic_gen,
-                         double wt) noexcept {
-            dipole.fill(iR_reco, ir_reco, ic_reco, iR_gen, ir_gen, ic_gen, wt);
+                         double wt_reco, double wt_gen) noexcept {
+            dipole.fill(iR_reco, ir_reco, ic_reco, iR_gen, ir_gen, ic_gen, wt_reco, wt_gen);
         }
 
         void fill_tee(unsigned iR_reco, unsigned ir_reco, unsigned ic_reco,
                       unsigned iR_gen, unsigned ir_gen, unsigned ic_gen,
-                      double wt) noexcept {
-            tee.fill(iR_reco, ir_reco, ic_reco, iR_gen, ir_gen, ic_gen, wt);
+                      double wt_reco, double wt_gen) noexcept {
+            tee.fill(iR_reco, ir_reco, ic_reco, iR_gen, ir_gen, ic_gen, wt_reco, wt_gen);
         }
 
         void fill_triangle(unsigned iR_reco, unsigned ir_reco, unsigned ic_reco,
                            unsigned iR_gen, unsigned ir_gen, unsigned ic_gen,
-                           double wt) noexcept {
-            triangle.fill(iR_reco, ir_reco, ic_reco, iR_gen, ir_gen, ic_gen, wt);
+                           double wt_reco, double wt_gen) noexcept {
+            triangle.fill(iR_reco, ir_reco, ic_reco, iR_gen, ir_gen, ic_gen, wt_reco, wt_gen);
         }
 
         void set_pt_denom(double pt_denom_reco_, double pt_denom_gen_) {
@@ -241,9 +233,7 @@ namespace EEC{
             return triangle;
         }
 
-        Res4TransferResult<TransferContainer, BasicContainer>& operator+=(const Res4TransferResult<TransferContainer, BasicContainer>& other) noexcept {
-            unmatched_reco += other.unmatched_reco;
-            unmatched_gen += other.unmatched_gen;
+        Res4TransferResult<TransferContainer>& operator+=(const Res4TransferResult<TransferContainer>& other) noexcept {
             dipole += other.dipole;
             tee += other.tee;
             triangle += other.triangle;
@@ -270,11 +260,8 @@ namespace EEC{
         double pt_denom_reco, pt_denom_gen;
     };
 
-    using Res4TransferResult_MultiArray_MultiArray = Res4TransferResult<Res4TransferMultiArrayContainer, Res4MultiArrayContainer>;
-    using Res4TransferResult_MultiArray_Vector = Res4TransferResult<Res4TransferMultiArrayContainer, Res4VectorContainer>;
-
-    using Res4TransferResult_Vector_MultiArray = Res4TransferResult<Res4TransferVectorContainer, Res4MultiArrayContainer>;
-    using Res4TransferResult_Vector_Vector = Res4TransferResult<Res4TransferVectorContainer, Res4VectorContainer>;
+    using Res4TransferResult_MultiArray = Res4TransferResult<Res4TransferMultiArrayContainer>;
+    using Res4TransferResult_Vector = Res4TransferResult<Res4TransferVectorContainer>;
 };
 
 #endif

@@ -204,9 +204,6 @@ namespace EEC{
         Res4Result(const Res4Calculator& calculator) noexcept :
             Res4Result(calculator.get_axes()) {}
 
-        Res4Result(const Res4TransferCalculator& calculator) noexcept :
-            Res4Result(calculator.get_axes_gen()) {}
-
         void fill_dipole(
                 unsigned iR, unsigned ir, 
                 unsigned ic, double wt) noexcept{

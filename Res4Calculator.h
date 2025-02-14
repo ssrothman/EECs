@@ -111,56 +111,72 @@ namespace EEC{
                 const simon::jet& J_gen, 
                 const Eigen::MatrixXd& tmat,
                 Res4Result_Vector& result,
-                Res4TransferResult_Vector_Vector& tresult) const noexcept;
+                Res4TransferResult_Vector& tresult,
+                Res4Result_Vector& untransfered_reco,
+                Res4Result_Vector& untransfered_gen) const noexcept;
 
         void compute_JIT(
                 const simon::jet& J_reco,
                 const simon::jet& J_gen, 
                 const Eigen::MatrixXd& tmat,
                 Res4Result_MultiArray& result,
-                Res4TransferResult_Vector_MultiArray& tresult) const noexcept;
+                Res4TransferResult_Vector& tresult,
+                Res4Result_MultiArray& untransfered_reco,
+                Res4Result_MultiArray& untransfered_gen) const noexcept;
 
         void compute_JIT(
                 const simon::jet& J_reco,
                 const simon::jet& J_gen, 
                 const Eigen::MatrixXd& tmat,
                 Res4Result_Vector& result,
-                Res4TransferResult_MultiArray_Vector& tresult) const noexcept;
+                Res4TransferResult_MultiArray& tresult,
+                Res4Result_Vector& untransfered_reco,
+                Res4Result_Vector& untransfered_gen) const noexcept;
 
         void compute_JIT(
                 const simon::jet& J_reco,
                 const simon::jet& J_gen, 
                 const Eigen::MatrixXd& tmat,
                 Res4Result_MultiArray& result,
-                Res4TransferResult_MultiArray_MultiArray& tresult) const noexcept;
+                Res4TransferResult_MultiArray& tresult,
+                Res4Result_MultiArray& untransfered_reco,
+                Res4Result_MultiArray& untransfered_gen) const noexcept;
 
         void compute_precomputed(
                 const simon::jet& J_reco,
                 const simon::jet& J_gen, 
                 const Eigen::MatrixXd& tmat,
                 Res4Result_Vector& result,
-                Res4TransferResult_Vector_Vector& tresult) const noexcept;
+                Res4TransferResult_Vector& tresult,
+                Res4Result_Vector& untransfered_reco,
+                Res4Result_Vector& untransfered_gen) const noexcept;
 
         void compute_precomputed(
                 const simon::jet& J_reco,
                 const simon::jet& J_gen, 
                 const Eigen::MatrixXd& tmat,
                 Res4Result_MultiArray& result,
-                Res4TransferResult_Vector_MultiArray& tresult) const noexcept;
+                Res4TransferResult_Vector& tresult,
+                Res4Result_MultiArray& untransfered_reco,
+                Res4Result_MultiArray& untransfered_gen) const noexcept;
 
         void compute_precomputed(
                 const simon::jet& J_reco,
                 const simon::jet& J_gen, 
                 const Eigen::MatrixXd& tmat,
                 Res4Result_Vector& result,
-                Res4TransferResult_MultiArray_Vector& tresult) const noexcept;
+                Res4TransferResult_MultiArray& tresult,
+                Res4Result_Vector& untransfered_reco,
+                Res4Result_Vector& untransfered_gen) const noexcept;
 
         void compute_precomputed(
                 const simon::jet& J_reco,
                 const simon::jet& J_gen, 
                 const Eigen::MatrixXd& tmat,
                 Res4Result_MultiArray& result,
-                Res4TransferResult_MultiArray_MultiArray& tresult) const noexcept;
+                Res4TransferResult_MultiArray& tresult,
+                Res4Result_MultiArray& untransfered_reco,
+                Res4Result_MultiArray& untransfered_gen) const noexcept;
 
         const Res4Axes& get_axes_reco() const noexcept{
             return axes_reco;

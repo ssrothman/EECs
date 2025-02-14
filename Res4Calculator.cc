@@ -869,7 +869,9 @@ void EEC::Res4Calculator::compute_precomputed(
  
 template <class TransferContainer, class BasicContainer, class PairsType>
 static void res4_transferloop(
-        EEC::Res4TransferResult<TransferContainer, BasicContainer>& ans,
+        EEC::Res4TransferResult<TransferContainer>& ans,
+        EEC::Res4Result<BasicContainer>& untransfered_reco,
+        EEC::Res4Result<BasicContainer>& untransfered_gen,
 
         std::array<res4_entry, 3>& dipole_entries_gen,
         std::array<res4_entry, 3>& tee_entries_gen,
@@ -887,12 +889,12 @@ static void res4_transferloop(
         const double tolerance2,
         const double tri_tolerance,
 
-        const double wt) noexcept {
+        const double wt_gen) noexcept {
 
     for(const EEC::neighbor& j1: n1){
         //printf("j1.idx = %u\n", j1.idx);
         //fflush(stdout);
-        const double twt1 = wt * j1.wt;
+        const double twt1 = wt_gen * j1.wt;
         //unused E1 throws compiler warnings
         //this seems to be an unavoidable language limitation
         //we have to wait until c++26 for a solution 
@@ -956,7 +958,7 @@ static void res4_transferloop(
                     //printf("made std::arrays\n");
                     //fflush(stdout); 
 
-                    innermost_level<EEC::Res4TransferResult<TransferContainer, BasicContainer>, PairsType::distances_squared, false>(
+                    innermost_level<EEC::Res4TransferResult<TransferContainer>, PairsType::distances_squared, false>(
                             ans,
 
                             dipole_entries_reco,
@@ -996,15 +998,15 @@ static void res4_transferloop(
                                             dipole_entries_gen[i].idx_R, 
                                             dipole_entries_gen[i].idx_r, 
                                             dipole_entries_gen[i].idx_c,
-                                            twt4);
+                                            twt4, wt_gen);
                         } else if(dipole_entries_reco[i].isShape){
-                            ans.unmatched_reco.fill_dipole(
+                            untransfered_reco.fill_dipole(
                                     dipole_entries_reco[i].idx_R, 
                                     dipole_entries_reco[i].idx_r, 
                                     dipole_entries_reco[i].idx_c,
                                     twt4);
                         } else if(dipole_entries_gen[i].isShape){
-                            ans.unmatched_gen.fill_dipole(
+                            untransfered_gen.fill_dipole(
                                     dipole_entries_gen[i].idx_R, 
                                     dipole_entries_gen[i].idx_r, 
                                     dipole_entries_gen[i].idx_c,
@@ -1020,15 +1022,15 @@ static void res4_transferloop(
                                          tee_entries_gen[i].idx_R, 
                                          tee_entries_gen[i].idx_r, 
                                          tee_entries_gen[i].idx_c,
-                                         twt4);
+                                         twt4, wt_gen);
                         } else if(tee_entries_reco[i].isShape){
-                            ans.unmatched_reco.fill_tee(
+                            untransfered_reco.fill_tee(
                                     tee_entries_reco[i].idx_R, 
                                     tee_entries_reco[i].idx_r, 
                                     tee_entries_reco[i].idx_c,
                                     twt4);
                         } else if(tee_entries_gen[i].isShape){
-                            ans.unmatched_gen.fill_tee(
+                            untransfered_gen.fill_tee(
                                     tee_entries_gen[i].idx_R, 
                                     tee_entries_gen[i].idx_r, 
                                     tee_entries_gen[i].idx_c,
@@ -1048,15 +1050,15 @@ static void res4_transferloop(
                                               triangle_entries_gen[i].idx_R, 
                                               triangle_entries_gen[i].idx_r, 
                                               triangle_entries_gen[i].idx_c,
-                                              twt4);
+                                              twt4, wt_gen);
                         } else if(triangle_entries_reco[i].isShape){
-                            ans.unmatched_reco.fill_triangle(
+                            untransfered_reco.fill_triangle(
                                     triangle_entries_reco[i].idx_R, 
                                     triangle_entries_reco[i].idx_r, 
                                     triangle_entries_reco[i].idx_c,
                                     twt4);
                         } else if(triangle_entries_gen[i].isShape){
-                            ans.unmatched_gen.fill_triangle(
+                            untransfered_gen.fill_triangle(
                                     triangle_entries_gen[i].idx_R, 
                                     triangle_entries_gen[i].idx_r, 
                                     triangle_entries_gen[i].idx_c,
@@ -1076,7 +1078,9 @@ static void res4_transferloop(
 template <class BasicContainer, class TransferContainer, class PairsType>
 static void res4_mainloop_transfer(
         EEC::Res4Result<BasicContainer>& ans,
-        EEC::Res4TransferResult<TransferContainer, BasicContainer>& transfer_ans,
+        EEC::Res4TransferResult<TransferContainer>& transfer_ans,
+        EEC::Res4Result<BasicContainer>& untransfered_reco,
+        EEC::Res4Result<BasicContainer>& untransfered_gen,
 
         const std::shared_ptr<const EEC::EECjet<PairsType>> thisjet_reco,
         const std::shared_ptr<const EEC::EECjet<PairsType>> thisjet_gen,
@@ -1169,6 +1173,8 @@ static void res4_mainloop_transfer(
                     if(hasMatch4){
                         res4_transferloop<TransferContainer, BasicContainer>(
                             transfer_ans,
+                            untransfered_reco,
+                            untransfered_gen,
                             dipole_entries,
                             tee_entries,
                             triangle_entries,
@@ -1188,7 +1194,9 @@ static void res4_mainloop_transfer(
 template <class TransferContainer, class BasicContainer, class PairsType>
 static void call_res4_transfer(
         EEC::Res4Result<BasicContainer>& ans,
-        EEC::Res4TransferResult<TransferContainer, BasicContainer>& transfer_ans,
+        EEC::Res4TransferResult<TransferContainer>& transfer_ans,
+        EEC::Res4Result<BasicContainer>& untransfered_reco,
+        EEC::Res4Result<BasicContainer>& untransfered_gen,
 
         const simon::jet& J_reco,
         const simon::jet& J_gen,
@@ -1208,12 +1216,15 @@ static void call_res4_transfer(
     ans.set_pt_denom(thisjet_gen->singles.get_pt_denom());
     transfer_ans.set_pt_denom(thisjet_reco->singles.get_pt_denom(),
                               thisjet_gen->singles.get_pt_denom());
+    untransfered_reco.set_pt_denom(thisjet_reco->singles.get_pt_denom());
+    untransfered_gen.set_pt_denom(thisjet_gen->singles.get_pt_denom());
 
     auto adj = std::make_shared<const EEC::Adjacency>(adjmat);
     //adj->print();
 
     res4_mainloop_transfer(
             ans, transfer_ans,
+            untransfered_reco, untransfered_gen,
             thisjet_reco, thisjet_gen,
             adj,
             axes_reco,
@@ -1227,10 +1238,13 @@ void EEC::Res4TransferCalculator::compute_JIT(
         const simon::jet& J_gen, 
         const Eigen::MatrixXd& tmat,
         Res4Result_Vector& result,
-        Res4TransferResult_Vector_Vector& tresult) const noexcept{
+        Res4TransferResult_Vector& tresult,
+        Res4Result_Vector& untransfered_reco,
+        Res4Result_Vector& untransfered_gen) const noexcept{
 
     call_res4_transfer<Res4TransferVectorContainer, Res4VectorContainer, JITPairs>(
             result, tresult,
+            untransfered_reco, untransfered_gen,
             J_reco, J_gen, nt,
             tmat,
             axes_reco, axes_gen,
@@ -1242,9 +1256,13 @@ void EEC::Res4TransferCalculator::compute_JIT(
         const simon::jet& J_gen, 
         const Eigen::MatrixXd& tmat,
         Res4Result_MultiArray& result,
-        Res4TransferResult_Vector_MultiArray& tresult) const noexcept{
+        Res4TransferResult_Vector& tresult,
+        Res4Result_MultiArray& untransfered_reco,
+        Res4Result_MultiArray& untransfered_gen) const noexcept{
+
     call_res4_transfer<Res4TransferVectorContainer, Res4MultiArrayContainer, JITPairs>(
             result, tresult,
+            untransfered_reco, untransfered_gen,
             J_reco, J_gen, nt,
             tmat,
             axes_reco, axes_gen,
@@ -1256,10 +1274,13 @@ void EEC::Res4TransferCalculator::compute_JIT(
         const simon::jet& J_gen, 
         const Eigen::MatrixXd& tmat,
         Res4Result_Vector& result,
-        Res4TransferResult_MultiArray_Vector& tresult) const noexcept{
+        Res4TransferResult_MultiArray& tresult,
+        Res4Result_Vector& untransfered_reco,
+        Res4Result_Vector& untransfered_gen) const noexcept{
 
     call_res4_transfer<Res4TransferMultiArrayContainer, Res4VectorContainer, JITPairs>(
             result, tresult,
+            untransfered_reco, untransfered_gen,
             J_reco, J_gen, nt,
             tmat,
             axes_reco, axes_gen,
@@ -1271,10 +1292,13 @@ void EEC::Res4TransferCalculator::compute_JIT(
         const simon::jet& J_gen, 
         const Eigen::MatrixXd& tmat,
         Res4Result_MultiArray& result,
-        Res4TransferResult_MultiArray_MultiArray& tresult) const noexcept{
+        Res4TransferResult_MultiArray& tresult,
+        Res4Result_MultiArray& untransfered_reco,
+        Res4Result_MultiArray& untransfered_gen) const noexcept{
 
     call_res4_transfer<Res4TransferMultiArrayContainer, Res4MultiArrayContainer, JITPairs>(
             result, tresult,
+            untransfered_reco, untransfered_gen,
             J_reco, J_gen, nt,
             tmat,
             axes_reco, axes_gen,
@@ -1286,10 +1310,13 @@ void EEC::Res4TransferCalculator::compute_precomputed(
         const simon::jet& J_gen, 
         const Eigen::MatrixXd& tmat,
         Res4Result_Vector& result,
-        Res4TransferResult_Vector_Vector& tresult) const noexcept{
+        Res4TransferResult_Vector& tresult,
+        Res4Result_Vector& untransfered_reco,
+        Res4Result_Vector& untransfered_gen) const noexcept{
 
     call_res4_transfer<Res4TransferVectorContainer, Res4VectorContainer, PrecomputedPairs>(
             result, tresult,
+            untransfered_reco, untransfered_gen,
             J_reco, J_gen, nt,
             tmat,
             axes_reco, axes_gen,
@@ -1301,10 +1328,13 @@ void EEC::Res4TransferCalculator::compute_precomputed(
         const simon::jet& J_gen, 
         const Eigen::MatrixXd& tmat,
         Res4Result_MultiArray& result,
-        Res4TransferResult_Vector_MultiArray& tresult) const noexcept{
+        Res4TransferResult_Vector& tresult,
+        Res4Result_MultiArray& untransfered_reco,
+        Res4Result_MultiArray& untransfered_gen) const noexcept{
 
     call_res4_transfer<Res4TransferVectorContainer, Res4MultiArrayContainer, PrecomputedPairs>(
             result, tresult,
+            untransfered_reco, untransfered_gen,
             J_reco, J_gen, nt,
             tmat,
             axes_reco, axes_gen,
@@ -1316,10 +1346,13 @@ void EEC::Res4TransferCalculator::compute_precomputed(
         const simon::jet& J_gen, 
         const Eigen::MatrixXd& tmat,
         Res4Result_Vector& result,
-        Res4TransferResult_MultiArray_Vector& tresult) const noexcept{
+        Res4TransferResult_MultiArray& tresult,
+        Res4Result_Vector& untransfered_reco,
+        Res4Result_Vector& untransfered_gen) const noexcept{
 
     call_res4_transfer<Res4TransferMultiArrayContainer, Res4VectorContainer, PrecomputedPairs>(
             result, tresult,
+            untransfered_reco, untransfered_gen,
             J_reco, J_gen, nt,
             tmat,
             axes_reco, axes_gen,
@@ -1331,10 +1364,13 @@ void EEC::Res4TransferCalculator::compute_precomputed(
         const simon::jet& J_gen, 
         const Eigen::MatrixXd& tmat,
         Res4Result_MultiArray& result,
-        Res4TransferResult_MultiArray_MultiArray& tresult) const noexcept{
+        Res4TransferResult_MultiArray& tresult,
+        Res4Result_MultiArray& untransfered_reco,
+        Res4Result_MultiArray& untransfered_gen) const noexcept{
 
     call_res4_transfer<Res4TransferMultiArrayContainer, Res4MultiArrayContainer, PrecomputedPairs>(
             result, tresult,
+            untransfered_reco, untransfered_gen,
             J_reco, J_gen, nt,
             tmat,
             axes_reco, axes_gen,

@@ -58,6 +58,30 @@ namespace EEC{
                 const simon::jet& J, 
                 Res4Result_MultiArray& result) const noexcept;
 
+        void compute_JIT_matched(
+                const simon::jet& J,
+                const std::vector<bool>& matched,
+                Res4Result_Vector& result,
+                Res4Result_Vector& unmatched) const noexcept;
+
+        void compute_JIT_matched(
+                const simon::jet& J,
+                const std::vector<bool>& matched,
+                Res4Result_MultiArray& result,
+                Res4Result_MultiArray& unmatched) const noexcept;
+
+        void compute_precomputed_matched(
+                const simon::jet& J,
+                const std::vector<bool>& matched,
+                Res4Result_Vector& result,
+                Res4Result_Vector& unmatched) const noexcept;
+
+        void compute_precomputed_matched(
+                const simon::jet& J,
+                const std::vector<bool>& matched,
+                Res4Result_MultiArray& result,
+                Res4Result_MultiArray& unmatched) const noexcept;
+
         const Res4Axes& get_axes() const noexcept{
             return axes;
         }
@@ -111,6 +135,7 @@ namespace EEC{
                 const simon::jet& J_gen, 
                 const Eigen::MatrixXd& tmat,
                 Res4Result_Vector& result,
+                EEC::Res4Result_Vector& unmatched_gen,
                 Res4TransferResult_Vector& tresult,
                 Res4Result_Vector& untransfered_reco,
                 Res4Result_Vector& untransfered_gen) const noexcept;
@@ -120,6 +145,7 @@ namespace EEC{
                 const simon::jet& J_gen, 
                 const Eigen::MatrixXd& tmat,
                 Res4Result_MultiArray& result,
+                EEC::Res4Result_MultiArray& unmatched_gen,
                 Res4TransferResult_Vector& tresult,
                 Res4Result_MultiArray& untransfered_reco,
                 Res4Result_MultiArray& untransfered_gen) const noexcept;
@@ -129,6 +155,7 @@ namespace EEC{
                 const simon::jet& J_gen, 
                 const Eigen::MatrixXd& tmat,
                 Res4Result_Vector& result,
+                EEC::Res4Result_Vector& unmatched_gen,
                 Res4TransferResult_MultiArray& tresult,
                 Res4Result_Vector& untransfered_reco,
                 Res4Result_Vector& untransfered_gen) const noexcept;
@@ -138,6 +165,7 @@ namespace EEC{
                 const simon::jet& J_gen, 
                 const Eigen::MatrixXd& tmat,
                 Res4Result_MultiArray& result,
+                EEC::Res4Result_MultiArray& unmatched_gen,
                 Res4TransferResult_MultiArray& tresult,
                 Res4Result_MultiArray& untransfered_reco,
                 Res4Result_MultiArray& untransfered_gen) const noexcept;
@@ -147,6 +175,7 @@ namespace EEC{
                 const simon::jet& J_gen, 
                 const Eigen::MatrixXd& tmat,
                 Res4Result_Vector& result,
+                EEC::Res4Result_Vector& unmatched_gen,
                 Res4TransferResult_Vector& tresult,
                 Res4Result_Vector& untransfered_reco,
                 Res4Result_Vector& untransfered_gen) const noexcept;
@@ -156,6 +185,7 @@ namespace EEC{
                 const simon::jet& J_gen, 
                 const Eigen::MatrixXd& tmat,
                 Res4Result_MultiArray& result,
+                EEC::Res4Result_MultiArray& unmatched_gen,
                 Res4TransferResult_Vector& tresult,
                 Res4Result_MultiArray& untransfered_reco,
                 Res4Result_MultiArray& untransfered_gen) const noexcept;
@@ -165,6 +195,7 @@ namespace EEC{
                 const simon::jet& J_gen, 
                 const Eigen::MatrixXd& tmat,
                 Res4Result_Vector& result,
+                EEC::Res4Result_Vector& unmatched_gen,
                 Res4TransferResult_MultiArray& tresult,
                 Res4Result_Vector& untransfered_reco,
                 Res4Result_Vector& untransfered_gen) const noexcept;
@@ -174,6 +205,7 @@ namespace EEC{
                 const simon::jet& J_gen, 
                 const Eigen::MatrixXd& tmat,
                 Res4Result_MultiArray& result,
+                EEC::Res4Result_MultiArray& unmatched_gen,
                 Res4TransferResult_MultiArray& tresult,
                 Res4Result_MultiArray& untransfered_reco,
                 Res4Result_MultiArray& untransfered_gen) const noexcept;

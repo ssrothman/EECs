@@ -703,11 +703,13 @@ static void innermost_level(
  *     Filling a histogram directly via a multi_array
  *     Growing a vector of entries with bin indices and weights
  */
-template <class BasicContainer, class PairsType>
+template <class BasicContainer, class PairsType, bool doUnmatched>
 static void res4_mainloop(
         EEC::Res4Result<BasicContainer>& ans,
+        EEC::Res4Result<BasicContainer>* unmatched,
 
         const std::shared_ptr<const EEC::EECjet<PairsType>> thisjet,
+        const std::vector<bool>* matched,
 
         const EEC::Res4Axes& axes,
 
@@ -716,9 +718,17 @@ static void res4_mainloop(
 
     for (unsigned i1=0; i1<thisjet->N; ++i1){
         const auto&[E1, eta1, phi1] = thisjet->singles.get(i1);
+        [[maybe_unused]] bool matched1;
+        if constexpr(doUnmatched){
+            matched1 = matched->at(i1);
+        }
 
         for (unsigned i2=i1+1; i2<thisjet->N; ++i2){
             const auto&[E2, eta2, phi2] = thisjet->singles.get(i2);
+            [[maybe_unused]] bool matched2;
+            if constexpr(doUnmatched){
+                matched2 = matched1 && matched->at(i2);
+            }
 
             const double E12 = E1 * E2;
 
@@ -726,6 +736,10 @@ static void res4_mainloop(
 
             for(unsigned i3=i2+1; i3<thisjet->N; ++i3){
                 const auto&[E3, eta3, phi3] = thisjet->singles.get(i3);
+                [[maybe_unused]] bool matched3;
+                if constexpr(doUnmatched){
+                    matched3 = matched2 && matched->at(i3);
+                }
 
                 const double E123 = E12 * E3;
 
@@ -734,6 +748,10 @@ static void res4_mainloop(
 
                 for(unsigned i4=i3+1; i4<thisjet->N; ++i4){
                     const auto&[E4, eta4, phi4] = thisjet->singles.get(i4);
+                    [[maybe_unused]] bool matched4;
+                    if constexpr(doUnmatched){
+                        matched4 = matched3 && matched->at(i4);
+                    }
 
                     const double wt = E123 * E4;
 
@@ -774,6 +792,35 @@ static void res4_mainloop(
 
                             tolerance2,
                             tri_tolerance);
+                    if constexpr(doUnmatched){
+                        if(!matched4){
+                            for(unsigned i=0; i<3; ++i){
+                                if(dipole_entries[i].isShape){
+                                    unmatched->fill_dipole(
+                                            dipole_entries[i].idx_R,
+                                            dipole_entries[i].idx_r,
+                                            dipole_entries[i].idx_c,
+                                            wt);
+                                }
+                                if(tee_entries[i].isShape){
+                                    unmatched->fill_tee(
+                                            tee_entries[i].idx_R,
+                                            tee_entries[i].idx_r,
+                                            tee_entries[i].idx_c,
+                                            wt);
+                                }
+                            }
+                            for(unsigned i=0; i<4; ++i){
+                                if(triangle_entries[i].isShape){
+                                    unmatched->fill_triangle(
+                                            triangle_entries[i].idx_R,
+                                            triangle_entries[i].idx_r,
+                                            triangle_entries[i].idx_c,
+                                            wt);
+                                }
+                            }
+                        }
+                    }
                 }//end loop over i4
             }//end loop over i3
         }//end loop over i2
@@ -812,8 +859,11 @@ static void call_res4(
     auto thisjet = std::make_shared<const EEC::EECjet<PairsType>>(J, nt);
     ans.set_pt_denom(thisjet->singles.get_pt_denom());
     
-    res4_mainloop<BasicContainer, PairsType>(
-            ans, thisjet, 
+    res4_mainloop<BasicContainer, PairsType, false>(
+            ans, 
+            nullptr,
+            thisjet,
+            nullptr,
             axes,
             tolerance2,
             tri_tolerance);
@@ -862,6 +912,93 @@ void EEC::Res4Calculator::compute_precomputed(
     call_res4<Res4MultiArrayContainer, PrecomputedPairs>(
             result, 
             J, nt, 
+            axes, 
+            tolerance2, 
+            tri_tolerance);
+}
+
+template <class BasicContainer, class PairsType>
+static void call_res4_matched(
+        EEC::Res4Result<BasicContainer>& ans,
+        EEC::Res4Result<BasicContainer>& unmatched,
+
+        const simon::jet& J,
+        const std::vector<bool>& matched,
+        const EEC::normType& nt,
+
+        const EEC::Res4Axes& axes,
+        const double tolerance2,
+        const double tri_tolerance) noexcept {
+
+    auto thisjet = std::make_shared<const EEC::EECjet<PairsType>>(J, nt);
+    ans.set_pt_denom(thisjet->singles.get_pt_denom());
+    unmatched.set_pt_denom(thisjet->singles.get_pt_denom());
+
+    res4_mainloop<BasicContainer, PairsType, true>(
+            ans, 
+            &unmatched,
+            thisjet,
+            &matched,
+            axes,
+            tolerance2,
+            tri_tolerance);
+}
+
+void EEC::Res4Calculator::compute_JIT_matched(
+        const simon::jet& J,
+        const std::vector<bool>& matched,
+        Res4Result_Vector& result,
+        Res4Result_Vector& unmatched) const noexcept {
+
+    call_res4_matched<Res4VectorContainer, JITPairs>(
+            result, 
+            unmatched,
+            J, matched, nt, 
+            axes, 
+            tolerance2, 
+            tri_tolerance);
+}
+
+void EEC::Res4Calculator::compute_JIT_matched(
+        const simon::jet& J,
+        const std::vector<bool>& matched,
+        Res4Result_MultiArray& result,
+        Res4Result_MultiArray& unmatched) const noexcept {
+
+    call_res4_matched<Res4MultiArrayContainer, JITPairs>(
+            result, 
+            unmatched,
+            J, matched, nt, 
+            axes, 
+            tolerance2, 
+            tri_tolerance);
+}
+
+void EEC::Res4Calculator::compute_precomputed_matched(
+        const simon::jet& J,
+        const std::vector<bool>& matched,
+        Res4Result_Vector& result,
+        Res4Result_Vector& unmatched) const noexcept {
+
+    call_res4_matched<Res4VectorContainer, PrecomputedPairs>(
+            result, 
+            unmatched,
+            J, matched, nt, 
+            axes, 
+            tolerance2, 
+            tri_tolerance);
+}
+
+void EEC::Res4Calculator::compute_precomputed_matched(
+        const simon::jet& J,
+        const std::vector<bool>& matched,
+        Res4Result_MultiArray& result,
+        Res4Result_MultiArray& unmatched) const noexcept {
+
+    call_res4_matched<Res4MultiArrayContainer, PrecomputedPairs>(
+            result, 
+            unmatched,
+            J, matched, nt, 
             axes, 
             tolerance2, 
             tri_tolerance);
@@ -1078,6 +1215,7 @@ static void res4_transferloop(
 template <class BasicContainer, class TransferContainer, class PairsType>
 static void res4_mainloop_transfer(
         EEC::Res4Result<BasicContainer>& ans,
+        EEC::Res4Result<BasicContainer>& unmatched,
         EEC::Res4TransferResult<TransferContainer>& transfer_ans,
         EEC::Res4Result<BasicContainer>& untransfered_reco,
         EEC::Res4Result<BasicContainer>& untransfered_gen,
@@ -1184,7 +1322,33 @@ static void res4_mainloop_transfer(
                             tolerance2,
                             tri_tolerance,
                             wt);
-                    }
+                    } else {
+                        for(unsigned i=0; i<3; ++i){
+                            if(dipole_entries[i].isShape){
+                                untransfered_gen.fill_dipole(
+                                        dipole_entries[i].idx_R, 
+                                        dipole_entries[i].idx_r, 
+                                        dipole_entries[i].idx_c,
+                                        wt);
+                            }
+                            if(tee_entries[i].isShape){
+                                untransfered_gen.fill_tee(
+                                        tee_entries[i].idx_R, 
+                                        tee_entries[i].idx_r, 
+                                        tee_entries[i].idx_c,
+                                        wt);
+                            }
+                        }
+                        for(unsigned i=0; i<4; ++i){
+                            if(triangle_entries[i].isShape){
+                                untransfered_gen.fill_triangle(
+                                        triangle_entries[i].idx_R, 
+                                        triangle_entries[i].idx_r, 
+                                        triangle_entries[i].idx_c,
+                                        wt);
+                            }
+                        }
+                    };
                 }//end loop over i4
             }//end loop over i3
         }//end loop over i2
@@ -1194,6 +1358,7 @@ static void res4_mainloop_transfer(
 template <class TransferContainer, class BasicContainer, class PairsType>
 static void call_res4_transfer(
         EEC::Res4Result<BasicContainer>& ans,
+        EEC::Res4Result<BasicContainer>& unmatched_gen,
         EEC::Res4TransferResult<TransferContainer>& transfer_ans,
         EEC::Res4Result<BasicContainer>& untransfered_reco,
         EEC::Res4Result<BasicContainer>& untransfered_gen,
@@ -1223,7 +1388,8 @@ static void call_res4_transfer(
     //adj->print();
 
     res4_mainloop_transfer(
-            ans, transfer_ans,
+            ans, unmatched_gen,
+            transfer_ans,
             untransfered_reco, untransfered_gen,
             thisjet_reco, thisjet_gen,
             adj,
@@ -1238,12 +1404,14 @@ void EEC::Res4TransferCalculator::compute_JIT(
         const simon::jet& J_gen, 
         const Eigen::MatrixXd& tmat,
         Res4Result_Vector& result,
+        EEC::Res4Result_Vector& unmatched_gen,
         Res4TransferResult_Vector& tresult,
         Res4Result_Vector& untransfered_reco,
         Res4Result_Vector& untransfered_gen) const noexcept{
 
     call_res4_transfer<Res4TransferVectorContainer, Res4VectorContainer, JITPairs>(
-            result, tresult,
+            result, unmatched_gen,
+            tresult,
             untransfered_reco, untransfered_gen,
             J_reco, J_gen, nt,
             tmat,
@@ -1256,12 +1424,14 @@ void EEC::Res4TransferCalculator::compute_JIT(
         const simon::jet& J_gen, 
         const Eigen::MatrixXd& tmat,
         Res4Result_MultiArray& result,
+        EEC::Res4Result_MultiArray& unmatched_gen,
         Res4TransferResult_Vector& tresult,
         Res4Result_MultiArray& untransfered_reco,
         Res4Result_MultiArray& untransfered_gen) const noexcept{
 
     call_res4_transfer<Res4TransferVectorContainer, Res4MultiArrayContainer, JITPairs>(
-            result, tresult,
+            result, unmatched_gen,
+            tresult,
             untransfered_reco, untransfered_gen,
             J_reco, J_gen, nt,
             tmat,
@@ -1274,12 +1444,14 @@ void EEC::Res4TransferCalculator::compute_JIT(
         const simon::jet& J_gen, 
         const Eigen::MatrixXd& tmat,
         Res4Result_Vector& result,
+        EEC::Res4Result_Vector& unmatched_gen,
         Res4TransferResult_MultiArray& tresult,
         Res4Result_Vector& untransfered_reco,
         Res4Result_Vector& untransfered_gen) const noexcept{
 
     call_res4_transfer<Res4TransferMultiArrayContainer, Res4VectorContainer, JITPairs>(
-            result, tresult,
+            result, unmatched_gen,
+            tresult,
             untransfered_reco, untransfered_gen,
             J_reco, J_gen, nt,
             tmat,
@@ -1292,12 +1464,14 @@ void EEC::Res4TransferCalculator::compute_JIT(
         const simon::jet& J_gen, 
         const Eigen::MatrixXd& tmat,
         Res4Result_MultiArray& result,
+        EEC::Res4Result_MultiArray& unmatched_gen,
         Res4TransferResult_MultiArray& tresult,
         Res4Result_MultiArray& untransfered_reco,
         Res4Result_MultiArray& untransfered_gen) const noexcept{
 
     call_res4_transfer<Res4TransferMultiArrayContainer, Res4MultiArrayContainer, JITPairs>(
-            result, tresult,
+            result, unmatched_gen,
+            tresult,
             untransfered_reco, untransfered_gen,
             J_reco, J_gen, nt,
             tmat,
@@ -1310,12 +1484,14 @@ void EEC::Res4TransferCalculator::compute_precomputed(
         const simon::jet& J_gen, 
         const Eigen::MatrixXd& tmat,
         Res4Result_Vector& result,
+        EEC::Res4Result_Vector& unmatched_gen,
         Res4TransferResult_Vector& tresult,
         Res4Result_Vector& untransfered_reco,
         Res4Result_Vector& untransfered_gen) const noexcept{
 
     call_res4_transfer<Res4TransferVectorContainer, Res4VectorContainer, PrecomputedPairs>(
-            result, tresult,
+            result, unmatched_gen,
+            tresult,
             untransfered_reco, untransfered_gen,
             J_reco, J_gen, nt,
             tmat,
@@ -1328,12 +1504,14 @@ void EEC::Res4TransferCalculator::compute_precomputed(
         const simon::jet& J_gen, 
         const Eigen::MatrixXd& tmat,
         Res4Result_MultiArray& result,
+        EEC::Res4Result_MultiArray& unmatched_gen,
         Res4TransferResult_Vector& tresult,
         Res4Result_MultiArray& untransfered_reco,
         Res4Result_MultiArray& untransfered_gen) const noexcept{
 
     call_res4_transfer<Res4TransferVectorContainer, Res4MultiArrayContainer, PrecomputedPairs>(
-            result, tresult,
+            result, unmatched_gen,
+            tresult,
             untransfered_reco, untransfered_gen,
             J_reco, J_gen, nt,
             tmat,
@@ -1346,12 +1524,14 @@ void EEC::Res4TransferCalculator::compute_precomputed(
         const simon::jet& J_gen, 
         const Eigen::MatrixXd& tmat,
         Res4Result_Vector& result,
+        EEC::Res4Result_Vector& unmatched_gen,
         Res4TransferResult_MultiArray& tresult,
         Res4Result_Vector& untransfered_reco,
         Res4Result_Vector& untransfered_gen) const noexcept{
 
     call_res4_transfer<Res4TransferMultiArrayContainer, Res4VectorContainer, PrecomputedPairs>(
-            result, tresult,
+            result, unmatched_gen,
+            tresult,
             untransfered_reco, untransfered_gen,
             J_reco, J_gen, nt,
             tmat,
@@ -1364,12 +1544,14 @@ void EEC::Res4TransferCalculator::compute_precomputed(
         const simon::jet& J_gen, 
         const Eigen::MatrixXd& tmat,
         Res4Result_MultiArray& result,
+        EEC::Res4Result_MultiArray& unmatched_gen,
         Res4TransferResult_MultiArray& tresult,
         Res4Result_MultiArray& untransfered_reco,
         Res4Result_MultiArray& untransfered_gen) const noexcept{
 
     call_res4_transfer<Res4TransferMultiArrayContainer, Res4MultiArrayContainer, PrecomputedPairs>(
-            result, tresult,
+            result, unmatched_gen,
+            tresult,
             untransfered_reco, untransfered_gen,
             J_reco, J_gen, nt,
             tmat,

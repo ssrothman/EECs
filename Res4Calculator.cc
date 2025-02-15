@@ -1383,6 +1383,7 @@ static void call_res4_transfer(
                               thisjet_gen->singles.get_pt_denom());
     untransfered_reco.set_pt_denom(thisjet_reco->singles.get_pt_denom());
     untransfered_gen.set_pt_denom(thisjet_gen->singles.get_pt_denom());
+    unmatched_gen.set_pt_denom(thisjet_gen->singles.get_pt_denom());
 
     auto adj = std::make_shared<const EEC::Adjacency>(adjmat);
     //adj->print();

@@ -792,6 +792,7 @@ static void res4_mainloop(
 
                             tolerance2,
                             tri_tolerance);
+
                     if constexpr(doUnmatched){
                         if(!matched4){
                             for(unsigned i=0; i<3; ++i){
@@ -1029,8 +1030,6 @@ static void res4_transferloop(
         const double wt_gen) noexcept {
 
     for(const EEC::neighbor& j1: n1){
-        //printf("j1.idx = %u\n", j1.idx);
-        //fflush(stdout);
         const double twt1 = wt_gen * j1.wt;
         //unused E1 throws compiler warnings
         //this seems to be an unavoidable language limitation
@@ -1039,61 +1038,29 @@ static void res4_transferloop(
         const auto&[E1, eta1, phi1] = thisjet_reco->singles.get(j1.idx);
 
         for(const EEC::neighbor& j2: n2){
-            //printf("j2.idx = %u\n", j2.idx);
-            //fflush(stdout);
             const double twt2 = twt1 * j2.wt;
-            //printf("got twt2\n");
-            //fflush(stdout);
             const auto&[E2, eta2, phi2] = thisjet_reco->singles.get(j2.idx);
-            //printf("got E2, eta2, phi2\n");
-            //fflush(stdout);
             
             const auto&[deta12, dphi12, dR12] = thisjet_reco->pairs.get(j1.idx, j2.idx);
-            //printf("got deta12, dphi12, dR12\n");
-            //fflush(stdout); 
 
             for(const EEC::neighbor& j3 : n3){
-                //printf("j3.idx = %u\n", j3.idx);
-                //fflush(stdout);
                 const double twt3 = twt2 * j3.wt;
-                //printf("got twt3\n");
-                //fflush(stdout);
                 const auto&[E3, eta3, phi3] = thisjet_reco->singles.get(j3.idx);
-                //printf("got E3, eta3, phi3\n");
-                //fflush(stdout);
 
                 const auto&[deta13, dphi13, dR13] = thisjet_reco->pairs.get(j1.idx, j3.idx);
-                //printf("got deta13, dphi13, dR13\n");
-                //fflush(stdout);
                 const auto&[deta23, dphi23, dR23] = thisjet_reco->pairs.get(j2.idx, j3.idx);
-                //printf("got deta23, dphi23, dR23\n");
-                //fflush(stdout);
 
                 for(const EEC::neighbor& j4 : n4){
-                    //printf("j4.idx = %u\n", j4.idx);
-                    //fflush(stdout);
                     const double twt4 = twt3 * j4.wt;
-                    //printf("got twt4\n");
-                    //fflush(stdout); 
                     const auto&[E4, eta4, phi4] = thisjet_reco->singles.get(j4.idx);
-                    //printf("got E4, eta4, phi4\n");
-                    //fflush(stdout);
 
                     const auto&[deta14, dphi14, dR14] = thisjet_reco->pairs.get(j1.idx, j4.idx);
-                    //printf("got deta14, dphi14, dR14\n");
-                    //fflush(stdout);
                     const auto&[deta24, dphi24, dR24] = thisjet_reco->pairs.get(j2.idx, j4.idx);
-                    //printf("got deta24, dphi24, dR24\n");
-                    //fflush(stdout);
                     const auto&[deta34, dphi34, dR34] = thisjet_reco->pairs.get(j3.idx, j4.idx);
-                    //printf("got deta34, dphi34, dR34\n");
-                    //fflush(stdout);
 
                     std::array<res4_entry, 3> dipole_entries_reco;
                     std::array<res4_entry, 3> tee_entries_reco;
                     std::array<res4_entry, 4> triangle_entries_reco;
-                    //printf("made std::arrays\n");
-                    //fflush(stdout); 
 
                     innermost_level<EEC::Res4TransferResult<TransferContainer>, PairsType::distances_squared, false>(
                             ans,
@@ -1124,8 +1091,6 @@ static void res4_transferloop(
 
                             tolerance2,
                             tri_tolerance);
-                    //printf("called innermostlevel()\n");
-                    //fflush(stdout);
 
                     for(unsigned i=0; i<3; ++i){
                         if(dipole_entries_gen[i].isShape && dipole_entries_reco[i].isShape){
@@ -1149,8 +1114,6 @@ static void res4_transferloop(
                                     dipole_entries_gen[i].idx_c,
                                     twt4);
                         }//end if dipole entries match
-                        //printf("filled dipole\n");
-                        //fflush(stdout);
 
                         if(tee_entries_gen[i].isShape && tee_entries_reco[i].isShape){
                             ans.fill_tee(tee_entries_reco[i].idx_R, 
@@ -1173,11 +1136,7 @@ static void res4_transferloop(
                                     tee_entries_gen[i].idx_c,
                                     twt4);
                         }//end if tee entries match
-                        //printf("filled tee\n");
-                        //fflush(stdout);
                     }//end loop over tee/dipole entries
-                    //printf("don with tee/dipole\n");
-                    //fflush(stdout);
 
                     for(unsigned i=0; i<4; ++i){
                         if(triangle_entries_gen[i].isShape && triangle_entries_reco[i].isShape){
@@ -1201,11 +1160,7 @@ static void res4_transferloop(
                                     triangle_entries_gen[i].idx_c,
                                     twt4);
                         }//end if triangle entries match
-                        //printf("filled triangl\n");
-                        //fflush(stdout);
                     }//end loop over triangle entries
-                    //printf("done with triangle\n");
-                    //fflush(stdout);
                 }//end loop over j4
             }//end loop over j3
         }//end loop over j2
@@ -1215,7 +1170,7 @@ static void res4_transferloop(
 template <class BasicContainer, class TransferContainer, class PairsType>
 static void res4_mainloop_transfer(
         EEC::Res4Result<BasicContainer>& ans,
-        EEC::Res4Result<BasicContainer>& unmatched,
+        EEC::Res4Result<BasicContainer>& unmatched_gen,
         EEC::Res4TransferResult<TransferContainer>& transfer_ans,
         EEC::Res4Result<BasicContainer>& untransfered_reco,
         EEC::Res4Result<BasicContainer>& untransfered_gen,
@@ -1232,15 +1187,11 @@ static void res4_mainloop_transfer(
         const double tri_tolerance) noexcept {
 
     for (unsigned i1=0; i1<thisjet_gen->N; ++i1){
-        //printf("i1=%u\n", i1);
-        //fflush(stdout);
         const auto&[E1, eta1, phi1] = thisjet_gen->singles.get(i1);
         const bool hasMatch1 = adj->has_match(i1);
         const EEC::neighborhood& n1 = adj->get_neighborhood(i1);
 
         for (unsigned i2=i1+1; i2<thisjet_gen->N; ++i2){
-            //printf("i2=%u\n", i2);
-            //fflush(stdout);
             const auto&[E2, eta2, phi2] = thisjet_gen->singles.get(i2);
             const bool hasMatch2 = hasMatch1 && adj->has_match(i2);
             const EEC::neighborhood& n2 = adj->get_neighborhood(i2);
@@ -1250,8 +1201,6 @@ static void res4_mainloop_transfer(
             const auto&[deta12, dphi12, dR12] = thisjet_gen->pairs.get(i1, i2);
 
             for(unsigned i3=i2+1; i3<thisjet_gen->N; ++i3){
-                //printf("i3=%u\n", i3);
-                //fflush(stdout);
                 const auto&[E3, eta3, phi3] = thisjet_gen->singles.get(i3);
                 const bool hasMatch3 = hasMatch2 && adj->has_match(i3);
                 const EEC::neighborhood& n3 = adj->get_neighborhood(i3);
@@ -1262,8 +1211,6 @@ static void res4_mainloop_transfer(
                 const auto&[deta23, dphi23, dR23] = thisjet_gen->pairs.get(i2, i3);
 
                 for(unsigned i4=i3+1; i4<thisjet_gen->N; ++i4){
-                    //printf("i4=%u\n", i4);
-                    //fflush(stdout);
                     const auto&[E4, eta4, phi4] = thisjet_gen->singles.get(i4);
                     const bool hasMatch4 = hasMatch3 && adj->has_match(i4);
                     const EEC::neighborhood& n4 = adj->get_neighborhood(i4);
@@ -1325,14 +1272,14 @@ static void res4_mainloop_transfer(
                     } else {
                         for(unsigned i=0; i<3; ++i){
                             if(dipole_entries[i].isShape){
-                                untransfered_gen.fill_dipole(
+                                unmatched_gen.fill_dipole(
                                         dipole_entries[i].idx_R, 
                                         dipole_entries[i].idx_r, 
                                         dipole_entries[i].idx_c,
                                         wt);
                             }
                             if(tee_entries[i].isShape){
-                                untransfered_gen.fill_tee(
+                                unmatched_gen.fill_tee(
                                         tee_entries[i].idx_R, 
                                         tee_entries[i].idx_r, 
                                         tee_entries[i].idx_c,
@@ -1341,7 +1288,7 @@ static void res4_mainloop_transfer(
                         }
                         for(unsigned i=0; i<4; ++i){
                             if(triangle_entries[i].isShape){
-                                untransfered_gen.fill_triangle(
+                                unmatched_gen.fill_triangle(
                                         triangle_entries[i].idx_R, 
                                         triangle_entries[i].idx_r, 
                                         triangle_entries[i].idx_c,
@@ -1385,8 +1332,28 @@ static void call_res4_transfer(
     untransfered_gen.set_pt_denom(thisjet_gen->singles.get_pt_denom());
     unmatched_gen.set_pt_denom(thisjet_gen->singles.get_pt_denom());
 
-    auto adj = std::make_shared<const EEC::Adjacency>(adjmat);
-    //adj->print();
+    //rescale adjmat
+    double denom_gen = thisjet_gen->singles.get_pt_denom();
+    double denom_reco = thisjet_reco->singles.get_pt_denom();
+    Eigen::VectorXd ptgen = J_gen.ptvec()/denom_gen;
+    Eigen::VectorXd ptreco = J_reco.ptvec()/denom_reco;
+    Eigen::VectorXd ptfwd = adjmat * ptgen;
+
+    Eigen::MatrixXd adjmat_copy(adjmat);
+
+    for(unsigned iRecoPart=0; iRecoPart<J_reco.nPart; ++iRecoPart){
+        if(ptfwd(iRecoPart) == 0){
+            continue;
+        }
+        double factor = ptreco(iRecoPart) / ptfwd(iRecoPart);
+        for(unsigned iGenPart=0; iGenPart<J_gen.nPart; ++iGenPart){
+            if(adjmat(iRecoPart, iGenPart) > 0){
+                adjmat_copy(iRecoPart, iGenPart) *= factor;
+            }
+        }
+    }
+
+    auto adj = std::make_shared<const EEC::Adjacency>(adjmat_copy);
 
     res4_mainloop_transfer(
             ans, unmatched_gen,

@@ -113,9 +113,14 @@ namespace EEC{
             return *this;
         }
 
-        double total_weight() const noexcept {
+        double total_weight_reco() const noexcept {
             return std::accumulate(data.begin(), data.end(), 0.0,
                                    [](double sum, const entry& e) { return sum + e.wt_reco; });
+        }
+
+        double total_weight_gen() const noexcept {
+            return std::accumulate(data.begin(), data.end(), 0.0,
+                                   [](double sum, const entry& e) { return sum + e.wt_gen; });
         }
         const size_t nR_reco, nr_reco, nc_reco;
         const size_t nR_gen, nr_gen, nc_gen;
@@ -240,16 +245,28 @@ namespace EEC{
             return *this;
         }
 
-        double total_dipole_weight() const noexcept {
-            return dipole.total_weight();
+        double total_dipole_weight_gen() const noexcept {
+            return dipole.total_weight_gen();
         }
 
-        double total_tee_weight() const noexcept {
-            return tee.total_weight();
+        double total_tee_weight_gen() const noexcept {
+            return tee.total_weight_gen();
         }
 
-        double total_triangle_weight() const noexcept {
-            return triangle.total_weight();
+        double total_triangle_weight_gen() const noexcept {
+            return triangle.total_weight_gen();
+        }
+
+        double total_dipole_weight_reco() const noexcept {
+            return dipole.total_weight_reco();
+        }
+
+        double total_tee_weight_reco() const noexcept {
+            return tee.total_weight_reco();
+        }
+
+        double total_triangle_weight_reco() const noexcept {
+            return triangle.total_weight_reco();
         }
     private:
         TransferContainer dipole;

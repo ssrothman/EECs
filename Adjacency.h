@@ -61,7 +61,7 @@ namespace EEC{
             return adj[i];
         }
 
-        const bool has_match(const unsigned i) const noexcept {
+        bool has_match(const unsigned i) const noexcept {
             return hasMatch[i];
         }
     private:

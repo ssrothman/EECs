@@ -33,7 +33,7 @@ namespace EEC{
 
         void fill(unsigned iR_reco, unsigned ir_reco, unsigned ic_reco,
                   unsigned iR_gen, unsigned ir_gen, unsigned ic_gen,
-                  double wt_reco, double wt_gen) noexcept {
+                  double wt_reco, [[maybe_unused]] double wt_gen) noexcept {
             //printf("Res4TransferMultiArrayContainer::fill(%u, %u, %u, %u, %u, %u, %g)\n", iR_reco, ir_reco, ic_reco, iR_gen, ir_gen, ic_gen, wt);
             //fflush(stdout);
             data[iR_reco][ir_reco][ic_reco][iR_gen][ir_gen][ic_gen] += wt_reco;

@@ -76,7 +76,7 @@ namespace EEC{
         const EEC::normType nt;
     };
 
-    /*class Res3TransferCalculator {
+    class Res3TransferCalculator {
     public:
         Res3TransferCalculator(
                 const std::vector<double>& R_reco,
@@ -101,9 +101,7 @@ namespace EEC{
                 const Eigen::MatrixXd& tmat,
                 Res3Result_Vector& result,
                 EEC::Res3Result_Vector& unmatched_gen,
-                Res3TransferResult_Vector& tresult,
-                Res3Result_Vector& untransfered_reco,
-                Res3Result_Vector& untransfered_gen) const noexcept;
+                Res3TransferResult_Vector& tresult) const noexcept;
 
         void compute_JIT(
                 const simon::jet& J_reco,
@@ -111,9 +109,7 @@ namespace EEC{
                 const Eigen::MatrixXd& tmat,
                 Res3Result_MultiArray& result,
                 EEC::Res3Result_MultiArray& unmatched_gen,
-                Res3TransferResult_Vector& tresult,
-                Res3Result_MultiArray& untransfered_reco,
-                Res3Result_MultiArray& untransfered_gen) const noexcept;
+                Res3TransferResult_Vector& tresult) const noexcept;
 
         void compute_JIT(
                 const simon::jet& J_reco,
@@ -121,9 +117,7 @@ namespace EEC{
                 const Eigen::MatrixXd& tmat,
                 Res3Result_Vector& result,
                 EEC::Res3Result_Vector& unmatched_gen,
-                Res3TransferResult_MultiArray& tresult,
-                Res3Result_Vector& untransfered_reco,
-                Res3Result_Vector& untransfered_gen) const noexcept;
+                Res3TransferResult_MultiArray& tresult) const noexcept;
 
         void compute_JIT(
                 const simon::jet& J_reco,
@@ -131,9 +125,7 @@ namespace EEC{
                 const Eigen::MatrixXd& tmat,
                 Res3Result_MultiArray& result,
                 EEC::Res3Result_MultiArray& unmatched_gen,
-                Res3TransferResult_MultiArray& tresult,
-                Res3Result_MultiArray& untransfered_reco,
-                Res3Result_MultiArray& untransfered_gen) const noexcept;
+                Res3TransferResult_MultiArray& tresult) const noexcept;
 
         void compute_precomputed(
                 const simon::jet& J_reco,
@@ -141,9 +133,7 @@ namespace EEC{
                 const Eigen::MatrixXd& tmat,
                 Res3Result_Vector& result,
                 EEC::Res3Result_Vector& unmatched_gen,
-                Res3TransferResult_Vector& tresult,
-                Res3Result_Vector& untransfered_reco,
-                Res3Result_Vector& untransfered_gen) const noexcept;
+                Res3TransferResult_Vector& tresult) const noexcept;
 
         void compute_precomputed(
                 const simon::jet& J_reco,
@@ -151,9 +141,7 @@ namespace EEC{
                 const Eigen::MatrixXd& tmat,
                 Res3Result_MultiArray& result,
                 EEC::Res3Result_MultiArray& unmatched_gen,
-                Res3TransferResult_Vector& tresult,
-                Res3Result_MultiArray& untransfered_reco,
-                Res3Result_MultiArray& untransfered_gen) const noexcept;
+                Res3TransferResult_Vector& tresult) const noexcept;
 
         void compute_precomputed(
                 const simon::jet& J_reco,
@@ -161,9 +149,7 @@ namespace EEC{
                 const Eigen::MatrixXd& tmat,
                 Res3Result_Vector& result,
                 EEC::Res3Result_Vector& unmatched_gen,
-                Res3TransferResult_MultiArray& tresult,
-                Res3Result_Vector& untransfered_reco,
-                Res3Result_Vector& untransfered_gen) const noexcept;
+                Res3TransferResult_MultiArray& tresult) const noexcept;
 
         void compute_precomputed(
                 const simon::jet& J_reco,
@@ -171,9 +157,7 @@ namespace EEC{
                 const Eigen::MatrixXd& tmat,
                 Res3Result_MultiArray& result,
                 EEC::Res3Result_MultiArray& unmatched_gen,
-                Res3TransferResult_MultiArray& tresult,
-                Res3Result_MultiArray& untransfered_reco,
-                Res3Result_MultiArray& untransfered_gen) const noexcept;
+                Res3TransferResult_MultiArray& tresult) const noexcept;
 
         const Res3Axes& get_axes_reco() const noexcept{
             return axes_reco;
@@ -186,7 +170,7 @@ namespace EEC{
     private:
         const Res3Axes axes_reco, axes_gen;
         const EEC::normType nt;
-    };*/
+    };
 };
 
 #endif

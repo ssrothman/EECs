@@ -10,7 +10,7 @@
 
 namespace EEC{
 
-    /*class Res3TransferMultiArrayContainer{
+    class Res3TransferMultiArrayContainer{
     public:
         using data_t = multi_array<double, 6>;
 
@@ -214,7 +214,7 @@ namespace EEC{
     };
 
     using Res3TransferResult_MultiArray = Res3TransferResult<Res3TransferMultiArrayContainer>;
-    using Res3TransferResult_Vector = Res3TransferResult<Res3TransferVectorContainer>;*/
+    using Res3TransferResult_Vector = Res3TransferResult<Res3TransferVectorContainer>;
 };
 
 #endif

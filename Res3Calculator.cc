@@ -41,7 +41,7 @@ void EEC::Res3Calculator::compute_JIT(
         const simon::jet& J,
         Res3Result_Vector& result) const noexcept {
     
-    call_res3<Res3VectorContainer, JITPairs>(
+    call_res3<ResVectorContainer, JITPairs>(
             result, 
             J, nt, 
             axes);
@@ -51,7 +51,7 @@ void EEC::Res3Calculator::compute_JIT(
         const simon::jet& J,
         Res3Result_MultiArray& result) const noexcept {
 
-    call_res3<Res3MultiArrayContainer, JITPairs>(
+    call_res3<ResMultiArrayContainer, JITPairs>(
             result, 
             J, nt, 
             axes);
@@ -61,7 +61,7 @@ void EEC::Res3Calculator::compute_precomputed(
         const simon::jet& J,
         Res3Result_Vector& result) const noexcept {
     
-    call_res3<Res3VectorContainer, PrecomputedPairs>(
+    call_res3<ResVectorContainer, PrecomputedPairs>(
             result, 
             J, nt, 
             axes);
@@ -71,7 +71,7 @@ void EEC::Res3Calculator::compute_precomputed(
         const simon::jet& J,
         Res3Result_MultiArray& result) const noexcept {
 
-    call_res3<Res3MultiArrayContainer, PrecomputedPairs>(
+    call_res3<ResMultiArrayContainer, PrecomputedPairs>(
             result, 
             J, nt, 
             axes);
@@ -110,7 +110,7 @@ void EEC::Res3Calculator::compute_JIT_matched(
         Res3Result_Vector& result,
         Res3Result_Vector& unmatched) const noexcept {
 
-    call_res3_matched<Res3VectorContainer, JITPairs>(
+    call_res3_matched<ResVectorContainer, JITPairs>(
             result, 
             unmatched,
             J, matched, nt, 
@@ -123,7 +123,7 @@ void EEC::Res3Calculator::compute_JIT_matched(
         Res3Result_MultiArray& result,
         Res3Result_MultiArray& unmatched) const noexcept {
 
-    call_res3_matched<Res3MultiArrayContainer, JITPairs>(
+    call_res3_matched<ResMultiArrayContainer, JITPairs>(
             result, 
             unmatched,
             J, matched, nt, 
@@ -136,7 +136,7 @@ void EEC::Res3Calculator::compute_precomputed_matched(
         Res3Result_Vector& result,
         Res3Result_Vector& unmatched) const noexcept {
 
-    call_res3_matched<Res3VectorContainer, PrecomputedPairs>(
+    call_res3_matched<ResVectorContainer, PrecomputedPairs>(
             result, 
             unmatched,
             J, matched, nt, 
@@ -149,7 +149,7 @@ void EEC::Res3Calculator::compute_precomputed_matched(
         Res3Result_MultiArray& result,
         Res3Result_MultiArray& unmatched) const noexcept {
 
-    call_res3_matched<Res3MultiArrayContainer, PrecomputedPairs>(
+    call_res3_matched<ResMultiArrayContainer, PrecomputedPairs>(
             result, 
             unmatched,
             J, matched, nt, 
@@ -404,3 +404,37 @@ void EEC::Res3TransferCalculator::compute_precomputed(
         axes_reco,
         axes_gen);
 }
+
+#ifdef CMSSW_GIT_HASH
+
+EEC::Res3Calculator::Res3Calculator(const edm::ParameterSet& iConfig) :
+    axes(iConfig.getParameter<edm::ParameterSet>("bins")),
+    nt(normType_from_string(iConfig.getParameter<std::string>("normType"))) {}
+
+void EEC::Res3Calculator::fillPSetDescription(edm::ParameterSetDescription& desc) {
+    edm::ParameterSetDescription binsDesc; 
+    Res3Axes::fillPSetDescription(binsDesc);
+    desc.add<edm::ParameterSetDescription>("bins", binsDesc);
+
+    desc.add<std::string>("normType");
+}
+
+EEC::Res3TransferCalculator::Res3TransferCalculator(const edm::ParameterSet& iConfig):
+    axes_reco(iConfig.getParameter<edm::ParameterSet>("bins_reco")),
+    axes_gen(iConfig.getParameter<edm::ParameterSet>("bins_gen")),
+    nt(normType_from_string(iConfig.getParameter<std::string>("normType"))) {}
+
+void EEC::Res3TransferCalculator::fillPSetDescription(edm::ParameterSetDescription& desc) {
+
+    edm::ParameterSetDescription binsRecoDesc;
+    Res3Axes::fillPSetDescription(binsRecoDesc);
+    desc.add<edm::ParameterSetDescription>("bins_reco", binsRecoDesc);
+
+    edm::ParameterSetDescription binsGenDesc;
+    Res3Axes::fillPSetDescription(binsGenDesc);
+    desc.add<edm::ParameterSetDescription>("bins_gen", binsGenDesc);
+
+    desc.add<std::string>("normType");
+}
+
+#endif

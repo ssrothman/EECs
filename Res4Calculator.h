@@ -4,8 +4,8 @@
 #include "Res4Axes.h"
 #include "EECjet.h"
 
-#include "Res4Result_forward.h"
-#include "Res4TransferResult_forward.h"
+#include "Res4Result.h"
+#include "Res4TransferResult.h"
 
 #ifdef CMSSW_GIT_HASH
 #include "FWCore/ParameterSet/interface/ParameterSet.h"

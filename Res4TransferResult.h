@@ -3,7 +3,6 @@
 
 #include "usings.h"
 #include "Res4Axes.h"
-#include "Res4Calculator.h"
 
 #include "SRothman/SimonTools/src/histutil.h"
 
@@ -179,7 +178,8 @@ namespace EEC{
                     simon::AXextent(axes_gen.r_triangle),
                     simon::AXextent(axes_gen.c_triangle)) {}
 
-        Res4TransferResult(const Res4TransferCalculator& calculator) noexcept:
+        template <typename CALCULATOR>
+        Res4TransferResult(const CALCULATOR& calculator) noexcept:
             Res4TransferResult(calculator.get_axes_reco(), calculator.get_axes_gen()) {}
         
         void fill_dipole(unsigned iR_reco, unsigned ir_reco, unsigned ic_reco,

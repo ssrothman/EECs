@@ -668,161 +668,6 @@ static void innermost_level(
             axes);
 }
 
-/*
- * This is the main loop over four particles
- *
- * NB in the specific case of res4 we are only interested
- * in the case where the four particles are distinct
- * This allows us to save some loops
- * This also means we don't have to worry about 
- * symmetry factors
- *
- * Probably an unnecessary mount of effort was made
- * to avoid ANY repeated computations
- *
- * Thus all of the particle coordinates and pairwise 
- * quantities are computed at the top of each loop level
- * and passed down to inner loops
- *
- * We opt to only precompute the /squared/ distances
- * and leave the square root for later.
- * In principle this can lead to repeated square roots.
- * However, this is more than made up for by the fact
- * that the vast majority of cases are not an interesting
- * configuration, so we can avoid the square root altogether
- *
- * We template on the container type to allow for two 
- * versions of this method to share the same code
- * without any costly virtual function calls.
- * The two versions are:
- *     Filling a histogram directly via a multi_array
- *     Growing a vector of entries with bin indices and weights
- */
-template <class ResultType, class PairsType, bool doUnmatched>
-static void res4_mainloop(
-        ResultType& ans,
-        ResultType* unmatched,
-
-        const std::shared_ptr<const EEC::EECjet<PairsType>> thisjet,
-        const std::vector<bool>* matched,
-
-        const EEC::Res4Axes& axes,
-
-        const double tolerance2,
-        const double tri_tolerance) noexcept {
-
-    for (unsigned i1=0; i1<thisjet->N; ++i1){
-        const auto&[E1, eta1, phi1] = thisjet->singles.get(i1);
-        [[maybe_unused]] bool matched1;
-        if constexpr(doUnmatched){
-            matched1 = matched->at(i1);
-        }
-
-        for (unsigned i2=i1+1; i2<thisjet->N; ++i2){
-            const auto&[E2, eta2, phi2] = thisjet->singles.get(i2);
-            [[maybe_unused]] bool matched2;
-            if constexpr(doUnmatched){
-                matched2 = matched1 && matched->at(i2);
-            }
-
-            const double E12 = E1 * E2;
-
-            const auto&[deta12, dphi12, dR12] = thisjet->pairs.get(i1, i2);
-
-            for(unsigned i3=i2+1; i3<thisjet->N; ++i3){
-                const auto&[E3, eta3, phi3] = thisjet->singles.get(i3);
-                [[maybe_unused]] bool matched3;
-                if constexpr(doUnmatched){
-                    matched3 = matched2 && matched->at(i3);
-                }
-
-                const double E123 = E12 * E3;
-
-                const auto&[deta13, dphi13, dR13] = thisjet->pairs.get(i1, i3);
-                const auto&[deta23, dphi23, dR23] = thisjet->pairs.get(i2, i3);
-
-                for(unsigned i4=i3+1; i4<thisjet->N; ++i4){
-                    const auto&[E4, eta4, phi4] = thisjet->singles.get(i4);
-                    [[maybe_unused]] bool matched4;
-                    if constexpr(doUnmatched){
-                        matched4 = matched3 && matched->at(i4);
-                    }
-
-                    const double wt = E123 * E4;
-
-                    const auto&[deta14, dphi14, dR14] = thisjet->pairs.get(i1, i4);
-                    const auto&[deta24, dphi24, dR24] = thisjet->pairs.get(i2, i4);
-                    const auto&[deta34, dphi34, dR34] = thisjet->pairs.get(i3, i4);
-
-                    std::array<res4_entry, 3> dipole_entries;
-                    std::array<res4_entry, 3> tee_entries;
-                    std::array<res4_entry, 4> triangle_entries;
-
-                    innermost_level<ResultType, PairsType::distances_squared, true>(
-                            ans,
-
-                            dipole_entries,
-                            tee_entries,
-                            triangle_entries,
-
-                            eta1, phi1,
-                            eta2, phi2,
-                            eta3, phi3,
-                            eta4, phi4,
-
-                            deta12, dphi12,
-                            deta13, dphi13,
-                            deta14, dphi14,
-                            deta23, dphi23,
-                            deta24, dphi24,
-                            deta34, dphi34,
-
-                            dR12, dR13,
-                            dR14, dR23,
-                            dR24, dR34,
-
-                            wt,
-
-                            axes,
-
-                            tolerance2,
-                            tri_tolerance);
-
-                    if constexpr(doUnmatched){
-                        if(!matched4){
-                            for(unsigned i=0; i<3; ++i){
-                                if(dipole_entries[i].isShape){
-                                    unmatched->fill_dipole(
-                                            dipole_entries[i].idx_R,
-                                            dipole_entries[i].idx_r,
-                                            dipole_entries[i].idx_c,
-                                            wt);
-                                }
-                                if(tee_entries[i].isShape){
-                                    unmatched->fill_tee(
-                                            tee_entries[i].idx_R,
-                                            tee_entries[i].idx_r,
-                                            tee_entries[i].idx_c,
-                                            wt);
-                                }
-                            }
-                            for(unsigned i=0; i<4; ++i){
-                                if(triangle_entries[i].isShape){
-                                    unmatched->fill_triangle(
-                                            triangle_entries[i].idx_R,
-                                            triangle_entries[i].idx_r,
-                                            triangle_entries[i].idx_c,
-                                            wt);
-                                }
-                            }
-                        }
-                    }
-                }//end loop over i4
-            }//end loop over i3
-        }//end loop over i2
-    }//end loop over i1
-}//end res4_standalone()
-
 template <class TransferResultType, class ResultType, class PairsType>
 static void res4_transferloop(
         TransferResultType& ans,
@@ -985,20 +830,21 @@ static void res4_transferloop(
     }//end loop over j1
 }//end res4_transferloop()
 
-template <class ResultType, class TransferResultType, class PairsType>
-static void res4_mainloop_transfer(
+template <class ResultType, class PairsType, bool doUnmatched, class TransferResultType, bool doTransfer>
+static void res4_mainloop(
         ResultType& ans,
-        ResultType& unmatched_gen,
-        TransferResultType& transfer_ans,
-        ResultType& untransfered_reco,
-        ResultType& untransfered_gen,
+        ResultType* unmatched_gen,
+        TransferResultType* transfer_ans,
+        ResultType* untransfered_reco,
+        ResultType* untransfered_gen,
 
         const std::shared_ptr<const EEC::EECjet<PairsType>> thisjet_reco,
         const std::shared_ptr<const EEC::EECjet<PairsType>> thisjet_gen,
+        const std::vector<bool>* matched,
 
         const std::shared_ptr<const EEC::Adjacency> adj,
 
-        const EEC::Res4Axes& axes_reco,
+        const EEC::Res4Axes * const axes_reco,
         const EEC::Res4Axes& axes_gen,
 
         const double tolerance2,
@@ -1006,13 +852,25 @@ static void res4_mainloop_transfer(
 
     for (unsigned i1=0; i1<thisjet_gen->N; ++i1){
         const auto&[E1, eta1, phi1] = thisjet_gen->singles.get(i1);
-        const bool hasMatch1 = adj->has_match(i1);
-        const EEC::neighborhood& n1 = adj->get_neighborhood(i1);
+        [[maybe_unused]] bool matched1;
+        if constexpr(doUnmatched){
+            matched1 = matched->at(i1);
+        }
+        [[maybe_unused]] EEC::neighborhood const * n1;
+        if constexpr(doTransfer){
+            n1 = &(adj->get_neighborhood(i1));
+        }
 
         for (unsigned i2=i1+1; i2<thisjet_gen->N; ++i2){
             const auto&[E2, eta2, phi2] = thisjet_gen->singles.get(i2);
-            const bool hasMatch2 = hasMatch1 && adj->has_match(i2);
-            const EEC::neighborhood& n2 = adj->get_neighborhood(i2);
+            [[maybe_unused]] bool matched2;
+            if constexpr(doUnmatched){
+                matched2 = matched1 && matched->at(i2);
+            }
+            [[maybe_unused]] EEC::neighborhood const * n2;
+            if constexpr(doTransfer){
+                n2 = &(adj->get_neighborhood(i2));
+            }
 
             const double E12 = E1 * E2;
 
@@ -1020,8 +878,14 @@ static void res4_mainloop_transfer(
 
             for(unsigned i3=i2+1; i3<thisjet_gen->N; ++i3){
                 const auto&[E3, eta3, phi3] = thisjet_gen->singles.get(i3);
-                const bool hasMatch3 = hasMatch2 && adj->has_match(i3);
-                const EEC::neighborhood& n3 = adj->get_neighborhood(i3);
+                [[maybe_unused]] bool matched3;
+                if constexpr(doUnmatched){
+                    matched3 = matched2 && matched->at(i3);
+                }
+                [[maybe_unused]] EEC::neighborhood const * n3;
+                if constexpr(doTransfer){
+                    n3 = &(adj->get_neighborhood(i3));
+                }
 
                 const double E123 = E12 * E3;
 
@@ -1030,8 +894,14 @@ static void res4_mainloop_transfer(
 
                 for(unsigned i4=i3+1; i4<thisjet_gen->N; ++i4){
                     const auto&[E4, eta4, phi4] = thisjet_gen->singles.get(i4);
-                    const bool hasMatch4 = hasMatch3 && adj->has_match(i4);
-                    const EEC::neighborhood& n4 = adj->get_neighborhood(i4);
+                    [[maybe_unused]] bool matched4;
+                    if constexpr(doUnmatched){
+                        matched4 = matched3 && matched->at(i4);
+                    }
+                    [[maybe_unused]] EEC::neighborhood const * n4;
+                    if constexpr(doTransfer){
+                        n4 = &(adj->get_neighborhood(i4));
+                    }
 
                     const double wt = E123 * E4;
 
@@ -1073,54 +943,55 @@ static void res4_mainloop_transfer(
                             tolerance2,
                             tri_tolerance);
 
-                    if(hasMatch4){
+                    if constexpr(doUnmatched){
+                        if(!matched4){
+                            for(unsigned i=0; i<3; ++i){
+                                if(dipole_entries[i].isShape){
+                                    unmatched_gen->fill_dipole(
+                                            dipole_entries[i].idx_R,
+                                            dipole_entries[i].idx_r,
+                                            dipole_entries[i].idx_c,
+                                            wt);
+                                }
+                                if(tee_entries[i].isShape){
+                                    unmatched_gen->fill_tee(
+                                            tee_entries[i].idx_R,
+                                            tee_entries[i].idx_r,
+                                            tee_entries[i].idx_c,
+                                            wt);
+                                }
+                            }
+                            for(unsigned i=0; i<4; ++i){
+                                if(triangle_entries[i].isShape){
+                                    unmatched_gen->fill_triangle(
+                                            triangle_entries[i].idx_R,
+                                            triangle_entries[i].idx_r,
+                                            triangle_entries[i].idx_c,
+                                            wt);
+                                }
+                            }
+                        }
+                    }//end if constexpr (doUnmatched)
+
+                    if constexpr(doTransfer){
                         res4_transferloop<TransferResultType, ResultType>(
-                            transfer_ans,
-                            untransfered_reco,
-                            untransfered_gen,
+                            *transfer_ans,
+                            *untransfered_reco,
+                            *untransfered_gen,
                             dipole_entries,
                             tee_entries,
                             triangle_entries,
                             thisjet_reco,
-                            n1, n2, n3, n4,
-                            axes_reco,
+                            *n1, *n2, *n3, *n4,
+                            *axes_reco,
                             tolerance2,
                             tri_tolerance,
                             wt);
-                    } else {
-                        for(unsigned i=0; i<3; ++i){
-                            if(dipole_entries[i].isShape){
-                                unmatched_gen.fill_dipole(
-                                        dipole_entries[i].idx_R, 
-                                        dipole_entries[i].idx_r, 
-                                        dipole_entries[i].idx_c,
-                                        wt);
-                            }
-                            if(tee_entries[i].isShape){
-                                unmatched_gen.fill_tee(
-                                        tee_entries[i].idx_R, 
-                                        tee_entries[i].idx_r, 
-                                        tee_entries[i].idx_c,
-                                        wt);
-                            }
-                        }
-                        for(unsigned i=0; i<4; ++i){
-                            if(triangle_entries[i].isShape){
-                                unmatched_gen.fill_triangle(
-                                        triangle_entries[i].idx_R, 
-                                        triangle_entries[i].idx_r, 
-                                        triangle_entries[i].idx_c,
-                                        wt);
-                            }
-                        }
-                    };
+                    }//end if constexpr (doTransfer) 
                 }//end loop over i4
             }//end loop over i3
         }//end loop over i2
     }//end loop over i1
 }//end res4_standalone()
-
-
-
 
 #endif

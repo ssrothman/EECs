@@ -26,14 +26,20 @@ static void call_res4(
     auto thisjet = std::make_shared<const EEC::EECjet<PairsType>>(J, nt);
     ans.set_pt_denom(thisjet->singles.get_pt_denom());
     
-    res4_mainloop<ResultType, PairsType, false>(
-            ans, 
-            nullptr,
-            thisjet,
-            nullptr,
-            axes,
-            tolerance2,
-            tri_tolerance);
+    res4_mainloop<ResultType, PairsType, false, ResultType, false>(
+            ans,                                //ans
+            nullptr,                            //unmatched_gen
+            nullptr,                            //transfer_ans
+            nullptr,                            //untransfered_reco
+            nullptr,                            //untransfered_gen
+            nullptr,                            //thisjet_reco
+            thisjet,                            //thisjet_gen
+            nullptr,                            //matched
+            nullptr,                            //adj
+            nullptr,                            //axes_reco
+            axes,                               //axes_gen
+            tolerance2,                         //tolerance2
+            tri_tolerance);                     //tri_tolerance
 }
 
 void EEC::Res4Calculator::compute_JIT(
@@ -101,14 +107,20 @@ static void call_res4_matched(
     ans.set_pt_denom(thisjet->singles.get_pt_denom());
     unmatched.set_pt_denom(thisjet->singles.get_pt_denom());
 
-    res4_mainloop<ResultType, PairsType, true>(
-            ans, 
-            &unmatched,
-            thisjet,
-            &matched,
-            axes,
-            tolerance2,
-            tri_tolerance);
+    res4_mainloop<ResultType, PairsType, true, ResultType, false>(
+            ans,                        //ans
+            &unmatched,                 //unmatched_gen
+            nullptr,                    //transfer_ans
+            nullptr,                    //untransfered_reco
+            nullptr,                    //untransfered_gen
+            nullptr,                    //thisjet_reco
+            thisjet,                    //thisjet_gen
+            &matched,                   //matched
+            nullptr,                    //adj
+            nullptr,                    //axes_reco
+            axes,                       //axes_gen
+            tolerance2,                 //tolerance2
+            tri_tolerance);             //tri_tolerance
 }
 
 void EEC::Res4Calculator::compute_JIT_matched(
@@ -224,16 +236,30 @@ static void call_res4_transfer(
 
     auto adj = std::make_shared<const EEC::Adjacency>(adjmat_copy);
 
-    res4_mainloop_transfer(
-            ans, unmatched_gen,
-            transfer_ans,
-            untransfered_reco, untransfered_gen,
-            thisjet_reco, thisjet_gen,
-            adj,
-            axes_reco,
-            axes_gen,
-            tolerance2,
-            tri_tolerance);
+    std::vector<bool> matched(J_gen.nPart, false);
+    for(unsigned iGenPart=0; iGenPart<J_gen.nPart; ++iGenPart){
+        for(unsigned iRecoPart=0; iRecoPart<J_reco.nPart; ++iRecoPart){
+            if(adjmat_copy(iRecoPart, iGenPart) > 0){
+                matched[iGenPart] = true;
+                break;
+            }
+        }
+    }
+
+    res4_mainloop<ResultType, PairsType, true, TransferResultType, true>(
+            ans,                            //ans
+            &unmatched_gen,                 //unmatched_gen
+            &transfer_ans,                  //transfer_ans
+            &untransfered_reco,             //untransfered_reco
+            &untransfered_gen,              //untransfered_gen
+            thisjet_reco,                   //thisjet_reco
+            thisjet_gen,                    //thisjet_gen
+            &matched,                       //matched
+            adj,                            //adj
+            &axes_reco,                     //axes_reco
+            axes_gen,                       //axes_gen
+            tolerance2,                     //tolerance2
+            tri_tolerance);                 //tri_tolerance
 }
 
 void EEC::Res4TransferCalculator::compute_JIT(

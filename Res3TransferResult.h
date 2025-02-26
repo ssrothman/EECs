@@ -3,7 +3,6 @@
 
 #include "usings.h"
 #include "Res3Axes.h"
-#include "Res3Calculator.h"
 
 #include "SRothman/SimonTools/src/histutil.h"
 
@@ -155,7 +154,8 @@ namespace EEC{
                     simon::AXextent(axes_gen.r),
                     simon::AXextent(axes_gen.c)) {}
 
-        Res3TransferResult(const Res3TransferCalculator& calculator) noexcept:
+        template <typename CALCULATOR>
+        Res3TransferResult(const CALCULATOR& calculator) noexcept:
             Res3TransferResult(calculator.get_axes_reco(), calculator.get_axes_gen()) {}
         
         void fill(unsigned iR_reco, unsigned ir_reco, unsigned ic_reco,

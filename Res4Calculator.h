@@ -13,6 +13,8 @@
 #endif
 
 namespace EEC{
+    //this is in principle configurable
+    //but it is important that the target ratios not be 1
     static constexpr double TRIANGLE_RATIO_LM = 5.0/4.0;
     static constexpr double TRIANGLE_RATIO_MS = 4.0/3.0;
 

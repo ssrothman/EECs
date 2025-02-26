@@ -11,11 +11,6 @@
 
 #include <array>
 
-//this is in principle configurable
-//but it is important that the target ratios not be 1
-constexpr double triangle_ratio_LM = 5.0/4.0;
-constexpr double triangle_ratio_MS = 4.0/3.0;
-
 /*
  * Compute angle between vectors (12) and (34)
  * the precomputed detas, dphis, and dRs are passed
@@ -423,11 +418,11 @@ static void check_triangle(
     bool passMS; 
     
     if constexpr(distances_squared){
-        passLM = std::abs(std::sqrt(RBC_2/RAC_2) - triangle_ratio_LM) < tri_tolerance;
-        passMS = std::abs(std::sqrt(RAC_2/RAB_2) - triangle_ratio_MS) < tri_tolerance;
+        passLM = std::abs(std::sqrt(RBC_2/RAC_2) - EEC::TRIANGLE_RATIO_LM) < tri_tolerance;
+        passMS = std::abs(std::sqrt(RAC_2/RAB_2) - EEC::TRIANGLE_RATIO_MS) < tri_tolerance;
     } else {
-        passLM = std::abs(RBC_2/RAC_2 - triangle_ratio_LM) < tri_tolerance;
-        passMS = std::abs(RAC_2/RAB_2 - triangle_ratio_MS) < tri_tolerance;
+        passLM = std::abs(RBC_2/RAC_2 - EEC::TRIANGLE_RATIO_LM) < tri_tolerance;
+        passMS = std::abs(RAC_2/RAB_2 - EEC::TRIANGLE_RATIO_MS) < tri_tolerance;
     }
 
     if(passLM && passMS){

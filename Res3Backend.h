@@ -1,3 +1,6 @@
+#ifndef SROTHMAN_EEC_RES3_BACKEND_H
+#define SROTHMAN_EEC_RES3_BACKEND_H
+
 #include "Adjacency.h"
 
 #include "SRothman/SimonTools/src/deltaR.h"
@@ -126,11 +129,11 @@ inline void get_indices(const double dR12, const double dR13, const double dR23,
     }
 }
 
-template <bool isCA, class PairsType, class TransferContainer>
+template <bool isCA, class JetType, class TransferContainer>
 inline void res3_transferloop(
         EEC::Res3TransferResult<TransferContainer>& transfer,
 
-        const std::shared_ptr<const EEC::EECjet<PairsType>> thisjet_reco,
+        const std::shared_ptr<const JetType> thisjet_reco,
 
         const EEC::Res3Axes& axes_reco,
 
@@ -163,7 +166,7 @@ inline void res3_transferloop(
 
                 unsigned R_idx_reco, r_idx_reco, c_idx_reco;
                 if constexpr (isCA){
-                    get_indices_CA<PairsType::distances_squared>(
+                    get_indices_CA<JetType::pairType::distances_squared>(
                         dR12, dR13, dR23,
                         E1, eta1, phi1,
                         E2, eta2, phi2,
@@ -174,7 +177,7 @@ inline void res3_transferloop(
                         R_idx_reco, r_idx_reco, c_idx_reco,
                         axes_reco);
                 } else {
-                    get_indices<PairsType::distances_squared>(dR12, dR13, dR23, R_idx_reco, r_idx_reco, c_idx_reco, axes_reco);
+                    get_indices<JetType::pairType::distances_squared>(dR12, dR13, dR23, R_idx_reco, r_idx_reco, c_idx_reco, axes_reco);
                 }
 
                 transfer.fill(R_idx_reco, r_idx_reco, c_idx_reco,
@@ -185,19 +188,19 @@ inline void res3_transferloop(
     }
 }
 
-template <bool isCA, class BasicContainer, class PairsType, bool doUnmatched, class TransferContainer, bool doTransfer>
+template <bool isCA, class BasicContainer, class JetType, bool doUnmatched, class TransferContainer, bool doTransfer>
 inline void res3_mainloop(
         EEC::Res3Result<BasicContainer>& result,
         [[maybe_unused]] EEC::Res3Result<BasicContainer>* unmatched_gen,
         [[maybe_unused]] EEC::Res3TransferResult<TransferContainer>* transfer,
 
-        [[maybe_unused]] const std::shared_ptr<const EEC::EECjet<PairsType>> thisjet_reco,
-        const std::shared_ptr<const EEC::EECjet<PairsType>> thisjet_gen,
-        [[maybe_unused]] const std::vector<bool>* matched,
+        [[maybe_unused]] const std::shared_ptr<const JetType> thisjet_reco,
+        const std::shared_ptr<const JetType> thisjet_gen,
+        [[maybe_unused]] const std::vector<bool>* const matched,
 
         [[maybe_unused]] const std::shared_ptr<const EEC::Adjacency> adj,
 
-        [[maybe_unused]] const EEC::Res3Axes* axes_reco,
+        [[maybe_unused]] const EEC::Res3Axes* const axes_reco,
         const EEC::Res3Axes& axes_gen) noexcept {//TODO: REMOVE [[maybe_unused]] here
 
     for(unsigned i1=0; i1<thisjet_gen->N; ++i1){
@@ -257,7 +260,7 @@ inline void res3_mainloop(
              * And RL = R12, r=c=0
              */
             unsigned R_idx;
-            if constexpr(PairsType::distances_squared){
+            if constexpr(JetType::pairType::distances_squared){
                 R_idx = simon::getIndex(std::sqrt(dR12), axes_gen.R);
             } else {
                 R_idx = simon::getIndex(dR12, axes_gen.R);
@@ -315,7 +318,7 @@ inline void res3_mainloop(
                  */
                 unsigned r_idx, c_idx;
                 if constexpr (isCA){
-                    get_indices_CA<PairsType::distances_squared>(
+                    get_indices_CA<JetType::pairType::distances_squared>(
                         dR12, dR13, dR23,
                         E1, eta1, phi1,
                         E2, eta2, phi2,
@@ -326,7 +329,7 @@ inline void res3_mainloop(
                         R_idx, r_idx, c_idx,
                         axes_gen);
                 } else {
-                    get_indices<PairsType::distances_squared>(dR12, dR13, dR23, R_idx, r_idx, c_idx, axes_gen);
+                    get_indices<JetType::pairType::distances_squared>(dR12, dR13, dR23, R_idx, r_idx, c_idx, axes_gen);
                 }
                 
                 wt = E123*6;
@@ -352,4 +355,4 @@ inline void res3_mainloop(
     }
 }
 
-
+#endif

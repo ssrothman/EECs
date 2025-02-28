@@ -18,7 +18,7 @@
  * the result is stored into c
  *      and is in the range [0, pi/2]
  */
-static void compute_c(
+inline void compute_c(
         const double deta12, const double dphi12,
         const double deta34, const double dphi34,
         const double dR12, const double dR34,
@@ -48,7 +48,7 @@ static void compute_c(
  *      R = max(dR12, dR34)
  *      r = min(dR12, dR34)/R
  */
-static void compute_r_R(
+inline void compute_r_R(
         const double dR12,
         const double dR34,
         double& r,
@@ -68,7 +68,7 @@ static void compute_r_R(
  * wrapping around as necessary
  * This is useful for the dipole and tee axes
  */
-static double angle_midpoint(
+inline double angle_midpoint(
         const double phi1, 
         const double phi2) noexcept {
     double result;
@@ -95,7 +95,8 @@ static double angle_midpoint(
 
 struct res4_entry{
     unsigned idx_R, idx_r, idx_c;
-    bool isShape=false;
+    bool isShape;
+    res4_entry() noexcept : idx_R(0), idx_r(0), idx_c(0), isShape(false) {}
 };
 
 /*
@@ -111,7 +112,7 @@ struct res4_entry{
  * distances passed are squared or not
  */
 template <class ResultType, bool distances_squared, bool actually_fill>
-static void check_tee_dipole(
+inline void check_tee_dipole(
         ResultType& ans,
 
         res4_entry& dipole_entry,
@@ -236,7 +237,7 @@ static void check_tee_dipole(
  * distances passed are squared or not
  */
 template <class ResultType, bool distances_squared, bool actually_fill>
-static void check_triangle(
+inline void check_triangle(
         ResultType& ans,
 
         res4_entry& triangle_entry,
@@ -481,7 +482,7 @@ static void check_triangle(
 }
 
 template <class ResultType, bool distances_squared, bool actually_fill>
-static void innermost_level(
+inline void innermost_level(
         ResultType& ans,
 
         std::array<res4_entry, 3>& dipole_entries,
@@ -668,17 +669,17 @@ static void innermost_level(
             axes);
 }
 
-template <class TransferResultType, class ResultType, class PairsType>
-static void res4_transferloop(
+template <class TransferResultType, class ResultType, class JetType>
+inline void res4_transferloop(
         TransferResultType& ans,
         ResultType& untransfered_reco,
         ResultType& untransfered_gen,
 
-        std::array<res4_entry, 3>& dipole_entries_gen,
-        std::array<res4_entry, 3>& tee_entries_gen,
-        std::array<res4_entry, 4>& triangle_entries_gen,
+        const std::array<res4_entry, 3>& dipole_entries_gen,
+        const std::array<res4_entry, 3>& tee_entries_gen,
+        const std::array<res4_entry, 4>& triangle_entries_gen,
 
-        const std::shared_ptr<const EEC::EECjet<PairsType>> thisjet_reco,
+        const std::shared_ptr<const JetType> thisjet_reco,
 
         const EEC::neighborhood& n1,
         const EEC::neighborhood& n2,
@@ -725,7 +726,7 @@ static void res4_transferloop(
                     std::array<res4_entry, 3> tee_entries_reco;
                     std::array<res4_entry, 4> triangle_entries_reco;
 
-                    innermost_level<TransferResultType, PairsType::distances_squared, false>(
+                    innermost_level<TransferResultType, JetType::pairType::distances_squared, false>(
                             ans,
 
                             dipole_entries_reco,
@@ -830,16 +831,16 @@ static void res4_transferloop(
     }//end loop over j1
 }//end res4_transferloop()
 
-template <class ResultType, class PairsType, bool doUnmatched, class TransferResultType, bool doTransfer>
-static void res4_mainloop(
+template <class ResultType, class JetType, bool doUnmatched, class TransferResultType, bool doTransfer>
+inline void res4_mainloop(
         ResultType& ans,
         ResultType* unmatched_gen,
         TransferResultType* transfer_ans,
         ResultType* untransfered_reco,
         ResultType* untransfered_gen,
 
-        const std::shared_ptr<const EEC::EECjet<PairsType>> thisjet_reco,
-        const std::shared_ptr<const EEC::EECjet<PairsType>> thisjet_gen,
+        const std::shared_ptr<const JetType> thisjet_reco,
+        const std::shared_ptr<const JetType> thisjet_gen,
         const std::vector<bool>* matched,
 
         const std::shared_ptr<const EEC::Adjacency> adj,
@@ -913,7 +914,7 @@ static void res4_mainloop(
                     std::array<res4_entry, 3> tee_entries;
                     std::array<res4_entry, 4> triangle_entries;
 
-                    innermost_level<ResultType, PairsType::distances_squared, true>(
+                    innermost_level<ResultType, JetType::pairType::distances_squared, true>(
                             ans,
 
                             dipole_entries,

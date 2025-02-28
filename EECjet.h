@@ -7,6 +7,7 @@
 #include "usings.h"
 #include "SRothman/SimonTools/src/jet.h"
 #include "SRothman/SimonTools/src/deltaR.h"
+#include "SRothman/SimonTools/src/particlePair.h"
 
 namespace EEC{
     enum normType{
@@ -25,15 +26,9 @@ namespace EEC{
     }
 
     struct oneentry{
-        double E;
+        double pt;
         double eta;
         double phi;
-    };
-
-    struct pairentry {
-        double deta;
-        double dphi;
-        double floatDR;
     };
 
     class Singles {
@@ -59,39 +54,49 @@ namespace EEC{
         double pt_denom;
     };
 
+    template <bool dsq>
     class PrecomputedPairs {
     public:
-        static constexpr bool distances_squared = false;
+        static constexpr bool distances_squared = dsq;
 
-        PrecomputedPairs(const Singles& singles) noexcept;
+        PrecomputedPairs(const Singles& singles) noexcept{
+            pairs.resize(extents[singles.size()][singles.size()]);
 
-        inline const pairentry& get(const unsigned i, const unsigned j) const noexcept{
+            for (unsigned i=0; i<singles.size(); ++i){
+                for (unsigned j=0; j<singles.size(); ++j){
+
+                    const oneentry& singleI = singles.get(i);
+                    const oneentry& singleJ = singles.get(j);
+
+                    pairs[i][j] = simon::pairentry_resolved<dsq>(
+                            singleI, singleJ);
+                }
+            }
+        }
+
+        inline const simon::pairentry_resolved<dsq>& get(const unsigned i, const unsigned j) const noexcept{
             //printf("PrecomputedPairs::get(%u, %u)\n",i,j);
             //fflush(stdout);
             return pairs[i][j];
         }
     private:
-        multi_array<pairentry, 2> pairs;
+        multi_array<simon::pairentry_resolved<dsq>, 2> pairs;
     };
 
+    template <bool dsq>
     class JITPairs {
     public:
-        static constexpr bool distances_squared = true;
+        static constexpr bool distances_squared = dsq;
 
-        JITPairs(const Singles& singles) noexcept;
+        JITPairs(const Singles& singles) noexcept : 
+            singles(singles) {}
 
-        inline const pairentry get(const unsigned i, const unsigned j) const noexcept {
+        inline const simon::pairentry_resolved<dsq> get(const unsigned i, const unsigned j) const noexcept {
             //printf("JITPairs::get(%u, %u)\n",i,j);
             //fflush(stdout);
-            const oneentry& singleI = singles.get(i);
-            const oneentry& singleJ = singles.get(j);
-
-            double dphi = simon::deltaPhi(singleI.phi, 
-                                          singleJ.phi);
-            double deta = simon::deltaEta(singleI.eta, 
-                                          singleJ.eta);
-            double dR2 = dphi*dphi + deta*deta;
-            return {deta, dphi, dR2};
+            return simon::pairentry_resolved<dsq>(
+                singles.get(i), singles.get(j)
+            );
         }
         Singles singles;
     };
@@ -99,6 +104,8 @@ namespace EEC{
     template <class Pairs>
     class EECjet {
     public:
+        using pairType = Pairs;
+
         const size_t N;
         const Singles singles;
         const Pairs pairs;
@@ -109,8 +116,8 @@ namespace EEC{
             pairs(singles) {}
     };
 
-    typedef EECjet<PrecomputedPairs> EECjet_Precomputed;
-    typedef EECjet<JITPairs> EECjet_JIT;
+    typedef EECjet<PrecomputedPairs<false>> EECjet_Precomputed;
+    typedef EECjet<JITPairs<true>> EECjet_JIT;
 };
 
 #endif

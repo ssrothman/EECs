@@ -1,11 +1,12 @@
-#ifndef SROTHMAN_EECS_Res3TransferResult_H
-#define SROTHMAN_EECS_Res3TransferResult_H
+#ifndef SROTHMAN_EECS_RES3_TRANSFER_RESULT_H
+#define SROTHMAN_EECS_RES3_TRANSFER_RESULT_H
 
 #include "usings.h"
 #include "Res3Axes.h"
 
 #include "SRothman/SimonTools/src/histutil.h"
 #include "ResTransferResultContainers.h"
+#include "Res3Result.h"
 
 
 namespace EEC{
@@ -83,6 +84,23 @@ namespace EEC{
         Res3TransferResult<TransferContainer>& operator+=(const Res3TransferResult<TransferContainer>& other) noexcept {
             data += other.data;
             return *this;
+        }
+
+        Res3Result_MultiArray get_sum_over_gen() const noexcept {
+            Res3Result_MultiArray sum(std::move(data.get_sum_over_gen()));
+            sum.set_pt_denom(pt_denom_reco);
+            return sum;
+        }
+
+        Res3Result_MultiArray get_sum_over_reco() const noexcept {
+            Res3Result_MultiArray sum(std::move(data.get_sum_over_reco()));
+            sum.set_pt_denom(pt_denom_gen);
+            return sum;
+        }
+
+        template <class OtherContainer>
+        bool operator==(const Res3TransferResult<OtherContainer>& other) const noexcept{
+            return data == other.get_data();
         }
 
         double total_weight_gen() const noexcept {

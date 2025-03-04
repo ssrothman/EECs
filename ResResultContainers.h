@@ -1,5 +1,5 @@
-#ifndef SROTHMAN_EEC_V2_RESRESULT_CONTAINERS_H
-#define SROTHMAN_EEC_V2_RESRESULT_CONTAINERS_H
+#ifndef SROTHMAN_EEC_V2_RES_CONTAINERS_H
+#define SROTHMAN_EEC_V2_RES_CONTAINERS_H
 
 #include "usings.h"
 
@@ -34,6 +34,14 @@ namespace EEC{
         ResVectorContainer() noexcept :
             ResVectorContainer(0, 0, 0) {}
 
+        ResVectorContainer(ResVectorContainer&& other) noexcept :
+            nR(other.nR), nr(other.nr), nc(other.nc),
+            data(std::move(other.data)) {}
+
+        ResVectorContainer(const ResVectorContainer& other) noexcept :
+            nR(other.nR), nr(other.nr), nc(other.nc),
+            data(other.data) {}
+
         void fill(unsigned iR, unsigned ir, 
                   unsigned ic, double wt) noexcept{
             data.emplace_back(iR, ir, ic, wt);
@@ -50,6 +58,12 @@ namespace EEC{
             return *this;
         }
 
+        ResVectorContainer operator+(const ResVectorContainer& other) const noexcept{
+            ResVectorContainer result(*this);
+            result += other;
+            return result;
+        }
+
         double total_weight() const noexcept{
             return std::accumulate(
                     data.begin(), data.end(), 0.0,
@@ -62,7 +76,6 @@ namespace EEC{
     private:
         data_t data;
     };
-
 
     class ResMultiArrayContainer{
     public:
@@ -93,10 +106,26 @@ namespace EEC{
             }
         }
 
+        ResMultiArrayContainer(
+                const ResMultiArrayContainer& other) noexcept:
+            nR(other.nR), nr(other.nr), nc(other.nc),
+            data() {
+                data.resize(boost::extents[nR][nr][nc]);
+                data = other.get_data();
+            }
+                
+        ResMultiArrayContainer(
+                ResMultiArrayContainer&& other) noexcept:
+            nR(other.nR), nr(other.nr), nc(other.nc),
+            data() {
+                //multi array doesn't have move constructor
+                //so we have to do this manually
+                data.resize(boost::extents[nR][nr][nc]);
+                data = other.get_data();
+            }
+
         void fill(unsigned iR, unsigned ir, 
                   unsigned ic, double wt) noexcept {
-            //printf("ResMultiArrayContainer::fill(%u, %u, %u, %g)\n", iR, ir, ic, wt);
-            //fflush(stdout);
             data[iR][ir][ic] += wt;
         }
 
@@ -111,6 +140,28 @@ namespace EEC{
                            other.data.data(), data.data(),
                            std::plus<double>());
             return *this;
+        }
+
+        ResMultiArrayContainer operator+(const ResMultiArrayContainer& other) const noexcept{
+            ResMultiArrayContainer result(*this);
+            result += other;
+            return result;
+        }
+
+        ResMultiArrayContainer& operator-=(
+                const ResMultiArrayContainer& other) noexcept{
+            assert(data.num_elements() == other.data.num_elements());
+            std::transform(data.data(), 
+                           data.data() + data.num_elements(),
+                           other.data.data(), data.data(),
+                           std::minus<double>());
+            return *this;
+        }
+
+        ResMultiArrayContainer operator-(const ResMultiArrayContainer& other) const noexcept{
+            ResMultiArrayContainer result(*this);
+            result -= other;
+            return result;
         }
 
         double total_weight() const noexcept{
@@ -143,6 +194,26 @@ namespace EEC{
     
     inline bool operator==(const ResMultiArrayContainer& a, const ResVectorContainer& b) noexcept{
         return a == ResMultiArrayContainer(b);
+    }
+
+    inline ResMultiArrayContainer operator+(const ResVectorContainer& a, const ResMultiArrayContainer& b) noexcept{
+        return ResMultiArrayContainer(a) + b;
+    }
+
+    inline ResMultiArrayContainer operator+(const ResMultiArrayContainer& a, const ResVectorContainer& b) noexcept{
+        return a + ResMultiArrayContainer(b);
+    }
+
+    inline ResMultiArrayContainer operator-(const ResVectorContainer& a, const ResMultiArrayContainer& b) noexcept{
+        return ResMultiArrayContainer(a) - b;
+    }
+
+    inline ResMultiArrayContainer operator-(const ResMultiArrayContainer& a, const ResVectorContainer& b) noexcept{
+        return a - ResMultiArrayContainer(b);
+    }
+
+    inline ResMultiArrayContainer operator-(const ResVectorContainer& a, const ResVectorContainer& b) noexcept{
+        return ResMultiArrayContainer(a) - ResMultiArrayContainer(b);
     }
 
     inline void print_nonzero(const ResMultiArrayContainer& a){

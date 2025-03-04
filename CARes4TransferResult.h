@@ -97,6 +97,36 @@ namespace EEC{
             );
         }
 
+        CARes4TransferResult(const TransferContainer& chain_,
+                            const TransferContainer& symmetric_wrtR_,
+                            const TransferContainer& symmetric_wrtr_,
+                            const TransferContainer& chain_to_symmetric_wrtR_,
+                            const TransferContainer& chain_to_symmetric_wrtr_,
+                            const TransferContainer& symmetric_wrtR_to_chain_) noexcept :
+            chain(chain_),
+            symmetric_wrtR(symmetric_wrtR_),
+            symmetric_wrtr(symmetric_wrtr_),
+            chain_to_symmetric_wrtR(chain_to_symmetric_wrtR_),
+            chain_to_symmetric_wrtr(chain_to_symmetric_wrtr_),
+            symmetric_wrtR_to_chain(symmetric_wrtR_to_chain_),
+            pt_denom_set(false),
+            pt_denom_reco(-1), pt_denom_gen(-1) {}
+
+        CARes4TransferResult(TransferContainer&& chain_,
+                            TransferContainer&& symmetric_wrtR_,
+                            TransferContainer&& symmetric_wrtr_,
+                            TransferContainer&& chain_to_symmetric_wrtR_,
+                            TransferContainer&& chain_to_symmetric_wrtr_,
+                            TransferContainer&& symmetric_wrtR_to_chain_) noexcept :
+            chain(std::move(chain_)),
+            symmetric_wrtR(std::move(symmetric_wrtR_)),
+            symmetric_wrtr(std::move(symmetric_wrtr_)),
+            chain_to_symmetric_wrtR(std::move(chain_to_symmetric_wrtR_)),
+            chain_to_symmetric_wrtr(std::move(chain_to_symmetric_wrtr_)),
+            symmetric_wrtR_to_chain(std::move(symmetric_wrtR_to_chain_)),
+            pt_denom_set(false),
+            pt_denom_reco(-1), pt_denom_gen(-1) {}
+
         void fill_symmetric(const CAres4_entry& entry_reco,
                             const CAres4_entry& entry_gen,
                             double wt_reco,
@@ -276,6 +306,34 @@ namespace EEC{
             chain_to_symmetric_wrtr += other.chain_to_symmetric_wrtr;
             symmetric_wrtR_to_chain += other.symmetric_wrtR_to_chain;
             return *this;
+        }
+
+        CARes4Result_MultiArray get_sum_over_gen() const noexcept {
+            CARes4Result_MultiArray sum(
+                    std::move(chain.get_sum_over_gen() + symmetric_wrtR_to_chain.get_sum_over_gen()),
+                    std::move(symmetric_wrtR.get_sum_over_gen() + chain_to_symmetric_wrtR.get_sum_over_gen()),
+                    std::move(symmetric_wrtr.get_sum_over_gen() + chain_to_symmetric_wrtr.get_sum_over_gen()));
+            sum.set_pt_denom(pt_denom_reco);
+            return sum;
+        }
+
+        CARes4Result_MultiArray get_sum_over_reco() const noexcept {
+            CARes4Result_MultiArray sum(
+                    std::move(chain.get_sum_over_reco() + chain_to_symmetric_wrtr.get_sum_over_reco()),
+                    std::move(symmetric_wrtR.get_sum_over_reco() + symmetric_wrtR_to_chain.get_sum_over_reco()),
+                    std::move(symmetric_wrtr.get_sum_over_reco()));
+            sum.set_pt_denom(pt_denom_gen);
+            return sum;
+        }
+
+        template <class OtherContainer>
+        bool operator==(const CARes4TransferResult<OtherContainer>& other) const noexcept{
+            return chain == other.get_chain() &&
+                   symmetric_wrtR == other.get_symmetric_wrtR() &&
+                   symmetric_wrtr == other.get_symmetric_wrtr() &&
+                   chain_to_symmetric_wrtR == other.get_chain_to_symmetric_wrtR() &&
+                   chain_to_symmetric_wrtr == other.get_chain_to_symmetric_wrtr() &&
+                   symmetric_wrtR_to_chain == other.get_symmetric_wrtR_to_chain();
         }
 
         double total_chain_weight_gen() const noexcept {

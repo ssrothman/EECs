@@ -1,5 +1,5 @@
-#ifndef SROTHMAN_EEC_V2_RES4_AXES_H
-#define SROTHMAN_EEC_V2_RES4_AXES_H
+#ifndef SROTHMAN_EEC_V2_CA_RES4_AXES_H
+#define SROTHMAN_EEC_V2_CA_RES4_AXES_H
 
 #include "usings.h"
 #include <vector>

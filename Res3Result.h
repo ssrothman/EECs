@@ -1,5 +1,5 @@
-#ifndef SROTHMAN_EECS_RES4_RESULT_H
-#define SROTHMAN_EECS_RES4_RESULT_H
+#ifndef SROTHMAN_EECS_RES3_RESULT_H
+#define SROTHMAN_EECS_RES3_RESULT_H
 
 #include "usings.h"
 #include "Res3Axes.h"
@@ -38,6 +38,16 @@ namespace EEC{
         Res3Result(const CALCULATOR& calculator) noexcept :
             Res3Result(calculator.get_axes()) {}
 
+        Res3Result(const Container& data) noexcept :
+            data(data),
+            pt_denom_set(false),
+            pt_denom(-1) {}
+
+        Res3Result(Container&& data) noexcept :
+            data(std::move(data)),
+            pt_denom_set(false),
+            pt_denom(-1) {}
+
         void fill(
                 unsigned iR, unsigned ir,
                 unsigned ic, double wt) noexcept{
@@ -74,6 +84,40 @@ namespace EEC{
             return data == other.get_data();
         }
 
+        template <class OtherContainer>
+        bool operator!=(const Res3Result<OtherContainer>& other) const noexcept{
+            return !(*this == other);
+        }
+
+        template <class OtherContainer> 
+        Res3Result<Container>& operator+=(const Res3Result<OtherContainer>& other) noexcept{
+            data += other.get_data();
+            return *this;
+        }
+
+        template <class OtherContainer>
+        Res3Result<Container> operator+(const Res3Result<OtherContainer>& other) const noexcept{
+            Res3Result<Container> result(*this);
+            result += other;
+            return result;
+        }
+
+        template <class OtherContainer>
+        Res3Result<Container>& operator-=(const Res3Result<OtherContainer>& other) noexcept{
+            if constexpr(std::is_same_v<Container, ResMultiArrayContainer>){
+                data -= other.get_data();
+            } else {
+                //we only want a valid operator 
+                //for ResMultiArrayContainer
+                //this is probably the wrong way 
+                //to do this,
+                //but it should fail to compile
+                //if you try to use this operator
+                //with a ResVectorContainer
+                static_assert(std::is_same_v<Container, ResMultiArrayContainer>);
+            }
+            return *this;
+        }
     private:
         Container data;
         
@@ -83,6 +127,18 @@ namespace EEC{
 
     using Res3Result_MultiArray = Res3Result<ResMultiArrayContainer>;
     using Res3Result_Vector = Res3Result<ResVectorContainer>;
+
+    template <class OtherContainer>
+    inline Res3Result_MultiArray operator-(Res3Result_MultiArray a, const Res3Result<OtherContainer>& b) noexcept{
+        Res3Result_MultiArray result(a);
+        result -= b;
+        return a;
+    }
+
+    template <typename Container>
+    inline Res3Result_MultiArray operator-(const Res3Result_Vector& a, const Res3Result<Container> b) noexcept{
+        return Res3Result_MultiArray(a) - b;
+    }
 };
 
 #endif

@@ -30,7 +30,11 @@ inline void get_indices_CA(const double dR12, const double dR13, const double dR
             dR.first = std::sqrt(dR.first);
         }
     }
-    std::sort(dRs.begin(), dRs.end());
+    std::sort(dRs.begin(), dRs.end(),
+              [](const std::pair<double, unsigned>& a, const std::pair<double, unsigned>& b){
+                return a.first > b.first;
+            }
+    );
 
     if (dRs[0].first == 0){
         R_idx = 0;
@@ -110,7 +114,8 @@ inline void get_indices(const double dR12, const double dR13, const double dR23,
             dR = std::sqrt(dR);
         }
     }
-    std::sort(dRs.begin(), dRs.end());
+    std::sort(dRs.begin(), dRs.end(),
+             [](const double a, const double b){return a > b;});
     if (dRs[0] == 0){
         R_idx = 0;
         r_idx = 0;
@@ -177,8 +182,20 @@ inline void res3_transferloop(
                         R_idx_reco, r_idx_reco, c_idx_reco,
                         axes_reco);
                 } else {
-                    get_indices<JetType::pairType::distances_squared>(dR12, dR13, dR23, R_idx_reco, r_idx_reco, c_idx_reco, axes_reco);
+                    get_indices<JetType::pairType::distances_squared>(
+                            dR12, dR13, dR23, 
+                            R_idx_reco, r_idx_reco, c_idx_reco, 
+                            axes_reco);
                 }
+#ifdef CHECK_BY_HAND
+                printf("(%g, %g), (%g, %g), (%g, %g): [transfer]\n",
+                        eta1, phi1, eta2, phi2, eta3, phi3);
+                printf("\tE1*E2*E3 = %g\n", E1*E2*E3);
+                printf("\tR_idx = %u\n", R_idx_reco);
+                printf("\tr_idx = %u\n", r_idx_reco);
+
+                printf("\tE1 = %g, E2 = %g, E3 = %g\n", E1, E2, E3);
+#endif
 
                 transfer.fill(R_idx_reco, r_idx_reco, c_idx_reco,
                               R_idx_gen, r_idx_gen, c_idx_gen, 
@@ -220,6 +237,16 @@ inline void res3_mainloop(
          * And coordinates (R, r, c) = (0, 0, 0)
          */
         double wt = E1*E1*E1;
+#ifdef CHECK_BY_HAND
+        printf("(%g, %g): [1-particle]\n", eta1, phi1);
+        printf("\tE1^3 = %g\n", E1*E1*E1);
+        printf("\tR_idx = 0\n");
+        printf("\tr_idx = 0\n");
+        printf("\tc_idx = 0\n");
+        if constexpr(doUnmatched){
+            printf("\tmatched = %d\n", matched1);
+        }
+#endif
         result.fill(0, 0, 0, wt);
         if constexpr(doUnmatched){
             if(!matched1){
@@ -267,6 +294,16 @@ inline void res3_mainloop(
             }
             wt = 3 * E12 * (E1 + E2);
             result.fill(R_idx, 0, 0, wt);
+#ifdef CHECK_BY_HAND
+            printf("(%g, %g), (%g, %g): [2-particle]\n", eta1, phi1, eta2, phi2);
+            printf("\tE1*E2*(E1+E2) = %g\n", E12*(E1+E2));
+            printf("\tR_idx = %u\n", R_idx);
+            printf("\tr_idx = 0\n");
+            printf("\tc_idx = 0\n");
+            if constexpr(doUnmatched){
+                printf("\tmatched = %d\n", matched2);
+            }
+#endif
             if constexpr(doUnmatched){
                 if(!matched2){
                     unmatched_gen->fill(R_idx, 0, 0, wt);
@@ -329,8 +366,22 @@ inline void res3_mainloop(
                         R_idx, r_idx, c_idx,
                         axes_gen);
                 } else {
-                    get_indices<JetType::pairType::distances_squared>(dR12, dR13, dR23, R_idx, r_idx, c_idx, axes_gen);
+                    get_indices<JetType::pairType::distances_squared>(
+                            dR12, dR13, dR23, 
+                            R_idx, r_idx, c_idx, 
+                            axes_gen);
                 }
+#ifdef CHECK_BY_HAND
+                printf("(%g, %g), (%g, %g), (%g, %g): [3-particle]\n",
+                        eta1, phi1, eta2, phi2, eta3, phi3);
+                printf("\tE1*E2*E3 = %g\n", E1*E2*E3);
+                printf("\tR_idx = %u\n", R_idx);
+                printf("\tr_idx = %u\n", r_idx);
+                printf("\tc_idx = %u\n", c_idx);
+                if constexpr(doUnmatched){
+                    printf("\tmatched = %d\n", matched3);
+                }
+#endif
                 
                 wt = E123*6;
                 result.fill(R_idx, r_idx, c_idx, wt);

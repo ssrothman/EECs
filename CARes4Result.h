@@ -1,5 +1,5 @@
-#ifndef SROTHMAN_EECS_RES4_RESULT_H
-#define SROTHMAN_EECS_RES4_RESULT_H
+#ifndef SROTHMAN_EECS_CA_RES4_RESULT_H
+#define SROTHMAN_EECS_CA_RES4_RESULT_H
 
 #include "usings.h"
 #include "CARes4Axes.h"
@@ -106,6 +106,24 @@ namespace EEC{
         CARes4Result(const CALCULATOR& calculator) noexcept :
             CARes4Result(calculator.get_axes()) {}
 
+        CARes4Result(const Container& chain, 
+                   const Container& symmetric_wrtR, 
+                   const Container& symmetric_wrtr) noexcept :
+            chain(chain),
+            symmetric_wrtR(symmetric_wrtR),
+            symmetric_wrtr(symmetric_wrtr),
+            pt_denom_set(false),
+            pt_denom(-1) {}
+
+        CARes4Result(Container&& chain, 
+                   Container&& symmetric_wrtR, 
+                   Container&& symmetric_wrtr) noexcept :
+            chain(std::move(chain)),
+            symmetric_wrtR(std::move(symmetric_wrtR)),
+            symmetric_wrtr(std::move(symmetric_wrtr)),
+            pt_denom_set(false),
+            pt_denom(-1) {}
+
         void fill_chain(const CAres4_entry& entry, double wt) noexcept {
             chain.fill(
                 entry.R_idx, 
@@ -192,6 +210,38 @@ namespace EEC{
                    symmetric_wrtr == other.get_symmetric_wrtr();
         }
 
+        template <class OtherContainer>
+        bool operator!=(const CARes4Result<OtherContainer>& other) const noexcept{
+            return !(*this == other);
+        }
+
+        template <class OtherContainer>
+        CARes4Result<Container>& operator+=(const CARes4Result<OtherContainer>& other) noexcept{
+            chain += other.get_chain();
+            symmetric_wrtR += other.get_symmetric_wrtR();
+            symmetric_wrtr += other.get_symmetric_wrtr();
+            return *this;
+        }
+
+        template <class OtherContainer>
+        CARes4Result<Container> operator+(const CARes4Result<OtherContainer>& other) const noexcept{
+            CARes4Result<Container> result(*this);
+            result += other;
+            return result;
+        }
+
+        template <class OtherContainer>
+        CARes4Result<Container>& operator-=(const CARes4Result<OtherContainer>& other) noexcept{
+            if constexpr(std::is_same_v<Container, ResMultiArrayContainer>){
+                chain -= other.get_chain();
+                symmetric_wrtR -= other.get_symmetric_wrtR();
+                symmetric_wrtr -= other.get_symmetric_wrtr();
+            } else {
+                static_assert(std::is_same_v<Container, ResVectorContainer>);
+            }
+            return *this;
+        }
+
     private:
         Container chain;
         Container symmetric_wrtR;
@@ -203,6 +253,18 @@ namespace EEC{
 
     using CARes4Result_MultiArray = CARes4Result<ResMultiArrayContainer>;
     using CARes4Result_Vector = CARes4Result<ResVectorContainer>;
+
+    template <class OtherContainer>
+    inline CARes4Result_MultiArray operator-(CARes4Result_MultiArray a, const CARes4Result<OtherContainer>& b) noexcept{
+        CARes4Result_MultiArray result(a);
+        result -= b;
+        return a;
+    }
+
+    template <typename Container>
+    inline CARes4Result_MultiArray operator-(const CARes4Result_Vector& a, const CARes4Result<Container> b) noexcept{
+        return CARes4Result_MultiArray(a) - b;
+    }
 };
 
 #endif

@@ -1,5 +1,5 @@
-#ifndef SROTHMAN_EECS_Res4TransferResult_H
-#define SROTHMAN_EECS_Res4TransferResult_H
+#ifndef SROTHMAN_EECS_RES4_TRANSFER_RESULT_H
+#define SROTHMAN_EECS_RES4_TRANSFER_RESULT_H
 
 #include "usings.h"
 #include "Res4Axes.h"
@@ -63,6 +63,20 @@ namespace EEC{
         template <typename CALCULATOR>
         Res4TransferResult(const CALCULATOR& calculator) noexcept:
             Res4TransferResult(calculator.get_axes_reco(), calculator.get_axes_gen()) {}
+
+        Res4TransferResult(const TransferContainer& dipole_,
+                           const TransferContainer& tee_,
+                           const TransferContainer& triangle_) noexcept :
+            dipole(dipole_), tee(tee_), triangle(triangle_),
+            pt_denom_set(false),
+            pt_denom_reco(-1), pt_denom_gen(-1) {}
+
+        Res4TransferResult(TransferContainer&& dipole_,
+                           TransferContainer&& tee_,
+                           TransferContainer&& triangle_) noexcept :
+            dipole(std::move(dipole_)), tee(std::move(tee_)), triangle(std::move(triangle_)),
+            pt_denom_set(false),
+            pt_denom_reco(-1), pt_denom_gen(-1) {}
         
         void fill_dipole(unsigned iR_reco, unsigned ir_reco, unsigned ic_reco,
                          unsigned iR_gen, unsigned ir_gen, unsigned ic_gen,
@@ -125,6 +139,31 @@ namespace EEC{
             tee += other.tee;
             triangle += other.triangle;
             return *this;
+        }
+
+        Res4Result_MultiArray get_sum_over_gen() const noexcept {
+            Res4Result_MultiArray sum(
+                    std::move(dipole.get_sum_over_gen()),
+                    std::move(tee.get_sum_over_gen()),
+                    std::move(triangle.get_sum_over_gen()));
+            sum.set_pt_denom(pt_denom_reco);
+            return sum;
+        }
+
+        Res4Result_MultiArray get_sum_over_reco() const noexcept {
+            Res4Result_MultiArray sum(
+                    std::move(dipole.get_sum_over_reco()),
+                    std::move(tee.get_sum_over_reco()),
+                    std::move(triangle.get_sum_over_reco()));
+            sum.set_pt_denom(pt_denom_gen);
+            return sum;
+        }
+
+        template <class OtherContainer>
+        bool operator==(const Res4TransferResult<OtherContainer>& other) const noexcept{
+            return dipole == other.get_dipole() &&
+                   tee == other.get_tee() &&
+                   triangle == other.get_triangle();
         }
 
         double total_dipole_weight_gen() const noexcept {

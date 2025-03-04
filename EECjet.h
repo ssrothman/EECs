@@ -1,5 +1,5 @@
-#ifndef SROTHMAN_EECS_STANDALONE_EECJET_H
-#define SROTHMAN_EECS_STANDALONE_EECJET_H
+#ifndef SROTHMAN_EECS_EECJET_H
+#define SROTHMAN_EECS_EECJET_H
 
 #include <boost/multi_array.hpp>
 #include <vector>

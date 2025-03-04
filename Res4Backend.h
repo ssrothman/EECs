@@ -199,6 +199,10 @@ inline void check_tee_dipole(
             if constexpr (actually_fill){
                 ans.fill_dipole(idx_R, idx_r, idx_c, wt);
             }
+#ifdef CHECK_BY_HAND
+            printf("(%g, %g) (%g, %g) (%g, %g) (%g, %g)\n", eta1, phi1, eta2, phi2, eta3, phi3, eta4, phi4);
+            printf("\tDipole: R = %f, r = %f, c = %f\n", R, r, c);
+#endif
             dipole_entry.idx_R = idx_R;
             dipole_entry.idx_r = idx_r;
             dipole_entry.idx_c = idx_c;
@@ -212,6 +216,10 @@ inline void check_tee_dipole(
             if constexpr (actually_fill){
                 ans.fill_tee(idx_R, idx_r, idx_c, wt);
             }
+#ifdef CHECK_BY_HAND
+            printf("(%g, %g) (%g, %g) (%g, %g) (%g, %g)\n", eta1, phi1, eta2, phi2, eta3, phi3, eta4, phi4);
+            printf("\tTee: R = %f, r = %f, c = %f\n", R, r, c);
+#endif
             tee_entry.idx_R = idx_R;
             tee_entry.idx_r = idx_r;
             tee_entry.idx_c = idx_c;
@@ -472,6 +480,20 @@ inline void check_triangle(
         if constexpr(actually_fill){
             ans.fill_triangle(idx_R, idx_r, idx_c, wt);
         }
+#ifdef CHECK_BY_HAND
+        if constexpr(distances_squared){
+            printf("dR12 = %g; dR13 = %g; dR14 = %g\n",
+                    std::sqrt(dR12_2), std::sqrt(dR13_2), std::sqrt(dR14_2));
+            printf("dR23 = %g; dR24 = %g; dR34 = %g\n",
+                    std::sqrt(dR23_2), std::sqrt(dR24_2), std::sqrt(dR34_2));
+        } else{
+            printf("dR12 = %g; dR13 = %g; dR14 = %g\n",
+                    dR12_2, dR13_2, dR14_2);
+            printf("dR23 = %g; dR24 = %g; dR34 = %g\n",
+                    dR23_2, dR24_2, dR34_2);
+        }
+        printf("\tTriangle: R = %f, r = %f, c = %f\n", R, r, c);
+#endif
         triangle_entry.idx_R = idx_R;
         triangle_entry.idx_r = idx_r;
         triangle_entry.idx_c = idx_c;

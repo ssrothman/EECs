@@ -49,6 +49,24 @@ namespace EEC{
         Res4Result(const CALCULATOR& calculator) noexcept :
             Res4Result(calculator.get_axes()) {}
 
+        Res4Result(const Container& dipole, 
+                   const Container& tee, 
+                   const Container& triangle) noexcept :
+            dipole(dipole),
+            tee(tee),
+            triangle(triangle),
+            pt_denom_set(false),
+            pt_denom(-1) {}
+
+        Res4Result(Container&& dipole, 
+                   Container&& tee, 
+                   Container&& triangle) noexcept :
+            dipole(std::move(dipole)),
+            tee(std::move(tee)),
+            triangle(std::move(triangle)),
+            pt_denom_set(false),
+            pt_denom(-1) {}
+
         void fill_dipole(
                 unsigned iR, unsigned ir, 
                 unsigned ic, double wt) noexcept{
@@ -113,6 +131,45 @@ namespace EEC{
                    triangle == other.get_triangle();
         }
 
+        template <class OtherContainer>
+        bool operator!=(const Res4Result<OtherContainer>& other) const noexcept{
+            return !(*this == other);
+        }
+
+        template <class OtherContainer>
+        Res4Result<Container>& operator+=(const Res4Result<OtherContainer>& other) noexcept{
+            dipole += other.get_dipole();
+            tee += other.get_tee();
+            triangle += other.get_triangle();
+            return *this;
+        }
+
+        template <class OtherContainer>
+        Res4Result<Container> operator+(const Res4Result<OtherContainer>& other) const noexcept{
+            Res4Result<Container> result(*this);
+            result += other;
+            return result;
+        }
+
+        template <class OtherContainer>
+        Res4Result<Container>& operator-=(const Res4Result<OtherContainer>& other) noexcept{
+            if constexpr(std::is_same_v<Container, ResMultiArrayContainer>){
+                dipole -= other.get_dipole();
+                tee -= other.get_tee();
+                triangle -= other.get_triangle();
+            } else {
+                //we only want a valid operator 
+                //for ResMultiArrayContainer
+                //this is probably the wrong way 
+                //to do this,
+                //but it should fail to compile
+                //if you try to use this operator
+                //with a ResVectorContainer
+                static_assert(std::is_same_v<Container, ResMultiArrayContainer>);
+            }
+            return *this;
+        }
+
     private:
         Container dipole;
         Container tee;
@@ -124,6 +181,18 @@ namespace EEC{
 
     using Res4Result_MultiArray = Res4Result<ResMultiArrayContainer>;
     using Res4Result_Vector = Res4Result<ResVectorContainer>;
+
+    template <class OtherContainer>
+    inline Res4Result_MultiArray operator-(Res4Result_MultiArray a, const Res4Result<OtherContainer>& b) noexcept{
+        Res4Result_MultiArray result(a);
+        result -= b;
+        return a;
+    }
+
+    template <typename Container>
+    inline Res4Result_MultiArray operator-(const Res4Result_Vector& a, const Res4Result<Container> b) noexcept{
+        return Res4Result_MultiArray(a) - b;
+    }
 };
 
 #endif

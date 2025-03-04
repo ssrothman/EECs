@@ -13,17 +13,17 @@
 
 namespace EEC{
     struct CAres4_entry{
-        bool is_symmetric;
-        bool is_chain;
+        bool is_symmetric=false;
+        bool is_chain=false;
 
-        unsigned R_idx;
+        unsigned R_idx=0;
 
-        unsigned symmetric_wrtr_r_idx, symmetric_wrtr_c_idx;
+        unsigned symmetric_wrtr_r_idx=0, symmetric_wrtr_c_idx=0;
 
-        unsigned symmetric_wrtR1_r_idx, symmetric_wrtR1_c_idx;
-        unsigned symmetric_wrtR2_r_idx, symmetric_wrtR2_c_idx;
+        unsigned symmetric_wrtR1_r_idx=0, symmetric_wrtR1_c_idx=0;
+        unsigned symmetric_wrtR2_r_idx=0, symmetric_wrtR2_c_idx=0;
 
-        unsigned chain_r_idx, chain_c_idx;
+        unsigned chain_r_idx=0, chain_c_idx=0;
 
         void fill_chain(int RLidx,
                         double RL, double RS1, double c,
@@ -33,8 +33,9 @@ namespace EEC{
 
             R_idx = RLidx;
 
+            double rs1 = RL==0 ? 0 : RS1/RL;
             chain_r_idx = simon::getIndex(
-                    RS1/RL, axes.r_chain
+                    rs1, axes.r_chain
             );
             chain_c_idx = simon::getIndex(
                     c, axes.c_chain
@@ -50,21 +51,24 @@ namespace EEC{
 
             R_idx = RLidx;
 
+            double rs1 = RL==0 ? 0 : RS1/RL;
+            double rs2 = RL==0 ? 0 : RS2/RL;
+
             symmetric_wrtr_r_idx = simon::getIndex(
-                    RS1/RL, axes.r_symmetric
+                    rs1, axes.r_symmetric
             );
             symmetric_wrtr_c_idx = simon::getIndex(
                     cr1r2, axes.c_symmetric
             );
 
             symmetric_wrtR1_r_idx = simon::getIndex(
-                    RS1/RL, axes.r_symmetric
+                    rs1, axes.r_symmetric
             );
             symmetric_wrtR1_c_idx = simon::getIndex(
                     cRr1, axes.c_symmetric
             );
             symmetric_wrtR2_r_idx = simon::getIndex(
-                    RS2/RL, axes.r_symmetric
+                    rs2, axes.r_symmetric
             );
             symmetric_wrtR2_c_idx = simon::getIndex(
                     cRr2, axes.c_symmetric

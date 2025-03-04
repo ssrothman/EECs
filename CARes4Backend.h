@@ -46,12 +46,18 @@ inline void get_CAentry_onepart(
  * is obviously a valid chain with r1=r2=0
  * but it is NOT a valid symmetric topology
  */
+template <bool distances_squared>
 inline void get_CAentry_twopart(
         EEC::CAres4_entry& entry22,
         EEC::CAres4_entry& entry13,
         const double dR12,
         const EEC::CARes4Axes& axes) noexcept {
-    unsigned Ridx = simon::getIndex(dR12, axes.R);
+    unsigned Ridx;
+    if constexpr(distances_squared){
+        Ridx = simon::getIndex(std::sqrt(dR12), axes.R);
+    } else {
+        Ridx = simon::getIndex(dR12, axes.R);
+    }
     entry22.R_idx = Ridx;
     entry13.R_idx = Ridx;
 
@@ -82,15 +88,28 @@ inline void get_CAentry_threepart(
         const simon::pairentry_resolved<distances_squared>& p2p3,
         const EEC::CARes4Axes& axes) noexcept {
 
+#ifdef CHECK_BY_HAND
+    printf("running CAentry_threepart\n");
+#endif
     std::array<const EEC::oneentry*, 3> particles = {
         &p1, &p2, &p3
     };
+#ifdef CHECK_BY_HAND
+    printf("p1 [pt, eta, phi] = [%g, %g, %g]\n", p1.pt, p1.eta, p1.phi);
+    printf("p2 [pt, eta, phi] = [%g, %g, %g]\n", p2.pt, p2.eta, p2.phi);
+    printf("p3 [pt, eta, phi] = [%g, %g, %g]\n", p3.pt, p3.eta, p3.phi);
+#endif
 
     EEC::oneentry r, R;
     simon::pairentry_resolved<distances_squared> rp3;
     unsigned bkpindex;
     
     simon::CA3(particles, p1p2, p1p3, p2p3, r, R, rp3, bkpindex);
+
+#ifdef CHECK_BY_HAND
+    printf("r [pt, eta, phi] = [%g, %g, %g]\n", r.pt, r.eta, r.phi);
+    printf("R [pt, eta, phi] = [%g, %g, %g]\n", R.pt, R.eta, R.phi);
+#endif
 
     double RL = rp3.floatDR;
     if constexpr(distances_squared){
@@ -108,6 +127,12 @@ inline void get_CAentry_threepart(
     double cRr2 = 0;
 
     double cr1r2 = 0;
+
+#ifdef CHECK_BY_HAND
+    printf("RL: %g\n", RL);
+    printf("RS1: %g\n", RS1);
+    printf("cRr1: %g\n", cRr1);
+#endif
 
     if (bkpindex == 0){
         entry1.fill_symmetric(
@@ -160,7 +185,13 @@ inline void get_CAentry_fourpart(
     std::array<const EEC::oneentry*, 4> particles = {
         &p1, &p2, &p3, &p4
     };
-    
+#ifdef CHECK_BY_HAND 
+    printf("running CAentry_fourpart\n");
+    printf("p1 [pt, eta, phi] = [%g, %g, %g]\n", p1.pt, p1.eta, p1.phi);
+    printf("p2 [pt, eta, phi] = [%g, %g, %g]\n", p2.pt, p2.eta, p2.phi);
+    printf("p3 [pt, eta, phi] = [%g, %g, %g]\n", p3.pt, p3.eta, p3.phi);
+    printf("p4 [pt, eta, phi] = [%g, %g, %g]\n", p4.pt, p4.eta, p4.phi);
+#endif
     EEC::oneentry r1, r2, R;
     std::vector<simon::pairentry_resolved<distances_squared>> return_pairs;
     int topologyflag;
@@ -177,12 +208,20 @@ inline void get_CAentry_fourpart(
             return_indices,
             return_orig_pairs
     );
+#ifdef CHECK_BY_HAND
+    printf("r1 [pt, eta, phi] = [%g, %g, %g]\n", r1.pt, r1.eta, r1.phi);
+    printf("r2 [pt, eta, phi] = [%g, %g, %g]\n", r2.pt, r2.eta, r2.phi);
+    printf("R [pt, eta, phi] = [%g, %g, %g]\n", R.pt, R.eta, R.phi);
+#endif
 
     double RL = return_pairs[0].floatDR;
     if constexpr(distances_squared){
         RL = std::sqrt(RL);
     }
     unsigned Ridx = simon::getIndex(RL, axes.R);
+#ifdef CHECK_BY_HAND
+    printf("RL: %g\n", RL);
+#endif
 
     if (topologyflag == simon::CHAIN){
         double RS1 = return_pairs[1].floatDR;
@@ -190,9 +229,14 @@ inline void get_CAentry_fourpart(
             RS1 = std::sqrt(RS1);
         }
         double c = simon::angle_between(
-            return_pairs[1], return_pairs[2]
+            return_pairs[0], return_pairs[1]
         );
         entry.fill_chain(Ridx, RL, RS1, c, axes);
+#ifdef CHECK_BY_HAND
+        printf("chain topology\n");
+        printf("RS1: %g\n", RS1);
+        printf("c: %g\n", c);
+#endif
     } else {
         double RS2 = return_orig_pairs[0]->floatDR;
         double RS1 = return_orig_pairs[1]->floatDR;
@@ -209,6 +253,14 @@ inline void get_CAentry_fourpart(
         double cr1r2 = simon::angle_between(
             *return_orig_pairs[0], *return_orig_pairs[1]
         );
+#ifdef CHECK_BY_HAND
+        printf("symmetric topology\n");
+        printf("RS1: %g\n", RS1);
+        printf("RS2: %g\n", RS2);
+        printf("cRr1: %g\n", cRr1);
+        printf("cRr2: %g\n", cRr2);
+        printf("cr1r2: %g\n", cr1r2);
+#endif
         entry.fill_symmetric(
             Ridx, 
             RL, RS1, RS2, 
@@ -307,6 +359,23 @@ inline void CAres4_mainloop(
 
         EEC::CAres4_entry entry;
         get_CAentry_onepart(entry, axes_gen);
+#ifdef CHECK_BY_HAND
+        printf("1-particle part\n");
+        printf("(%g %g)\n", p1.eta, p1.phi);
+        printf("E1: %g\n", p1.pt);
+        printf("\tR: %u\n", entry.R_idx);
+        printf("\tis_symmetric: %u\n", entry.is_symmetric);
+        printf("\t\tr_wrtr: %u\n", entry.symmetric_wrtr_r_idx);
+        printf("\t\tc_wrtr: %u\n", entry.symmetric_wrtr_c_idx);
+        printf("\t\tr1_wrtR: %u\n", entry.symmetric_wrtR1_r_idx);
+        printf("\t\tc1_wrtR: %u\n", entry.symmetric_wrtR1_c_idx);
+        printf("\t\tr2_wrtR: %u\n", entry.symmetric_wrtR2_r_idx);
+        printf("\t\tc2_wrtR: %u\n", entry.symmetric_wrtR2_c_idx);
+        printf("\tis_chain: %u\n", entry.is_chain);
+        printf("\t\tr_chain: %u\n", entry.chain_r_idx);
+        printf("\t\tc_chain: %u\n", entry.chain_c_idx);
+        printf("\twt: %f\n", wt);
+#endif
         result.fill(entry, wt);
 
         if constexpr(doUnmatched){
@@ -344,17 +413,47 @@ inline void CAres4_mainloop(
 
             EEC::CAres4_entry entry22, entry13;
             double RL = p1p2.floatDR;
-            if constexpr(JetType::pairType::distances_squared){
-                RL = std::sqrt(RL);
-            }
-            get_CAentry_twopart(entry22, entry13, 
-                                RL,
-                                axes_gen);
+            get_CAentry_twopart<JetType::pairType::distances_squared>(
+                    entry22, entry13, 
+                    RL, axes_gen
+            );
             //we actually know that 
             //22 will always be symmetric
             //13 will always be chain
             result.fill_chain(entry13, wt_1+wt_2);
             result.fill_symmetric(entry22, wt_12);
+#ifdef CHECK_BY_HAND
+            printf("2-particle part\n");
+            printf("(%g %g), (%g %g)\n", p1.eta, p1.phi, p2.eta, p2.phi);
+            printf("E1: %g\n", p1.pt);
+            printf("E2: %g\n", p2.pt);
+            printf("\t1112 + 12222:\n");
+            printf("\t\tR: %u\n", entry13.R_idx);
+            printf("\t\tis_symmetric: %u\n", entry13.is_symmetric);
+            printf("\t\t\tr_wrtr: %u\n", entry13.symmetric_wrtr_r_idx);
+            printf("\t\t\tc_wrtr: %u\n", entry13.symmetric_wrtr_c_idx);
+            printf("\t\t\tr1_wrtR: %u\n", entry13.symmetric_wrtR1_r_idx);
+            printf("\t\t\tc1_wrtR: %u\n", entry13.symmetric_wrtR1_c_idx);
+            printf("\t\t\tr2_wrtR: %u\n", entry13.symmetric_wrtR2_r_idx);
+            printf("\t\t\tc2_wrtR: %u\n", entry13.symmetric_wrtR2_c_idx);
+            printf("\t\tis_chain: %u\n", entry13.is_chain);
+            printf("\t\t\tr_chain: %u\n", entry13.chain_r_idx);
+            printf("\t\t\tc_chain: %u\n", entry13.chain_c_idx);
+            printf("\t\twt: %f\n", wt_1+wt_2);
+            printf("\t1122:\n");
+            printf("\t\tR: %u\n", entry22.R_idx);
+            printf("\t\tis_symmetric: %u\n", entry22.is_symmetric);
+            printf("\t\t\tr_wrtr: %u\n", entry22.symmetric_wrtr_r_idx);
+            printf("\t\t\tc_wrtr: %u\n", entry22.symmetric_wrtr_c_idx);
+            printf("\t\t\tr1_wrtR: %u\n", entry22.symmetric_wrtR1_r_idx);
+            printf("\t\t\tc1_wrtR: %u\n", entry22.symmetric_wrtR1_c_idx);
+            printf("\t\t\tr2_wrtR: %u\n", entry22.symmetric_wrtR2_r_idx);
+            printf("\t\t\tc2_wrtR: %u\n", entry22.symmetric_wrtR2_c_idx);
+            printf("\t\tis_chain: %u\n", entry22.is_chain);
+            printf("\t\t\tr_chain: %u\n", entry22.chain_r_idx);
+            printf("\t\t\tc_chain: %u\n", entry22.chain_c_idx);
+            printf("\t\twt: %f\n", wt_12);
+#endif
             if constexpr(doUnmatched){
                 if (!matched2){
                     unmatched_gen->fill_chain(entry13, wt_1+wt_2);
@@ -381,9 +480,9 @@ inline void CAres4_mainloop(
                  * all with the same symmetry factor
                  * of 4! / 2! = 12
                  */
-                wt_1 = E123 * p1.pt;
-                wt_2 = E123 * p2.pt;
-                double wt_3 = E123 * p3.pt;
+                wt_1 = 12 * E123 * p1.pt;
+                wt_2 = 12 * E123 * p2.pt;
+                double wt_3 = 12 * E123 * p3.pt;
 
                 EEC::CAres4_entry entry1, entry2, entry3;
                 get_CAentry_threepart(entry1, entry2, entry3,
@@ -391,6 +490,52 @@ inline void CAres4_mainloop(
                                       p1p2, p1p3, p2p3,
                                       axes_gen);
 
+#ifdef CHECK_BY_HAND
+                printf("3-particle part\n");
+                printf("(%g %g), (%g %g), (%g %g)\n", p1.eta, p1.phi, p2.eta, p2.phi, p3.eta, p3.phi);
+                printf("E1: %g\n", p1.pt);
+                printf("E2: %g\n", p2.pt);
+                printf("E3: %g\n", p3.pt);
+                printf("\t1123:\n");
+                printf("\t\tR: %u\n", entry1.R_idx);
+                printf("\t\tis_symmetric: %u\n", entry1.is_symmetric);
+                printf("\t\t\tr_wrtr: %u\n", entry1.symmetric_wrtr_r_idx);
+                printf("\t\t\tc_wrtr: %u\n", entry1.symmetric_wrtr_c_idx);
+                printf("\t\t\tr1_wrtR: %u\n", entry1.symmetric_wrtR1_r_idx);
+                printf("\t\t\tc1_wrtR: %u\n", entry1.symmetric_wrtR1_c_idx);
+                printf("\t\t\tr2_wrtR: %u\n", entry1.symmetric_wrtR2_r_idx);
+                printf("\t\t\tc2_wrtR: %u\n", entry1.symmetric_wrtR2_c_idx);
+                printf("\t\tis_chain: %u\n", entry1.is_chain);
+                printf("\t\t\tr_chain: %u\n", entry1.chain_r_idx);
+                printf("\t\t\tc_chain: %u\n", entry1.chain_c_idx);
+                printf("\t\twt: %f\n", wt_1);
+                printf("\t1223:\n");
+                printf("\t\tR: %u\n", entry2.R_idx);
+                printf("\t\tis_symmetric: %u\n", entry2.is_symmetric);
+                printf("\t\t\tr_wrtr: %u\n", entry2.symmetric_wrtr_r_idx);
+                printf("\t\t\tc_wrtr: %u\n", entry2.symmetric_wrtr_c_idx);
+                printf("\t\t\tr1_wrtR: %u\n", entry2.symmetric_wrtR1_r_idx);
+                printf("\t\t\tc1_wrtR: %u\n", entry2.symmetric_wrtR1_c_idx);
+                printf("\t\t\tr2_wrtR: %u\n", entry2.symmetric_wrtR2_r_idx);
+                printf("\t\t\tc2_wrtR: %u\n", entry2.symmetric_wrtR2_c_idx);
+                printf("\t\tis_chain: %u\n", entry2.is_chain);
+                printf("\t\t\tr_chain: %u\n", entry2.chain_r_idx);
+                printf("\t\t\tc_chain: %u\n", entry2.chain_c_idx);
+                printf("\t\twt: %f\n", wt_2);
+                printf("\t1233:\n");
+                printf("\t\tR: %u\n", entry3.R_idx);
+                printf("\t\tis_symmetric: %u\n", entry3.is_symmetric);
+                printf("\t\t\tr_wrtr: %u\n", entry3.symmetric_wrtr_r_idx);
+                printf("\t\t\tc_wrtr: %u\n", entry3.symmetric_wrtr_c_idx);
+                printf("\t\t\tr1_wrtR: %u\n", entry3.symmetric_wrtR1_r_idx);
+                printf("\t\t\tc1_wrtR: %u\n", entry3.symmetric_wrtR1_c_idx);
+                printf("\t\t\tr2_wrtR: %u\n", entry3.symmetric_wrtR2_r_idx);
+                printf("\t\t\tc2_wrtR: %u\n", entry3.symmetric_wrtR2_c_idx);
+                printf("\t\tis_chain: %u\n", entry3.is_chain);
+                printf("\t\t\tr_chain: %u\n", entry3.chain_r_idx);
+                printf("\t\t\tc_chain: %u\n", entry3.chain_c_idx);
+                printf("\t\twt: %f\n", wt_3);
+#endif
                 result.fill(entry1, wt_1);
                 result.fill(entry2, wt_2);
                 result.fill(entry3, wt_3);
@@ -422,7 +567,7 @@ inline void CAres4_mainloop(
                      * with symmetry factor
                      * 4! = 24
                      */
-                    wt = E1234;
+                    wt = 24 * E1234;
 
                     EEC::CAres4_entry entry;
                     get_CAentry_fourpart(entry,
@@ -430,6 +575,26 @@ inline void CAres4_mainloop(
                                         p1p2, p1p3, p1p4,
                                         p2p3, p2p4, p3p4,
                                         axes_gen);
+#ifdef CHECK_BY_HAND
+                    printf("4-particle part\n");
+                    printf("(%g %g), (%g %g), (%g %g), (%g %g)\n", p1.eta, p1.phi, p2.eta, p2.phi, p3.eta, p3.phi, p4.eta, p4.phi);
+                    printf("E1: %g\n", p1.pt);
+                    printf("E2: %g\n", p2.pt);
+                    printf("E3: %g\n", p3.pt);
+                    printf("E4: %g\n", p4.pt);
+                    printf("\tR: %u\n", entry.R_idx);
+                    printf("\tis_symmetric: %u\n", entry.is_symmetric);
+                    printf("\t\tr_wrtr: %u\n", entry.symmetric_wrtr_r_idx);
+                    printf("\t\tc_wrtr: %u\n", entry.symmetric_wrtr_c_idx);
+                    printf("\t\tr1_wrtR: %u\n", entry.symmetric_wrtR1_r_idx);
+                    printf("\t\tc1_wrtR: %u\n", entry.symmetric_wrtR1_c_idx);
+                    printf("\t\tr2_wrtR: %u\n", entry.symmetric_wrtR2_r_idx);
+                    printf("\t\tc2_wrtR: %u\n", entry.symmetric_wrtR2_c_idx);
+                    printf("\tis_chain: %u\n", entry.is_chain);
+                    printf("\t\tr_chain: %u\n", entry.chain_r_idx);
+                    printf("\t\tc_chain: %u\n", entry.chain_c_idx);
+                    printf("\twt: %f\n", wt);
+#endif
                     result.fill(entry, wt);
                     if constexpr(doUnmatched){
                         if (!matched4){

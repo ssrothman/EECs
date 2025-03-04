@@ -184,9 +184,14 @@ namespace EEC{
                     });
         }
 
-        double total_weight() const noexcept {
+        double total_weight_reco() const noexcept {
             return std::accumulate(data.data(), data.data() + data.num_elements(), 0.0);
         }
+
+        double total_weight_gen() const noexcept {
+            return std::accumulate(data.data(), data.data() + data.num_elements(), 0.0);
+        }
+
         const size_t nR_reco, nr_reco, nc_reco;
         const size_t nR_gen, nr_gen, nc_gen;
     private:

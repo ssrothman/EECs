@@ -104,7 +104,10 @@ inline void get_CAentry_threepart(
     simon::pairentry_resolved<distances_squared> rp3;
     unsigned bkpindex;
     
-    simon::CA3(particles, p1p2, p1p3, p2p3, r, R, rp3, bkpindex);
+    simon::CA3(particles, 
+               p1p2, p1p3, p2p3, 
+               r, R, rp3, 
+               bkpindex);
 
 #ifdef CHECK_BY_HAND
     printf("r [pt, eta, phi] = [%g, %g, %g]\n", r.pt, r.eta, r.phi);
@@ -117,11 +120,21 @@ inline void get_CAentry_threepart(
     }
     unsigned Ridx = simon::getIndex(RL, axes.R);
 
-    double RS1 = p1p2.floatDR;
+    double RS1; 
+    double cRr1; 
+    if (bkpindex == 2){
+        RS1 = p1p2.floatDR;
+        cRr1 = simon::angle_between(p1p2, rp3);
+    } else if (bkpindex == 1){
+        RS1 = p1p3.floatDR;
+        cRr1 = simon::angle_between(p1p3, rp3);
+    } else {
+        RS1 = p2p3.floatDR;
+        cRr1 = simon::angle_between(p2p3, rp3);
+    }
     if constexpr(distances_squared){
         RS1 = std::sqrt(RS1);
     }
-    double cRr1 = simon::angle_between(p1p2, rp3);
 
     double RS2 = 0;
     double cRr2 = 0;
@@ -223,6 +236,14 @@ inline void get_CAentry_fourpart(
     printf("RL: %g\n", RL);
 #endif
 
+    if (RL==0){
+#ifdef CHECK_BY_HAND
+        printf("RL is zero - short-circuiting\n");
+#endif
+        entry.fill_chain(Ridx, RL, 0, 0, axes);
+        return;
+    }
+
     if (topologyflag == simon::CHAIN){
         double RS1 = return_pairs[1].floatDR;
         if constexpr(distances_squared){
@@ -323,6 +344,19 @@ inline void CAres4_transferloop(
 
                     transfer.fill(entry_reco, entry_gen, 
                                   twt4, wt_gen);
+#ifdef CHECK_BY_HAND
+                    printf("transferring %g -> %g\n",
+                            wt_gen, twt4);
+                    if (entry_gen.is_chain && entry_reco.is_chain){
+                        printf("\tchain -> chain\n");
+                    } else if (entry_gen.is_chain){
+                        printf("\tchain -> symmetric\n");
+                    } else if (entry_reco.is_chain){
+                        printf("\tsymmetric -> chain\n");
+                    } else {
+                        printf("\tsymmetric -> symmetric\n");
+                    }
+#endif
                 }
             }
         }
@@ -346,6 +380,10 @@ inline void CAres4_mainloop(
         [[maybe_unused]] bool matched1;
         if constexpr(doUnmatched){
             matched1 = matched->at(i1);
+        }
+        [[maybe_unused]] EEC::neighborhood const * n1 = nullptr;
+        if constexpr(doTransfer){
+            n1 = &adj->get_neighborhood(i1);
         }
 
         const double E1_p2 = p1.pt*p1.pt;
@@ -384,11 +422,29 @@ inline void CAres4_mainloop(
             }
         }
 
+        if constexpr(doTransfer){
+            CAres4_transferloop<TransferResultType, ResultType, JetType>(
+                *transfer,
+                entry,
+                *thisjet_reco,
+                *n1,
+                *n1,
+                *n1,
+                *n1,
+                *axes_reco,
+                wt
+            );
+        }
+
         for(unsigned i2=i1+1; i2<thisjet_gen.N; ++i2){
             const auto& p2 = thisjet_gen.singles.get(i2);
             [[maybe_unused]] bool matched2;
             if constexpr(doUnmatched){
                 matched2 = matched1 && matched->at(i2);
+            }
+            [[maybe_unused]] EEC::neighborhood const * n2 = nullptr;
+            if constexpr(doTransfer){
+                n2 = &adj->get_neighborhood(i2);
             }
 
             const auto& p1p2 = thisjet_gen.pairs.get(i1, i2);
@@ -460,12 +516,52 @@ inline void CAres4_mainloop(
                     unmatched_gen->fill_symmetric(entry22, wt_12);
                 }
             }
+
+            if constexpr(doTransfer){
+                CAres4_transferloop<TransferResultType, ResultType, JetType>(
+                    *transfer,
+                    entry13,
+                    *thisjet_reco,
+                    *n1,
+                    *n1,
+                    *n1,
+                    *n2,
+                    *axes_reco,
+                    wt_1
+                );
+                CAres4_transferloop<TransferResultType, ResultType, JetType>(
+                    *transfer,
+                    entry13,
+                    *thisjet_reco,
+                    *n1,
+                    *n2,
+                    *n2,
+                    *n2,
+                    *axes_reco,
+                    wt_2
+                );
+                CAres4_transferloop<TransferResultType, ResultType, JetType>(
+                    *transfer,
+                    entry22,
+                    *thisjet_reco,
+                    *n1,
+                    *n1,
+                    *n2,
+                    *n2,
+                    *axes_reco,
+                    wt_12
+                );
+            }
         
             for(unsigned i3=i2+1; i3<thisjet_gen.N; ++i3){
                 const auto& p3 = thisjet_gen.singles.get(i3);
                 [[maybe_unused]] bool matched3;
                 if constexpr(doUnmatched){
                     matched3 = matched2 && matched->at(i3);
+                }
+                [[maybe_unused]] EEC::neighborhood const * n3 = nullptr;
+                if constexpr(doTransfer){
+                    n3 = &adj->get_neighborhood(i3);
                 }
 
                 const auto& p1p3 = thisjet_gen.pairs.get(i1, i3);
@@ -547,11 +643,51 @@ inline void CAres4_mainloop(
                     }
                 }
 
+                if constexpr(doTransfer){
+                    CAres4_transferloop<TransferResultType, ResultType, JetType>(
+                        *transfer,
+                        entry1,
+                        *thisjet_reco,
+                        *n1,
+                        *n1,
+                        *n2,
+                        *n3,
+                        *axes_reco,
+                        wt_1
+                    );
+                    CAres4_transferloop<TransferResultType, ResultType, JetType>(
+                        *transfer,
+                        entry2,
+                        *thisjet_reco,
+                        *n1,
+                        *n2,
+                        *n2,
+                        *n3,
+                        *axes_reco,
+                        wt_2
+                    );  
+                    CAres4_transferloop<TransferResultType, ResultType, JetType>(
+                        *transfer,
+                        entry3,
+                        *thisjet_reco,
+                        *n1,
+                        *n2,
+                        *n3,
+                        *n3,
+                        *axes_reco,
+                        wt_3
+                    );
+                }
+
                 for(unsigned i4=i3+1; i4<thisjet_gen.N; ++i4){
                     const auto& p4 = thisjet_gen.singles.get(i4);
                     [[maybe_unused]] bool matched4;
                     if constexpr(doUnmatched){
                         matched4 = matched3 && matched->at(i4);
+                    }
+                    [[maybe_unused]] EEC::neighborhood const * n4 = nullptr;
+                    if constexpr(doTransfer){
+                        n4 = &adj->get_neighborhood(i4);
                     }
 
                     const auto& p1p4 = thisjet_gen.pairs.get(i1, i4);
@@ -600,6 +736,19 @@ inline void CAres4_mainloop(
                         if (!matched4){
                             unmatched_gen->fill(entry, wt);
                         }
+                    }
+                    if constexpr(doTransfer){
+                        CAres4_transferloop<TransferResultType, ResultType, JetType>(
+                            *transfer,
+                            entry,
+                            *thisjet_reco,
+                            *n1,
+                            *n2,
+                            *n3,
+                            *n4,
+                            *axes_reco,
+                            wt
+                        );
                     }
                 }
             }

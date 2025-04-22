@@ -355,8 +355,6 @@ void EEC::CARes4TransferCalculator::compute_precomputed(
 
 EEC::CARes4Calculator::CARes4Calculator(const edm::ParameterSet& iConfig) :
     axes(iConfig.getParameter<edm::ParameterSet>("bins")),
-    tolerance2(simon::square(iConfig.getParameter<double>("tolerance"))),
-    tri_tolerance(iConfig.getParameter<double>("tri_tolerance")),
     nt(normType_from_string(iConfig.getParameter<std::string>("normType"))) {}
 
 void EEC::CARes4Calculator::fillPSetDescription(edm::ParameterSetDescription& desc) {
@@ -365,16 +363,12 @@ void EEC::CARes4Calculator::fillPSetDescription(edm::ParameterSetDescription& de
     CARes4Axes::fillPSetDescription(binsDesc);
     desc.add<edm::ParameterSetDescription>("bins", binsDesc);
 
-    desc.add<double>("tolerance");
-    desc.add<double>("tri_tolerance");
     desc.add<std::string>("normType");
 }
 
 EEC::CARes4TransferCalculator::CARes4TransferCalculator(const edm::ParameterSet& iConfig):
     axes_reco(iConfig.getParameter<edm::ParameterSet>("bins_reco")),
     axes_gen(iConfig.getParameter<edm::ParameterSet>("bins_gen")),
-    tolerance2(simon::square(iConfig.getParameter<double>("tolerance"))),
-    tri_tolerance(iConfig.getParameter<double>("tri_tolerance")),
     nt(normType_from_string(iConfig.getParameter<std::string>("normType"))) {}
 
 void EEC::CARes4TransferCalculator::fillPSetDescription(edm::ParameterSetDescription& desc) {
@@ -387,8 +381,6 @@ void EEC::CARes4TransferCalculator::fillPSetDescription(edm::ParameterSetDescrip
     CARes4Axes::fillPSetDescription(binsGenDesc);
     desc.add<edm::ParameterSetDescription>("bins_gen", binsGenDesc);
 
-    desc.add<double>("tolerance");
-    desc.add<double>("tri_tolerance");
     desc.add<std::string>("normType");
 }
 

@@ -91,9 +91,9 @@ inline void get_CAentry_threepart(
 #ifdef CHECK_BY_HAND
     printf("running CAentry_threepart\n");
 #endif
-    std::array<const EEC::oneentry*, 3> particles = {
+    std::array<const EEC::oneentry*, 3> particles = {{
         &p1, &p2, &p3
-    };
+    }};
 #ifdef CHECK_BY_HAND
     printf("p1 [pt, eta, phi] = [%g, %g, %g]\n", p1.pt, p1.eta, p1.phi);
     printf("p2 [pt, eta, phi] = [%g, %g, %g]\n", p2.pt, p2.eta, p2.phi);
@@ -195,9 +195,9 @@ inline void get_CAentry_fourpart(
         const simon::pairentry_resolved<distances_squared>& p3p4,
         const EEC::CARes4Axes& axes) noexcept {
 
-    std::array<const EEC::oneentry*, 4> particles = {
+    std::array<const EEC::oneentry*, 4> particles = {{
         &p1, &p2, &p3, &p4
-    };
+    }};
 #ifdef CHECK_BY_HAND 
     printf("running CAentry_fourpart\n");
     printf("p1 [pt, eta, phi] = [%g, %g, %g]\n", p1.pt, p1.eta, p1.phi);

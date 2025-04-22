@@ -721,28 +721,28 @@ inline void res4_transferloop(
         //this seems to be an unavoidable language limitation
         //we have to wait until c++26 for a solution 
         //(https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p2169r0.pdf)
-        const auto&[E1, eta1, phi1] = thisjet_reco->singles.get(j1.idx);
+        const auto& p1 = thisjet_reco->singles.get(j1.idx);
 
         for(const EEC::neighbor& j2: n2){
             const double twt2 = twt1 * j2.wt;
-            const auto&[E2, eta2, phi2] = thisjet_reco->singles.get(j2.idx);
+            const auto& p2 = thisjet_reco->singles.get(j2.idx);
             
-            const auto&[deta12, dphi12, dR12] = thisjet_reco->pairs.get(j1.idx, j2.idx);
+            const auto& pair12 = thisjet_reco->pairs.get(j1.idx, j2.idx);
 
             for(const EEC::neighbor& j3 : n3){
                 const double twt3 = twt2 * j3.wt;
-                const auto&[E3, eta3, phi3] = thisjet_reco->singles.get(j3.idx);
+                const auto& p3 = thisjet_reco->singles.get(j3.idx);
 
-                const auto&[deta13, dphi13, dR13] = thisjet_reco->pairs.get(j1.idx, j3.idx);
-                const auto&[deta23, dphi23, dR23] = thisjet_reco->pairs.get(j2.idx, j3.idx);
+                const auto& pair13 = thisjet_reco->pairs.get(j1.idx, j3.idx);
+                const auto& pair23 = thisjet_reco->pairs.get(j2.idx, j3.idx);
 
                 for(const EEC::neighbor& j4 : n4){
                     const double twt4 = twt3 * j4.wt;
-                    const auto&[E4, eta4, phi4] = thisjet_reco->singles.get(j4.idx);
+                    const auto& p4 = thisjet_reco->singles.get(j4.idx);
 
-                    const auto&[deta14, dphi14, dR14] = thisjet_reco->pairs.get(j1.idx, j4.idx);
-                    const auto&[deta24, dphi24, dR24] = thisjet_reco->pairs.get(j2.idx, j4.idx);
-                    const auto&[deta34, dphi34, dR34] = thisjet_reco->pairs.get(j3.idx, j4.idx);
+                    const auto& pair14 = thisjet_reco->pairs.get(j1.idx, j4.idx);
+                    const auto& pair24 = thisjet_reco->pairs.get(j2.idx, j4.idx);
+                    const auto& pair34 = thisjet_reco->pairs.get(j3.idx, j4.idx);
 
                     std::array<res4_entry, 3> dipole_entries_reco;
                     std::array<res4_entry, 3> tee_entries_reco;
@@ -755,21 +755,21 @@ inline void res4_transferloop(
                             tee_entries_reco,
                             triangle_entries_reco,
 
-                            eta1, phi1,
-                            eta2, phi2,
-                            eta3, phi3,
-                            eta4, phi4,
+                            p1.eta, p1.phi,
+                            p2.eta, p2.phi,
+                            p3.eta, p3.phi,
+                            p4.eta, p4.phi,
 
-                            deta12, dphi12,
-                            deta13, dphi13,
-                            deta14, dphi14,
-                            deta23, dphi23,
-                            deta24, dphi24,
-                            deta34, dphi34,
+                            pair12.deta, pair12.dphi,
+                            pair13.deta, pair13.dphi,
+                            pair14.deta, pair14.dphi,
+                            pair23.deta, pair23.dphi,
+                            pair24.deta, pair24.dphi,
+                            pair34.deta, pair34.dphi,
 
-                            dR12, dR13,
-                            dR14, dR23,
-                            dR24, dR34,
+                            pair12.floatDR, pair13.floatDR,
+                            pair14.floatDR, pair23.floatDR,
+                            pair24.floatDR, pair34.floatDR,
 
                             twt4,
 
@@ -874,7 +874,7 @@ inline void res4_mainloop(
         const double tri_tolerance) noexcept {
 
     for (unsigned i1=0; i1<thisjet_gen->N; ++i1){
-        const auto&[E1, eta1, phi1] = thisjet_gen->singles.get(i1);
+        const auto& p1 = thisjet_gen->singles.get(i1);
         [[maybe_unused]] bool matched1;
         if constexpr(doUnmatched){
             matched1 = matched->at(i1);
@@ -885,7 +885,7 @@ inline void res4_mainloop(
         }
 
         for (unsigned i2=i1+1; i2<thisjet_gen->N; ++i2){
-            const auto&[E2, eta2, phi2] = thisjet_gen->singles.get(i2);
+            const auto& p2 = thisjet_gen->singles.get(i2);
             [[maybe_unused]] bool matched2;
             if constexpr(doUnmatched){
                 matched2 = matched1 && matched->at(i2);
@@ -895,12 +895,12 @@ inline void res4_mainloop(
                 n2 = &(adj->get_neighborhood(i2));
             }
 
-            const double E12 = E1 * E2;
+           const double E12 = p1.pt * p2.pt;
 
-            const auto&[deta12, dphi12, dR12] = thisjet_gen->pairs.get(i1, i2);
+            const auto& pair12 = thisjet_gen->pairs.get(i1, i2);
 
             for(unsigned i3=i2+1; i3<thisjet_gen->N; ++i3){
-                const auto&[E3, eta3, phi3] = thisjet_gen->singles.get(i3);
+                const auto& p3 = thisjet_gen->singles.get(i3);
                 [[maybe_unused]] bool matched3;
                 if constexpr(doUnmatched){
                     matched3 = matched2 && matched->at(i3);
@@ -910,13 +910,13 @@ inline void res4_mainloop(
                     n3 = &(adj->get_neighborhood(i3));
                 }
 
-                const double E123 = E12 * E3;
+                const double E123 = E12 * p3.pt;
 
-                const auto&[deta13, dphi13, dR13] = thisjet_gen->pairs.get(i1, i3);
-                const auto&[deta23, dphi23, dR23] = thisjet_gen->pairs.get(i2, i3);
+                const auto& pair13 = thisjet_gen->pairs.get(i1, i3);
+                const auto& pair23 = thisjet_gen->pairs.get(i2, i3);
 
                 for(unsigned i4=i3+1; i4<thisjet_gen->N; ++i4){
-                    const auto&[E4, eta4, phi4] = thisjet_gen->singles.get(i4);
+                    const auto& p4 = thisjet_gen->singles.get(i4);
                     [[maybe_unused]] bool matched4;
                     if constexpr(doUnmatched){
                         matched4 = matched3 && matched->at(i4);
@@ -926,11 +926,11 @@ inline void res4_mainloop(
                         n4 = &(adj->get_neighborhood(i4));
                     }
 
-                    const double wt = E123 * E4;
+                    const double wt = E123 * p4.pt;
 
-                    const auto&[deta14, dphi14, dR14] = thisjet_gen->pairs.get(i1, i4);
-                    const auto&[deta24, dphi24, dR24] = thisjet_gen->pairs.get(i2, i4);
-                    const auto&[deta34, dphi34, dR34] = thisjet_gen->pairs.get(i3, i4);
+                    const auto& pair14 = thisjet_gen->pairs.get(i1, i4);
+                    const auto& pair24 = thisjet_gen->pairs.get(i2, i4);
+                    const auto& pair34 = thisjet_gen->pairs.get(i3, i4);
 
                     std::array<res4_entry, 3> dipole_entries;
                     std::array<res4_entry, 3> tee_entries;
@@ -943,21 +943,21 @@ inline void res4_mainloop(
                             tee_entries,
                             triangle_entries,
 
-                            eta1, phi1,
-                            eta2, phi2,
-                            eta3, phi3,
-                            eta4, phi4,
+                            p1.eta, p1.phi,
+                            p2.eta, p2.phi,
+                            p3.eta, p3.phi,
+                            p4.eta, p4.phi,
 
-                            deta12, dphi12,
-                            deta13, dphi13,
-                            deta14, dphi14,
-                            deta23, dphi23,
-                            deta24, dphi24,
-                            deta34, dphi34,
+                            pair12.deta, pair12.dphi,
+                            pair13.deta, pair13.dphi,
+                            pair14.deta, pair14.dphi,
+                            pair23.deta, pair23.dphi,
+                            pair24.deta, pair24.dphi,
+                            pair34.deta, pair34.dphi,
 
-                            dR12, dR13,
-                            dR14, dR23,
-                            dR24, dR34,
+                            pair12.floatDR, pair13.floatDR,
+                            pair14.floatDR, pair23.floatDR,
+                            pair24.floatDR, pair34.floatDR,
 
                             wt,
 

@@ -3,6 +3,7 @@
 #include "Res3Result.h"
 #include "Res3TransferResult.h"
 #include "Res3Backend.h"
+#include "Res3Axes.h"
 
 #include "SRothman/SimonTools/src/deltaR.h"
 #include "SRothman/SimonTools/src/histutil.h"
@@ -407,11 +408,11 @@ void EEC::CARes3TransferCalculator::compute_precomputed(
 
 #ifdef CMSSW_GIT_HASH
 
-EEC::Res3Calculator::Res3Calculator(const edm::ParameterSet& iConfig) :
+EEC::CARes3Calculator::CARes3Calculator(const edm::ParameterSet& iConfig) :
     axes(iConfig.getParameter<edm::ParameterSet>("bins")),
     nt(normType_from_string(iConfig.getParameter<std::string>("normType"))) {}
 
-void EEC::Res3Calculator::fillPSetDescription(edm::ParameterSetDescription& desc) {
+void EEC::CARes3Calculator::fillPSetDescription(edm::ParameterSetDescription& desc) {
     edm::ParameterSetDescription binsDesc; 
     Res3Axes::fillPSetDescription(binsDesc);
     desc.add<edm::ParameterSetDescription>("bins", binsDesc);
@@ -419,12 +420,12 @@ void EEC::Res3Calculator::fillPSetDescription(edm::ParameterSetDescription& desc
     desc.add<std::string>("normType");
 }
 
-EEC::Res3TransferCalculator::Res3TransferCalculator(const edm::ParameterSet& iConfig):
+EEC::CARes3TransferCalculator::CARes3TransferCalculator(const edm::ParameterSet& iConfig):
     axes_reco(iConfig.getParameter<edm::ParameterSet>("bins_reco")),
     axes_gen(iConfig.getParameter<edm::ParameterSet>("bins_gen")),
     nt(normType_from_string(iConfig.getParameter<std::string>("normType"))) {}
 
-void EEC::Res3TransferCalculator::fillPSetDescription(edm::ParameterSetDescription& desc) {
+void EEC::CARes3TransferCalculator::fillPSetDescription(edm::ParameterSetDescription& desc) {
 
     edm::ParameterSetDescription binsRecoDesc;
     Res3Axes::fillPSetDescription(binsRecoDesc);

@@ -798,7 +798,7 @@ inline void res4_transferloop(
                                     dipole_entries_gen[i].idx_R, 
                                     dipole_entries_gen[i].idx_r, 
                                     dipole_entries_gen[i].idx_c,
-                                    twt4);
+                                    wt_gen);
                         }//end if dipole entries match
 
                         if(tee_entries_gen[i].isShape && tee_entries_reco[i].isShape){
@@ -820,7 +820,7 @@ inline void res4_transferloop(
                                     tee_entries_gen[i].idx_R, 
                                     tee_entries_gen[i].idx_r, 
                                     tee_entries_gen[i].idx_c,
-                                    twt4);
+                                    wt_gen);
                         }//end if tee entries match
                     }//end loop over tee/dipole entries
 
@@ -844,7 +844,7 @@ inline void res4_transferloop(
                                     triangle_entries_gen[i].idx_R, 
                                     triangle_entries_gen[i].idx_r, 
                                     triangle_entries_gen[i].idx_c,
-                                    twt4);
+                                    wt_gen);
                         }//end if triangle entries match
                     }//end loop over triangle entries
                 }//end loop over j4

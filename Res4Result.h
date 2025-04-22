@@ -49,23 +49,55 @@ namespace EEC{
         Res4Result(const CALCULATOR& calculator) noexcept :
             Res4Result(calculator.get_axes()) {}
 
-        Res4Result(const Container& dipole, 
-                   const Container& tee, 
-                   const Container& triangle) noexcept :
+        template <typename OtherContainer>
+        Res4Result(const OtherContainer& dipole, 
+                   const OtherContainer& tee, 
+                   const OtherContainer& triangle) noexcept :
             dipole(dipole),
             tee(tee),
             triangle(triangle),
             pt_denom_set(false),
             pt_denom(-1) {}
 
-        Res4Result(Container&& dipole, 
-                   Container&& tee, 
-                   Container&& triangle) noexcept :
+        template <typename OtherContainer>
+        Res4Result(OtherContainer&& dipole, 
+                   OtherContainer&& tee, 
+                   OtherContainer&& triangle) noexcept :
             dipole(std::move(dipole)),
             tee(std::move(tee)),
             triangle(std::move(triangle)),
             pt_denom_set(false),
             pt_denom(-1) {}
+
+        template <typename OtherContainer>
+        Res4Result(const Res4Result<OtherContainer>& other) noexcept :
+                dipole(other.get_dipole()),
+                tee(other.get_tee()),
+                triangle(other.get_triangle()){
+            
+            if (other.is_pt_denom_set()){
+                pt_denom = other.get_pt_denom();
+                pt_denom_set = true;
+            } else {
+                pt_denom_set = false;
+                pt_denom = -1;
+            }
+        }
+
+        template <typename OtherContainer>
+        Res4Result(Res4Result<OtherContainer>&& other) noexcept :
+                dipole(std::move(other.get_dipole())),
+                tee(std::move(other.get_tee())),
+                triangle(std::move(other.get_triangle())){
+
+            if (other.is_pt_denom_set()){
+                pt_denom = other.get_pt_denom();
+                pt_denom_set = true;
+            } else {
+                pt_denom_set = false;
+                pt_denom = -1;
+            }
+        }
 
         void fill_dipole(
                 unsigned iR, unsigned ir, 
@@ -98,6 +130,10 @@ namespace EEC{
             } else {
                 return pt_denom;
             }
+        }
+
+        bool is_pt_denom_set() const noexcept{
+            return pt_denom_set;
         }
 
         const Container& get_dipole() const noexcept{
@@ -170,6 +206,13 @@ namespace EEC{
             return *this;
         }
 
+        template <class OtherContainer>
+        Res4Result<ResMultiArrayContainer> operator-(const Res4Result<OtherContainer>& other) const noexcept{
+            Res4Result<ResMultiArrayContainer> result(*this);
+            result -= other;
+            return result;
+        }
+
     private:
         Container dipole;
         Container tee;
@@ -181,18 +224,6 @@ namespace EEC{
 
     using Res4Result_MultiArray = Res4Result<ResMultiArrayContainer>;
     using Res4Result_Vector = Res4Result<ResVectorContainer>;
-
-    template <class OtherContainer>
-    inline Res4Result_MultiArray operator-(Res4Result_MultiArray a, const Res4Result<OtherContainer>& b) noexcept{
-        Res4Result_MultiArray result(a);
-        result -= b;
-        return a;
-    }
-
-    template <typename Container>
-    inline Res4Result_MultiArray operator-(const Res4Result_Vector& a, const Res4Result<Container> b) noexcept{
-        return Res4Result_MultiArray(a) - b;
-    }
 };
 
 #endif

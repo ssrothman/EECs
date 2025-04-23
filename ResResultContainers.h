@@ -22,6 +22,7 @@ namespace EEC{
                 iR(iR), ir(ir), ic(ic), wt(wt) {}
         };
         using data_t = std::vector<entry>;
+        using TYPE = T;
 
         constexpr static bool SHOULD_BIN = std::is_same<T, unsigned>::value;
             
@@ -83,6 +84,7 @@ namespace EEC{
     class ResMultiArrayContainer{
     public:
         using data_t = multi_array<double, 3>;
+        using TYPE = unsigned;
 
         constexpr static bool SHOULD_BIN = true;
 

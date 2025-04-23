@@ -22,6 +22,9 @@ namespace EEC{
             pt_denom_set(false),
             pt_denom(-1) {}
 
+        constexpr static bool SHOULD_BIN = Container::SHOULD_BIN;
+        using T = typename Container::TYPE;
+
         Res4Result(
                 const size_t nR, 
                 const size_t nr_dipole,

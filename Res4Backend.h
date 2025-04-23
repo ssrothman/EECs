@@ -93,8 +93,9 @@ inline double angle_midpoint(
     return result;
 }
 
+template <typename T>
 struct res4_entry{
-    unsigned idx_R, idx_r, idx_c;
+    T idx_R, idx_r, idx_c;
     bool isShape;
     res4_entry() noexcept : idx_R(0), idx_r(0), idx_c(0), isShape(false) {}
 };
@@ -115,8 +116,8 @@ template <class ResultType, bool distances_squared, bool actually_fill>
 inline void check_tee_dipole(
         ResultType& ans,
 
-        res4_entry& dipole_entry,
-        res4_entry& tee_entry,
+        res4_entry<typename ResultType::T>& dipole_entry,
+        res4_entry<typename ResultType::T>& tee_entry,
 
         const double eta1, 
         const double phi1,
@@ -192,37 +193,72 @@ inline void check_tee_dipole(
                   dR12, dR34,
                   c);
 
-        unsigned idx_R = simon::getIndex(R, axes.R);
+        [[maybe_unused]] unsigned idx_R;
+        if constexpr(ResultType::SHOULD_BIN){
+            idx_R = simon::getIndex(R, axes.R);
+        }
+
         if(isDipole){
-            unsigned idx_r = simon::getIndex(r, axes.r_dipole);
-            unsigned idx_c = simon::getIndex(c, axes.c_dipole);
+            [[maybe_unused]] unsigned idx_r;
+            [[maybe_unused]] unsigned idx_c;
+            if constexpr (ResultType::SHOULD_BIN){
+                idx_r = simon::getIndex(r, axes.r_dipole);
+                idx_c = simon::getIndex(c, axes.c_dipole);
+            }
+
             if constexpr (actually_fill){
-                ans.fill_dipole(idx_R, idx_r, idx_c, wt);
+                if constexpr (ResultType::SHOULD_BIN){
+                    ans.fill_dipole(idx_R, idx_r, idx_c, wt);
+                } else {
+                    ans.fill_dipole(R, r, c, wt);
+                }
             }
 #ifdef CHECK_BY_HAND
             printf("(%g, %g) (%g, %g) (%g, %g) (%g, %g)\n", eta1, phi1, eta2, phi2, eta3, phi3, eta4, phi4);
             printf("\tDipole: R = %f, r = %f, c = %f\n", R, r, c);
 #endif
-            dipole_entry.idx_R = idx_R;
-            dipole_entry.idx_r = idx_r;
-            dipole_entry.idx_c = idx_c;
+
+            if constexpr(ResultType::SHOULD_BIN){
+                dipole_entry.idx_R = idx_R;
+                dipole_entry.idx_r = idx_r;
+                dipole_entry.idx_c = idx_c;
+            } else {
+                dipole_entry.idx_R = R;
+                dipole_entry.idx_r = r;
+                dipole_entry.idx_c = c;
+            }
             dipole_entry.isShape = true;
         } else{
             dipole_entry.isShape = false;
         }
         if (isTee){
-            unsigned idx_r = simon::getIndex(r, axes.r_tee);
-            unsigned idx_c = simon::getIndex(c, axes.c_tee);
+            [[maybe_unused]] unsigned idx_r;
+            [[maybe_unused]] unsigned idx_c;
+            if constexpr(ResultType::SHOULD_BIN){
+                idx_r = simon::getIndex(r, axes.r_tee);
+                idx_c = simon::getIndex(c, axes.c_tee);
+            }
+
             if constexpr (actually_fill){
-                ans.fill_tee(idx_R, idx_r, idx_c, wt);
+                if constexpr(ResultType::SHOULD_BIN){
+                    ans.fill_tee(idx_R, idx_r, idx_c, wt);
+                } else {
+                    ans.fill_tee(R, r, c, wt);
+                }
             }
 #ifdef CHECK_BY_HAND
             printf("(%g, %g) (%g, %g) (%g, %g) (%g, %g)\n", eta1, phi1, eta2, phi2, eta3, phi3, eta4, phi4);
             printf("\tTee: R = %f, r = %f, c = %f\n", R, r, c);
 #endif
-            tee_entry.idx_R = idx_R;
-            tee_entry.idx_r = idx_r;
-            tee_entry.idx_c = idx_c;
+            if constexpr(ResultType::SHOULD_BIN){
+                tee_entry.idx_R = idx_R;
+                tee_entry.idx_r = idx_r;
+                tee_entry.idx_c = idx_c;
+            } else {
+                tee_entry.idx_R = R;
+                tee_entry.idx_r = r;
+                tee_entry.idx_c = c;
+            }
             tee_entry.isShape = true;
         } else {
             tee_entry.isShape = false;
@@ -248,7 +284,7 @@ template <class ResultType, bool distances_squared, bool actually_fill>
 inline void check_triangle(
         ResultType& ans,
 
-        res4_entry& triangle_entry,
+        res4_entry<typename ResultType::T>& triangle_entry,
 
         const double dR12_2, const double dR13_2,
         const double dR14_2, const double dR23_2,
@@ -474,11 +510,21 @@ inline void check_triangle(
             c = -c;
         }
 
-        unsigned idx_R = simon::getIndex(R, axes.R);
-        unsigned idx_r = simon::getIndex(r, axes.r_triangle);
-        unsigned idx_c = simon::getIndex(c, axes.c_triangle);
+        [[maybe_unused]] unsigned idx_R;
+        [[maybe_unused]] unsigned idx_r;
+        [[maybe_unused]] unsigned idx_c;
+        if constexpr(ResultType::SHOULD_BIN){
+            idx_R = simon::getIndex(R, axes.R);
+            idx_r = simon::getIndex(r, axes.r_triangle);
+            idx_c = simon::getIndex(c, axes.c_triangle);
+        }
+
         if constexpr(actually_fill){
-            ans.fill_triangle(idx_R, idx_r, idx_c, wt);
+            if constexpr(ResultType::SHOULD_BIN){
+                ans.fill_triangle(idx_R, idx_r, idx_c, wt);
+            } else {
+                ans.fill_triangle(R, r, c, wt);
+            }
         }
 #ifdef CHECK_BY_HAND
         if constexpr(distances_squared){
@@ -494,9 +540,15 @@ inline void check_triangle(
         }
         printf("\tTriangle: R = %f, r = %f, c = %f\n", R, r, c);
 #endif
-        triangle_entry.idx_R = idx_R;
-        triangle_entry.idx_r = idx_r;
-        triangle_entry.idx_c = idx_c;
+        if constexpr (ResultType::SHOULD_BIN){
+            triangle_entry.idx_R = idx_R;
+            triangle_entry.idx_r = idx_r;
+            triangle_entry.idx_c = idx_c;
+        } else {
+            triangle_entry.idx_R = R;
+            triangle_entry.idx_r = r;
+            triangle_entry.idx_c = c;
+        }
         triangle_entry.isShape = true;
     } else{
         triangle_entry.isShape = false;
@@ -507,9 +559,9 @@ template <class ResultType, bool distances_squared, bool actually_fill>
 inline void innermost_level(
         ResultType& ans,
 
-        std::array<res4_entry, 3>& dipole_entries,
-        std::array<res4_entry, 3>& tee_entries,
-        std::array<res4_entry, 4>& triangle_entries,
+        std::array<res4_entry<typename ResultType::T>, 3>& dipole_entries,
+        std::array<res4_entry<typename ResultType::T>, 3>& tee_entries,
+        std::array<res4_entry<typename ResultType::T>, 4>& triangle_entries,
 
         const double eta1, const double phi1,
         const double eta2, const double phi2,
@@ -697,9 +749,9 @@ inline void res4_transferloop(
         ResultType& untransfered_reco,
         ResultType& untransfered_gen,
 
-        const std::array<res4_entry, 3>& dipole_entries_gen,
-        const std::array<res4_entry, 3>& tee_entries_gen,
-        const std::array<res4_entry, 4>& triangle_entries_gen,
+        const std::array<res4_entry<typename ResultType::T>, 3>& dipole_entries_gen,
+        const std::array<res4_entry<typename ResultType::T>, 3>& tee_entries_gen,
+        const std::array<res4_entry<typename ResultType::T>, 4>& triangle_entries_gen,
 
         const std::shared_ptr<const JetType> thisjet_reco,
 
@@ -744,9 +796,9 @@ inline void res4_transferloop(
                     const auto& pair24 = thisjet_reco->pairs.get(j2.idx, j4.idx);
                     const auto& pair34 = thisjet_reco->pairs.get(j3.idx, j4.idx);
 
-                    std::array<res4_entry, 3> dipole_entries_reco;
-                    std::array<res4_entry, 3> tee_entries_reco;
-                    std::array<res4_entry, 4> triangle_entries_reco;
+                    std::array<res4_entry<typename ResultType::T>, 3> dipole_entries_reco;
+                    std::array<res4_entry<typename ResultType::T>, 3> tee_entries_reco;
+                    std::array<res4_entry<typename ResultType::T>, 4> triangle_entries_reco;
 
                     innermost_level<TransferResultType, JetType::pairType::distances_squared, false>(
                             ans,
@@ -932,9 +984,9 @@ inline void res4_mainloop(
                     const auto& pair24 = thisjet_gen->pairs.get(i2, i4);
                     const auto& pair34 = thisjet_gen->pairs.get(i3, i4);
 
-                    std::array<res4_entry, 3> dipole_entries;
-                    std::array<res4_entry, 3> tee_entries;
-                    std::array<res4_entry, 4> triangle_entries;
+                    std::array<res4_entry<typename ResultType::T>, 3> dipole_entries;
+                    std::array<res4_entry<typename ResultType::T>, 3> tee_entries;
+                    std::array<res4_entry<typename ResultType::T>, 4> triangle_entries;
 
                     innermost_level<ResultType, JetType::pairType::distances_squared, true>(
                             ans,

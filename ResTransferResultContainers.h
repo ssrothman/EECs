@@ -27,6 +27,7 @@ namespace EEC{
                 wt_reco(wt_reco), wt_gen(wt_gen) {}
         };
         using data_t = std::vector<entry>;
+        using TYPE = T;
 
         constexpr static bool SHOULD_BIN = std::is_same<T, unsigned>::value;
 
@@ -95,6 +96,7 @@ namespace EEC{
     class ResTransferMultiArrayContainer{
     public:
         using data_t = multi_array<double, 6>;
+        using TYPE = unsigned;
 
         static constexpr bool SHOULD_BIN = true;
 

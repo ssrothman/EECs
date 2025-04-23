@@ -12,6 +12,9 @@ namespace EEC{
     template <class TransferContainer>
     class Res4TransferResult{
     public:
+        using T = typename TransferContainer::TYPE;
+        constexpr static bool SHOULD_BIN = TransferContainer::SHOULD_BIN;
+
         Res4TransferResult() noexcept  :
             dipole(), tee(), triangle(),
             pt_denom_set(false),

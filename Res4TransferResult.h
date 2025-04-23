@@ -199,7 +199,8 @@ namespace EEC{
     };
 
     using Res4TransferResult_MultiArray = Res4TransferResult<ResTransferMultiArrayContainer>;
-    using Res4TransferResult_Vector = Res4TransferResult<ResTransferVectorContainer>;
+    using Res4TransferResult_Vector = Res4TransferResult<ResTransferVectorContainer<unsigned>>;
+    using Res4TransferResult_Unbinned = Res4TransferResult<ResTransferVectorContainer<double>>;
 };
 
 #endif

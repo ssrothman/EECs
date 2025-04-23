@@ -42,7 +42,7 @@ void EEC::CARes3Calculator::compute_JIT(
         const simon::jet& J,
         Res3Result_Vector& result) const noexcept {
     
-    call_res3<ResVectorContainer, EECjet_JIT>(
+    call_res3<ResVectorContainer<unsigned>, EECjet_JIT>(
             result, 
             J, nt, 
             axes);
@@ -62,7 +62,7 @@ void EEC::CARes3Calculator::compute_precomputed(
         const simon::jet& J,
         Res3Result_Vector& result) const noexcept {
     
-    call_res3<ResVectorContainer, EECjet_Precomputed>(
+    call_res3<ResVectorContainer<unsigned>, EECjet_Precomputed>(
             result, 
             J, nt, 
             axes);
@@ -111,7 +111,7 @@ void EEC::CARes3Calculator::compute_JIT_matched(
         Res3Result_Vector& result,
         Res3Result_Vector& unmatched) const noexcept {
 
-    call_res3_matched<ResVectorContainer, EECjet_JIT>(
+    call_res3_matched<ResVectorContainer<unsigned>, EECjet_JIT>(
             result, 
             unmatched,
             J, matched, nt, 
@@ -137,7 +137,7 @@ void EEC::CARes3Calculator::compute_precomputed_matched(
         Res3Result_Vector& result,
         Res3Result_Vector& unmatched) const noexcept {
 
-    call_res3_matched<ResVectorContainer, EECjet_Precomputed>(
+    call_res3_matched<ResVectorContainer<unsigned>, EECjet_Precomputed>(
             result, 
             unmatched,
             J, matched, nt, 

@@ -118,6 +118,14 @@ namespace EEC{
             }
             return *this;
         }
+
+        template <class OtherContainer>
+        Res3Result<ResMultiArrayContainer> operator-(
+                const Res3Result<OtherContainer>& other) const noexcept{
+            Res3Result<ResMultiArrayContainer> result(*this);
+            result -= other;
+            return result;
+        }
     private:
         Container data;
         
@@ -126,19 +134,8 @@ namespace EEC{
     };
 
     using Res3Result_MultiArray = Res3Result<ResMultiArrayContainer>;
-    using Res3Result_Vector = Res3Result<ResVectorContainer>;
-
-    template <class OtherContainer>
-    inline Res3Result_MultiArray operator-(Res3Result_MultiArray a, const Res3Result<OtherContainer>& b) noexcept{
-        Res3Result_MultiArray result(a);
-        result -= b;
-        return a;
-    }
-
-    template <typename Container>
-    inline Res3Result_MultiArray operator-(const Res3Result_Vector& a, const Res3Result<Container> b) noexcept{
-        return Res3Result_MultiArray(a) - b;
-    }
+    using Res3Result_Vector = Res3Result<ResVectorContainer<unsigned>>;
+    using Res3Result_Unbinned = Res3Result<ResVectorContainer<double>>;
 };
 
 #endif

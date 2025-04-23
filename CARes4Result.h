@@ -241,7 +241,7 @@ namespace EEC{
                 symmetric_wrtR -= other.get_symmetric_wrtR();
                 symmetric_wrtr -= other.get_symmetric_wrtr();
             } else {
-                static_assert(std::is_same_v<Container, ResVectorContainer>);
+                static_assert(std::is_same_v<Container, ResMultiArrayContainer>);
             }
             return *this;
         }
@@ -256,7 +256,8 @@ namespace EEC{
     };
 
     using CARes4Result_MultiArray = CARes4Result<ResMultiArrayContainer>;
-    using CARes4Result_Vector = CARes4Result<ResVectorContainer>;
+    using CARes4Result_Vector = CARes4Result<ResVectorContainer<unsigned>>;
+    using CARes4Result_Unbinned = CARes4Result<ResVectorContainer<double>>;
 
     template <class OtherContainer>
     inline CARes4Result_MultiArray operator-(CARes4Result_MultiArray a, const CARes4Result<OtherContainer>& b) noexcept{

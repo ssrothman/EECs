@@ -9,19 +9,22 @@
 #include <boost/multi_array.hpp>
 
 namespace EEC{
+    template <typename T>
     class ResVectorContainer{
     public:
         struct entry{
-            unsigned iR;
-            unsigned ir;
-            unsigned ic;
+            T iR;
+            T ir;
+            T ic;
             double wt;
-            entry(unsigned iR, unsigned ir, 
-                  unsigned ic, double wt) noexcept :
+            entry(T iR, T ir, 
+                  T ic, double wt) noexcept :
                 iR(iR), ir(ir), ic(ic), wt(wt) {}
         };
         using data_t = std::vector<entry>;
 
+        constexpr static bool SHOULD_BIN = std::is_same<T, unsigned>::value;
+            
         ResVectorContainer(
                 const size_t nR, 
                 const size_t nr, 
@@ -42,8 +45,8 @@ namespace EEC{
             nR(other.nR), nr(other.nr), nc(other.nc),
             data(other.data) {}
 
-        void fill(unsigned iR, unsigned ir, 
-                  unsigned ic, double wt) noexcept{
+        void fill(T iR, T ir, 
+                  T ic, double wt) noexcept{
             data.emplace_back(iR, ir, ic, wt);
         }
 
@@ -81,6 +84,8 @@ namespace EEC{
     public:
         using data_t = multi_array<double, 3>;
 
+        constexpr static bool SHOULD_BIN = true;
+
         ResMultiArrayContainer() noexcept :
             ResMultiArrayContainer(0, 0, 0) {}
 
@@ -96,7 +101,7 @@ namespace EEC{
         }
 
         ResMultiArrayContainer(
-                const ResVectorContainer& other) noexcept:
+                const ResVectorContainer<unsigned>& other) noexcept:
             ResMultiArrayContainer(other.nR, 
                                     other.nr, 
                                     other.nc){
@@ -184,35 +189,35 @@ namespace EEC{
         data_t data;
     };
 
-    inline bool operator==(const ResVectorContainer& a, const ResVectorContainer& b) noexcept{
+    inline bool operator==(const ResVectorContainer<unsigned>& a, const ResVectorContainer<unsigned>& b) noexcept{
         return ResMultiArrayContainer(a) == ResMultiArrayContainer(b);
     }
 
-    inline bool operator==(const ResVectorContainer& a, const ResMultiArrayContainer& b) noexcept{
+    inline bool operator==(const ResVectorContainer<unsigned>& a, const ResMultiArrayContainer& b) noexcept{
         return ResMultiArrayContainer(a) == b;
     }
     
-    inline bool operator==(const ResMultiArrayContainer& a, const ResVectorContainer& b) noexcept{
+    inline bool operator==(const ResMultiArrayContainer& a, const ResVectorContainer<unsigned>& b) noexcept{
         return a == ResMultiArrayContainer(b);
     }
 
-    inline ResMultiArrayContainer operator+(const ResVectorContainer& a, const ResMultiArrayContainer& b) noexcept{
+    inline ResMultiArrayContainer operator+(const ResVectorContainer<unsigned>& a, const ResMultiArrayContainer& b) noexcept{
         return ResMultiArrayContainer(a) + b;
     }
 
-    inline ResMultiArrayContainer operator+(const ResMultiArrayContainer& a, const ResVectorContainer& b) noexcept{
+    inline ResMultiArrayContainer operator+(const ResMultiArrayContainer& a, const ResVectorContainer<unsigned>& b) noexcept{
         return a + ResMultiArrayContainer(b);
     }
 
-    inline ResMultiArrayContainer operator-(const ResVectorContainer& a, const ResMultiArrayContainer& b) noexcept{
+    inline ResMultiArrayContainer operator-(const ResVectorContainer<unsigned>& a, const ResMultiArrayContainer& b) noexcept{
         return ResMultiArrayContainer(a) - b;
     }
 
-    inline ResMultiArrayContainer operator-(const ResMultiArrayContainer& a, const ResVectorContainer& b) noexcept{
+    inline ResMultiArrayContainer operator-(const ResMultiArrayContainer& a, const ResVectorContainer<unsigned>& b) noexcept{
         return a - ResMultiArrayContainer(b);
     }
 
-    inline ResMultiArrayContainer operator-(const ResVectorContainer& a, const ResVectorContainer& b) noexcept{
+    inline ResMultiArrayContainer operator-(const ResVectorContainer<unsigned>& a, const ResVectorContainer<unsigned>& b) noexcept{
         return ResMultiArrayContainer(a) - ResMultiArrayContainer(b);
     }
 
@@ -228,7 +233,7 @@ namespace EEC{
         }
     }
 
-    inline void print_nonzero(const ResVectorContainer& a){
+    inline void print_nonzero(const ResVectorContainer<unsigned>& a){
         print_nonzero(ResMultiArrayContainer(a));
     }
 };

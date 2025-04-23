@@ -440,7 +440,8 @@ namespace EEC{
     };
 
     using CARes4TransferResult_MultiArray = CARes4TransferResult<ResTransferMultiArrayContainer>;
-    using CARes4TransferResult_Vector = CARes4TransferResult<ResTransferVectorContainer>;
+    using CARes4TransferResult_Vector = CARes4TransferResult<ResTransferVectorContainer<unsigned>>;
+    using CARes4TransferResult_Unbinned = CARes4TransferResult<ResTransferVectorContainer<double>>;
 };
 
 #endif

@@ -223,7 +223,8 @@ namespace EEC{
     };
 
     using Res4Result_MultiArray = Res4Result<ResMultiArrayContainer>;
-    using Res4Result_Vector = Res4Result<ResVectorContainer>;
+    using Res4Result_Vector = Res4Result<ResVectorContainer<unsigned>>;
+    using Res4Result_Unbinned = Res4Result<ResVectorContainer<double>>;
 };
 
 #endif

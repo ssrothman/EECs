@@ -7,25 +7,28 @@
 #include "SRothman/SimonTools/src/histutil.h"
 
 namespace EEC{
+    template <typename T>
     class ResTransferVectorContainer{
     public:
         struct entry{
-            unsigned iR_reco;
-            unsigned ir_reco;
-            unsigned ic_reco;
-            unsigned iR_gen;
-            unsigned ir_gen;
-            unsigned ic_gen;
+            T iR_reco;
+            T ir_reco;
+            T ic_reco;
+            T iR_gen;
+            T ir_gen;
+            T ic_gen;
             double wt_reco;
             double wt_gen;
-            entry(unsigned iR_reco, unsigned ir_reco, unsigned ic_reco,
-                  unsigned iR_gen, unsigned ir_gen, unsigned ic_gen,
+            entry(T iR_reco, T ir_reco, T ic_reco,
+                  T iR_gen, T ir_gen, T ic_gen,
                   double wt_reco, double wt_gen) noexcept  :
                 iR_reco(iR_reco), ir_reco(ir_reco), ic_reco(ic_reco),
                 iR_gen(iR_gen), ir_gen(ir_gen), ic_gen(ic_gen),
                 wt_reco(wt_reco), wt_gen(wt_gen) {}
         };
         using data_t = std::vector<entry>;
+
+        constexpr static bool SHOULD_BIN = std::is_same<T, unsigned>::value;
 
         ResTransferVectorContainer(
                 const size_t nR_reco, 
@@ -43,8 +46,8 @@ namespace EEC{
         ResTransferVectorContainer() noexcept :
             ResTransferVectorContainer(0, 0, 0, 0, 0, 0) {}
 
-        void fill(unsigned iR_reco, unsigned ir_reco, unsigned ic_reco,
-                  unsigned iR_gen, unsigned ir_gen, unsigned ic_gen,
+        void fill(T iR_reco, T ir_reco, T ic_reco,
+                  T iR_gen, T ir_gen, T ic_gen,
                   double wt_reco, double wt_gen) noexcept {
             data.emplace_back(iR_reco, ir_reco, ic_reco, iR_gen, ir_gen, ic_gen, wt_reco, wt_gen);
         }
@@ -93,6 +96,8 @@ namespace EEC{
     public:
         using data_t = multi_array<double, 6>;
 
+        static constexpr bool SHOULD_BIN = true;
+
         ResTransferMultiArrayContainer(
                 const size_t nR_reco, 
                 const size_t nr_reco, 
@@ -116,7 +121,7 @@ namespace EEC{
             data[iR_reco][ir_reco][ic_reco][iR_gen][ir_gen][ic_gen] += wt_reco;
         }
 
-        ResTransferMultiArrayContainer(const ResTransferVectorContainer& other) noexcept :
+        ResTransferMultiArrayContainer(const ResTransferVectorContainer<unsigned>& other) noexcept :
             ResTransferMultiArrayContainer(other.nR_reco, other.nr_reco, other.nc_reco,
                                            other.nR_gen, other.nr_gen, other.nc_gen) {
             for (const auto& entry : other.get_data()){
@@ -198,15 +203,15 @@ namespace EEC{
         data_t data;
     };
 
-    inline bool operator==(const ResTransferVectorContainer& a, const ResTransferVectorContainer& b) noexcept {
+    inline bool operator==(const ResTransferVectorContainer<unsigned>& a, const ResTransferVectorContainer<unsigned>& b) noexcept {
         return ResTransferMultiArrayContainer(a) == ResTransferMultiArrayContainer(b);
     }
 
-    inline bool operator==(const ResTransferMultiArrayContainer& a, const ResTransferVectorContainer& b) noexcept {
+    inline bool operator==(const ResTransferMultiArrayContainer& a, const ResTransferVectorContainer<unsigned>& b) noexcept {
         return a == ResTransferMultiArrayContainer(b);
     }
 
-    inline bool operator==(const ResTransferVectorContainer& a, const ResTransferMultiArrayContainer& b) noexcept {
+    inline bool operator==(const ResTransferVectorContainer<unsigned>& a, const ResTransferMultiArrayContainer& b) noexcept {
         return ResTransferMultiArrayContainer(a) == b;
     }
 
@@ -232,7 +237,7 @@ namespace EEC{
         }
     }
 
-    inline void print_nonzero(const ResTransferVectorContainer& a){
+    inline void print_nonzero(const ResTransferVectorContainer<unsigned>& a){
         print_nonzero(ResTransferMultiArrayContainer(a));
     }
 };

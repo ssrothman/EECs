@@ -118,7 +118,8 @@ namespace EEC{
     };
 
     using Res3TransferResult_MultiArray = Res3TransferResult<ResTransferMultiArrayContainer>;
-    using Res3TransferResult_Vector = Res3TransferResult<ResTransferVectorContainer>;
+    using Res3TransferResult_Vector = Res3TransferResult<ResTransferVectorContainer<unsigned>>;
+    using Res3TransferResult_Unbinned = Res3TransferResult<ResTransferVectorContainer<double>>;
 };
 
 #endif

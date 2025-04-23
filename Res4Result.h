@@ -103,18 +103,18 @@ namespace EEC{
         }
 
         void fill_dipole(
-                unsigned iR, unsigned ir, 
-                unsigned ic, double wt) noexcept{
+                T iR, T ir, 
+                T ic, double wt) noexcept{
             dipole.fill(iR, ir, ic, wt);
         };
         void fill_tee(
-                unsigned iR, unsigned ir, 
-                unsigned ic, double wt) noexcept{
+                T iR, T ir, 
+                T ic, double wt) noexcept{
             tee.fill(iR, ir, ic, wt);
         }
         void fill_triangle(
-                unsigned iR, unsigned ir,
-                unsigned ic, double wt) noexcept{
+                T iR, T ir,
+                T ic, double wt) noexcept{
             triangle.fill(iR, ir, ic, wt);
         }
 

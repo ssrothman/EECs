@@ -81,20 +81,20 @@ namespace EEC{
             pt_denom_set(false),
             pt_denom_reco(-1), pt_denom_gen(-1) {}
         
-        void fill_dipole(unsigned iR_reco, unsigned ir_reco, unsigned ic_reco,
-                         unsigned iR_gen, unsigned ir_gen, unsigned ic_gen,
+        void fill_dipole(T iR_reco, T ir_reco, T ic_reco,
+                         T iR_gen, T ir_gen, T ic_gen,
                          double wt_reco, double wt_gen) noexcept {
             dipole.fill(iR_reco, ir_reco, ic_reco, iR_gen, ir_gen, ic_gen, wt_reco, wt_gen);
         }
 
-        void fill_tee(unsigned iR_reco, unsigned ir_reco, unsigned ic_reco,
-                      unsigned iR_gen, unsigned ir_gen, unsigned ic_gen,
+        void fill_tee(T iR_reco, T ir_reco, T ic_reco,
+                      T iR_gen, T ir_gen, T ic_gen,
                       double wt_reco, double wt_gen) noexcept {
             tee.fill(iR_reco, ir_reco, ic_reco, iR_gen, ir_gen, ic_gen, wt_reco, wt_gen);
         }
 
-        void fill_triangle(unsigned iR_reco, unsigned ir_reco, unsigned ic_reco,
-                           unsigned iR_gen, unsigned ir_gen, unsigned ic_gen,
+        void fill_triangle(T iR_reco, T ir_reco, T ic_reco,
+                           T iR_gen, T ir_gen, T ic_gen,
                            double wt_reco, double wt_gen) noexcept {
             triangle.fill(iR_reco, ir_reco, ic_reco, iR_gen, ir_gen, ic_gen, wt_reco, wt_gen);
         }

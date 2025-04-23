@@ -50,11 +50,19 @@ namespace EEC{
 
         void compute_JIT(
                 const simon::jet& J, 
+                Res4Result_Unbinned& result) const noexcept;
+
+        void compute_JIT(
+                const simon::jet& J, 
                 Res4Result_MultiArray& result) const noexcept;
 
         void compute_precomputed(
                 const simon::jet& J, 
                 Res4Result_Vector& result) const noexcept;
+
+        void compute_precomputed(
+                const simon::jet& J, 
+                Res4Result_Unbinned& result) const noexcept;
 
         void compute_precomputed(
                 const simon::jet& J, 
@@ -65,6 +73,12 @@ namespace EEC{
                 const std::vector<bool>& matched,
                 Res4Result_Vector& result,
                 Res4Result_Vector& unmatched) const noexcept;
+
+        void compute_JIT_matched(
+                const simon::jet& J,
+                const std::vector<bool>& matched,
+                Res4Result_Unbinned& result,
+                Res4Result_Unbinned& unmatched) const noexcept;
 
         void compute_JIT_matched(
                 const simon::jet& J,
@@ -77,6 +91,12 @@ namespace EEC{
                 const std::vector<bool>& matched,
                 Res4Result_Vector& result,
                 Res4Result_Vector& unmatched) const noexcept;
+
+        void compute_precomputed_matched(
+                const simon::jet& J,
+                const std::vector<bool>& matched,
+                Res4Result_Unbinned& result,
+                Res4Result_Unbinned& unmatched) const noexcept;
 
         void compute_precomputed_matched(
                 const simon::jet& J,
@@ -146,6 +166,16 @@ namespace EEC{
                 const simon::jet& J_reco,
                 const simon::jet& J_gen, 
                 const Eigen::MatrixXd& tmat,
+                Res4Result_Unbinned& result,
+                EEC::Res4Result_Unbinned& unmatched_gen,
+                Res4TransferResult_Unbinned& tresult,
+                Res4Result_Unbinned& untransfered_reco,
+                Res4Result_Unbinned& untransfered_gen) const noexcept;
+
+        void compute_JIT(
+                const simon::jet& J_reco,
+                const simon::jet& J_gen, 
+                const Eigen::MatrixXd& tmat,
                 Res4Result_MultiArray& result,
                 EEC::Res4Result_MultiArray& unmatched_gen,
                 Res4TransferResult_Vector& tresult,
@@ -181,6 +211,16 @@ namespace EEC{
                 Res4TransferResult_Vector& tresult,
                 Res4Result_Vector& untransfered_reco,
                 Res4Result_Vector& untransfered_gen) const noexcept;
+
+        void compute_precomputed(
+                const simon::jet& J_reco,
+                const simon::jet& J_gen, 
+                const Eigen::MatrixXd& tmat,
+                Res4Result_Unbinned& result,
+                EEC::Res4Result_Unbinned& unmatched_gen,
+                Res4TransferResult_Unbinned& tresult,
+                Res4Result_Unbinned& untransfered_reco,
+                Res4Result_Unbinned& untransfered_gen) const noexcept;
 
         void compute_precomputed(
                 const simon::jet& J_reco,

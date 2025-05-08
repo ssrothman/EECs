@@ -13,9 +13,9 @@
 
 #include <array>
 
-template <class BasicContainer, class JetType>
+template <class ResultType, class JetType>
 static void call_res3(
-        EEC::Res3Result<BasicContainer>& result,
+        ResultType& result,
 
         const simon::jet& J,
         const EEC::normType& nt,
@@ -26,7 +26,7 @@ static void call_res3(
             J, nt);
     result.set_pt_denom(thisjet->singles.get_pt_denom());
 
-    res3_mainloop<true, BasicContainer, JetType, false, BasicContainer, false>(
+    res3_mainloop<true, ResultType, JetType, false, ResultType, false>(
             result,
             nullptr,
             nullptr, 
@@ -42,7 +42,17 @@ void EEC::CARes3Calculator::compute_JIT(
         const simon::jet& J,
         Res3Result_Vector& result) const noexcept {
     
-    call_res3<ResVectorContainer<unsigned>, EECjet_JIT>(
+    call_res3<Res3Result_Vector, EECjet_JIT>(
+            result, 
+            J, nt, 
+            axes);
+}
+
+void EEC::CARes3Calculator::compute_JIT(
+        const simon::jet& J,
+        Res3Result_Unbinned& result) const noexcept {
+    
+    call_res3<Res3Result_Unbinned, EECjet_JIT>(
             result, 
             J, nt, 
             axes);
@@ -52,7 +62,7 @@ void EEC::CARes3Calculator::compute_JIT(
         const simon::jet& J,
         Res3Result_MultiArray& result) const noexcept {
 
-    call_res3<ResMultiArrayContainer, EECjet_JIT>(
+    call_res3<Res3Result_MultiArray, EECjet_JIT>(
             result, 
             J, nt, 
             axes);
@@ -62,7 +72,17 @@ void EEC::CARes3Calculator::compute_precomputed(
         const simon::jet& J,
         Res3Result_Vector& result) const noexcept {
     
-    call_res3<ResVectorContainer<unsigned>, EECjet_Precomputed>(
+    call_res3<Res3Result_Vector, EECjet_Precomputed>(
+            result, 
+            J, nt, 
+            axes);
+}
+
+void EEC::CARes3Calculator::compute_precomputed(
+        const simon::jet& J,
+        Res3Result_Unbinned& result) const noexcept {
+    
+    call_res3<Res3Result_Unbinned, EECjet_Precomputed>(
             result, 
             J, nt, 
             axes);
@@ -72,16 +92,16 @@ void EEC::CARes3Calculator::compute_precomputed(
         const simon::jet& J,
         Res3Result_MultiArray& result) const noexcept {
 
-    call_res3<ResMultiArrayContainer, EECjet_Precomputed>(
+    call_res3<Res3Result_MultiArray, EECjet_Precomputed>(
             result, 
             J, nt, 
             axes);
 }
 
-template <class BasicContainer, class JetType>
+template <class ResultType, class JetType>
 static void call_res3_matched(
-        EEC::Res3Result<BasicContainer>& result,
-        EEC::Res3Result<BasicContainer>& unmatched,
+        ResultType& result,
+        ResultType& unmatched,
 
         const simon::jet& J,
         const std::vector<bool>& matched,
@@ -93,7 +113,7 @@ static void call_res3_matched(
     result.set_pt_denom(thisjet->singles.get_pt_denom());
     unmatched.set_pt_denom(thisjet->singles.get_pt_denom());
 
-    res3_mainloop<true, BasicContainer, JetType, true, BasicContainer, false>(
+    res3_mainloop<true, ResultType, JetType, true, ResultType, false>(
             result, 
             &unmatched,
             nullptr, 
@@ -111,7 +131,7 @@ void EEC::CARes3Calculator::compute_JIT_matched(
         Res3Result_Vector& result,
         Res3Result_Vector& unmatched) const noexcept {
 
-    call_res3_matched<ResVectorContainer<unsigned>, EECjet_JIT>(
+    call_res3_matched<Res3Result_Vector, EECjet_JIT>(
             result, 
             unmatched,
             J, matched, nt, 
@@ -121,10 +141,24 @@ void EEC::CARes3Calculator::compute_JIT_matched(
 void EEC::CARes3Calculator::compute_JIT_matched(
         const simon::jet& J,
         const std::vector<bool>& matched,
+        Res3Result_Unbinned& result,
+        Res3Result_Unbinned& unmatched) const noexcept {
+
+    call_res3_matched<Res3Result_Unbinned, EECjet_JIT>(
+            result, 
+            unmatched,
+            J, matched, nt, 
+            axes);
+}
+
+
+void EEC::CARes3Calculator::compute_JIT_matched(
+        const simon::jet& J,
+        const std::vector<bool>& matched,
         Res3Result_MultiArray& result,
         Res3Result_MultiArray& unmatched) const noexcept {
 
-    call_res3_matched<ResMultiArrayContainer, EECjet_JIT>(
+    call_res3_matched<Res3Result_MultiArray, EECjet_JIT>(
             result, 
             unmatched,
             J, matched, nt, 
@@ -137,7 +171,20 @@ void EEC::CARes3Calculator::compute_precomputed_matched(
         Res3Result_Vector& result,
         Res3Result_Vector& unmatched) const noexcept {
 
-    call_res3_matched<ResVectorContainer<unsigned>, EECjet_Precomputed>(
+    call_res3_matched<Res3Result_Vector, EECjet_Precomputed>(
+            result, 
+            unmatched,
+            J, matched, nt, 
+            axes);
+}
+
+void EEC::CARes3Calculator::compute_precomputed_matched(
+        const simon::jet& J,
+        const std::vector<bool>& matched,
+        Res3Result_Unbinned& result,
+        Res3Result_Unbinned& unmatched) const noexcept {
+
+    call_res3_matched<Res3Result_Unbinned, EECjet_Precomputed>(
             result, 
             unmatched,
             J, matched, nt, 
@@ -150,18 +197,18 @@ void EEC::CARes3Calculator::compute_precomputed_matched(
         Res3Result_MultiArray& result,
         Res3Result_MultiArray& unmatched) const noexcept {
 
-    call_res3_matched<ResMultiArrayContainer, EECjet_Precomputed>(
+    call_res3_matched<Res3Result_MultiArray, EECjet_Precomputed>(
             result, 
             unmatched,
             J, matched, nt, 
             axes);
 }
 
-template <class JetType, class TransferContainer, class BasicContainer>
+template <class JetType, class TransferResultType, class ResultType>
 static void call_res3_transfer(
-        EEC::Res3Result<BasicContainer>& result_gen,
-        EEC::Res3Result<BasicContainer>& unmatched_gen,
-        EEC::Res3TransferResult<TransferContainer>& transfer,
+        ResultType& result_gen,
+        ResultType& unmatched_gen,
+        TransferResultType& transfer,
 
         const simon::jet& J_reco,
         const simon::jet& J_gen,
@@ -210,7 +257,7 @@ static void call_res3_transfer(
         }
     }
 
-    res3_mainloop<true, BasicContainer, JetType, true, TransferContainer, true>(
+    res3_mainloop<true, ResultType, JetType, true, TransferResultType, true>(
             result_gen,
             &unmatched_gen,
             &transfer,
@@ -229,6 +276,29 @@ void EEC::CARes3TransferCalculator::compute_JIT(
         Res3Result_Vector& result,
         EEC::Res3Result_Vector& unmatched_gen,
         Res3TransferResult_Vector& tresult) const noexcept {
+
+    call_res3_transfer<EECjet_JIT>(
+        result,
+        unmatched_gen,
+        tresult,
+
+        J_reco,
+        J_gen,
+        nt,
+
+        tmat,
+
+        axes_reco,
+        axes_gen);
+}
+
+void EEC::CARes3TransferCalculator::compute_JIT(
+        const simon::jet& J_reco,
+        const simon::jet& J_gen, 
+        const Eigen::MatrixXd& tmat,
+        Res3Result_Unbinned& result,
+        EEC::Res3Result_Unbinned& unmatched_gen,
+        Res3TransferResult_Unbinned& tresult) const noexcept {
 
     call_res3_transfer<EECjet_JIT>(
         result,
@@ -321,6 +391,29 @@ void EEC::CARes3TransferCalculator::compute_precomputed(
         Res3Result_Vector& result,
         EEC::Res3Result_Vector& unmatched_gen,
         Res3TransferResult_Vector& tresult) const noexcept {
+
+    call_res3_transfer<EECjet_Precomputed>(
+        result,
+        unmatched_gen,
+        tresult,
+
+        J_reco,
+        J_gen,
+        nt,
+
+        tmat,
+
+        axes_reco,
+        axes_gen);
+}
+
+void EEC::CARes3TransferCalculator::compute_precomputed(
+        const simon::jet& J_reco,
+        const simon::jet& J_gen, 
+        const Eigen::MatrixXd& tmat,
+        Res3Result_Unbinned& result,
+        EEC::Res3Result_Unbinned& unmatched_gen,
+        Res3TransferResult_Unbinned& tresult) const noexcept {
 
     call_res3_transfer<EECjet_Precomputed>(
         result,

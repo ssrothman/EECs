@@ -20,6 +20,9 @@ namespace EEC{
             data(),
             pt_denom_set(false),
             pt_denom(-1) {}
+    
+        using T = typename Container::TYPE;
+        constexpr static bool SHOULD_BIN = Container::SHOULD_BIN;
 
         Res3Result(
                 const size_t nR, 

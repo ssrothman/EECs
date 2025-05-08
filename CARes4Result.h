@@ -12,20 +12,22 @@
 #include <boost/multi_array.hpp>
 
 namespace EEC{
+    template <typename T>
     struct CAres4_entry{
         bool is_symmetric=false;
         bool is_chain=false;
 
-        unsigned R_idx=0;
+        T R_idx=0;
 
-        unsigned symmetric_wrtr_r_idx=0, symmetric_wrtr_c_idx=0;
+        T symmetric_wrtr_r_idx=0, symmetric_wrtr_c_idx=0;
 
-        unsigned symmetric_wrtR1_r_idx=0, symmetric_wrtR1_c_idx=0;
-        unsigned symmetric_wrtR2_r_idx=0, symmetric_wrtR2_c_idx=0;
+        T symmetric_wrtR1_r_idx=0, symmetric_wrtR1_c_idx=0;
+        T symmetric_wrtR2_r_idx=0, symmetric_wrtR2_c_idx=0;
 
-        unsigned chain_r_idx=0, chain_c_idx=0;
+        T chain_r_idx=0, chain_c_idx=0;
 
-        void fill_chain(int RLidx,
+        template <bool SHOULD_BIN>
+        void fill_chain(T RLidx,
                         double RL, double RS1, double c,
                         const EEC::CARes4Axes& axes) noexcept {
             is_symmetric = false;
@@ -34,15 +36,21 @@ namespace EEC{
             R_idx = RLidx;
 
             double rs1 = RL==0 ? 0 : RS1/RL;
-            chain_r_idx = simon::getIndex(
-                    rs1, axes.r_chain
-            );
-            chain_c_idx = simon::getIndex(
-                    c, axes.c_chain
-            );
+            if constexpr (SHOULD_BIN){
+                chain_r_idx = simon::getIndex(
+                        rs1, axes.r_chain
+                );
+                chain_c_idx = simon::getIndex(
+                        c, axes.c_chain
+                );
+            } else {
+                chain_r_idx = rs1;
+                chain_c_idx = c;
+            }
         }
 
-        void fill_symmetric(int RLidx, 
+        template <bool SHOULD_BIN>
+        void fill_symmetric(T RLidx, 
                             double RL, double RS1, double RS2,
                             double cRr1, double cRr2, double cr1r2,
                             const EEC::CARes4Axes& axes) noexcept {
@@ -54,25 +62,34 @@ namespace EEC{
             double rs1 = RL==0 ? 0 : RS1/RL;
             double rs2 = RL==0 ? 0 : RS2/RL;
 
-            symmetric_wrtr_r_idx = simon::getIndex(
-                    rs1, axes.r_symmetric
-            );
-            symmetric_wrtr_c_idx = simon::getIndex(
-                    cr1r2, axes.c_symmetric
-            );
+            if constexpr (SHOULD_BIN){
+                symmetric_wrtr_r_idx = simon::getIndex(
+                        rs1, axes.r_symmetric
+                );
+                symmetric_wrtr_c_idx = simon::getIndex(
+                        cr1r2, axes.c_symmetric
+                );
 
-            symmetric_wrtR1_r_idx = simon::getIndex(
-                    rs1, axes.r_symmetric
-            );
-            symmetric_wrtR1_c_idx = simon::getIndex(
-                    cRr1, axes.c_symmetric
-            );
-            symmetric_wrtR2_r_idx = simon::getIndex(
-                    rs2, axes.r_symmetric
-            );
-            symmetric_wrtR2_c_idx = simon::getIndex(
-                    cRr2, axes.c_symmetric
-            );
+                symmetric_wrtR1_r_idx = simon::getIndex(
+                        rs1, axes.r_symmetric
+                );
+                symmetric_wrtR1_c_idx = simon::getIndex(
+                        cRr1, axes.c_symmetric
+                );
+                symmetric_wrtR2_r_idx = simon::getIndex(
+                        rs2, axes.r_symmetric
+                );
+                symmetric_wrtR2_c_idx = simon::getIndex(
+                        cRr2, axes.c_symmetric
+                );
+            } else {
+                symmetric_wrtr_r_idx = rs1;
+                symmetric_wrtr_c_idx = cr1r2;
+                symmetric_wrtR1_r_idx = rs1;
+                symmetric_wrtR1_c_idx = cRr1;
+                symmetric_wrtR2_r_idx = rs2;
+                symmetric_wrtR2_c_idx = cRr2;
+            }
         }
     };
 
@@ -85,6 +102,9 @@ namespace EEC{
             symmetric_wrtr(),
             pt_denom_set(false),
             pt_denom(-1) {}
+
+        constexpr static bool SHOULD_BIN = Container::SHOULD_BIN;
+        using T = typename Container::TYPE;
 
         CARes4Result(
                 const size_t nR, 
@@ -128,7 +148,8 @@ namespace EEC{
             pt_denom_set(false),
             pt_denom(-1) {}
 
-        void fill_chain(const CAres4_entry& entry, double wt) noexcept {
+        template <typename T>
+        void fill_chain(const CAres4_entry<T>& entry, double wt) noexcept {
             chain.fill(
                 entry.R_idx, 
                 entry.chain_r_idx, 
@@ -137,7 +158,8 @@ namespace EEC{
             );
         }
 
-        void fill_symmetric(const CAres4_entry& entry, double wt) noexcept {
+        template <typename T>
+        void fill_symmetric(const CAres4_entry<T>& entry, double wt) noexcept {
             symmetric_wrtR.fill(
                 entry.R_idx, 
                 entry.symmetric_wrtR1_r_idx, 
@@ -158,7 +180,8 @@ namespace EEC{
             );
         }
 
-        void fill(const CAres4_entry& entry, double wt) noexcept {
+        template <typename T>
+        void fill(const CAres4_entry<T>& entry, double wt) noexcept {
             if (entry.is_chain){
                 fill_chain(entry, wt);
             } else {
@@ -263,7 +286,7 @@ namespace EEC{
     inline CARes4Result_MultiArray operator-(CARes4Result_MultiArray a, const CARes4Result<OtherContainer>& b) noexcept{
         CARes4Result_MultiArray result(a);
         result -= b;
-        return a;
+        return result;
     }
 
     template <typename Container>

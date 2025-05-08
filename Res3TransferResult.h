@@ -17,6 +17,9 @@ namespace EEC{
             data(),
             pt_denom_set(false),
             pt_denom_reco(-1), pt_denom_gen(-1) {}
+    
+        using T = typename TransferContainer::TYPE;
+        constexpr static bool SHOULD_BIN = TransferContainer::SHOULD_BIN;
 
         Res3TransferResult(
                 const size_t nR_reco,

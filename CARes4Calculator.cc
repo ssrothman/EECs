@@ -48,6 +48,16 @@ void EEC::CARes4Calculator::compute_JIT(
 
 void EEC::CARes4Calculator::compute_JIT(
         const simon::jet& J,
+        CARes4Result_Unbinned& result) const noexcept {
+    
+    call_CAres4<CARes4Result_Unbinned, EECjet_JIT>(
+            result, 
+            J, nt, 
+            axes); 
+}
+
+void EEC::CARes4Calculator::compute_JIT(
+        const simon::jet& J,
         CARes4Result_MultiArray& result) const noexcept {
 
     call_CAres4<CARes4Result_MultiArray, EECjet_JIT>(
@@ -61,6 +71,16 @@ void EEC::CARes4Calculator::compute_precomputed(
         CARes4Result_Vector& result) const noexcept {
     
     call_CAres4<CARes4Result_Vector, EECjet_Precomputed>(
+            result, 
+            J, nt, 
+            axes); 
+}
+
+void EEC::CARes4Calculator::compute_precomputed(
+        const simon::jet& J,
+        CARes4Result_Unbinned& result) const noexcept {
+    
+    call_CAres4<CARes4Result_Unbinned, EECjet_Precomputed>(
             result, 
             J, nt, 
             axes); 
@@ -119,6 +139,19 @@ void EEC::CARes4Calculator::compute_JIT_matched(
 void EEC::CARes4Calculator::compute_JIT_matched(
         const simon::jet& J,
         const std::vector<bool>& matched,
+        CARes4Result_Unbinned& result,
+        CARes4Result_Unbinned& unmatched) const noexcept {
+
+    call_CAres4_matched<CARes4Result_Unbinned, EECjet_JIT>(
+            result, 
+            unmatched,
+            J, matched, nt, 
+            axes); 
+}
+
+void EEC::CARes4Calculator::compute_JIT_matched(
+        const simon::jet& J,
+        const std::vector<bool>& matched,
         CARes4Result_MultiArray& result,
         CARes4Result_MultiArray& unmatched) const noexcept {
 
@@ -136,6 +169,19 @@ void EEC::CARes4Calculator::compute_precomputed_matched(
         CARes4Result_Vector& unmatched) const noexcept {
 
     call_CAres4_matched<CARes4Result_Vector, EECjet_Precomputed>(
+            result, 
+            unmatched,
+            J, matched, nt, 
+            axes); 
+}
+
+void EEC::CARes4Calculator::compute_precomputed_matched(
+        const simon::jet& J,
+        const std::vector<bool>& matched,
+        CARes4Result_Unbinned& result,
+        CARes4Result_Unbinned& unmatched) const noexcept {
+
+    call_CAres4_matched<CARes4Result_Unbinned, EECjet_Precomputed>(
             result, 
             unmatched,
             J, matched, nt, 
@@ -243,6 +289,22 @@ void EEC::CARes4TransferCalculator::compute_JIT(
         const simon::jet& J_reco,
         const simon::jet& J_gen, 
         const Eigen::MatrixXd& tmat,
+        CARes4Result_Unbinned& result,
+        EEC::CARes4Result_Unbinned& unmatched_gen,
+        CARes4TransferResult_Unbinned& tresult) const noexcept {
+
+    call_CAres4_transfer<CARes4TransferResult_Unbinned, CARes4Result_Unbinned, EECjet_JIT>(
+            result, unmatched_gen,
+            tresult,
+            J_reco, J_gen, nt,
+            tmat,
+            axes_reco, axes_gen);
+}
+
+void EEC::CARes4TransferCalculator::compute_JIT(
+        const simon::jet& J_reco,
+        const simon::jet& J_gen, 
+        const Eigen::MatrixXd& tmat,
         CARes4Result_MultiArray& result,
         EEC::CARes4Result_MultiArray& unmatched_gen,
         CARes4TransferResult_Vector& tresult) const noexcept {
@@ -296,6 +358,22 @@ void EEC::CARes4TransferCalculator::compute_precomputed(
         CARes4TransferResult_Vector& tresult) const noexcept {
 
     call_CAres4_transfer<CARes4TransferResult_Vector, CARes4Result_Vector, EECjet_Precomputed>(
+            result, unmatched_gen,
+            tresult,
+            J_reco, J_gen, nt,
+            tmat,
+            axes_reco, axes_gen);
+}
+
+void EEC::CARes4TransferCalculator::compute_precomputed(
+        const simon::jet& J_reco,
+        const simon::jet& J_gen, 
+        const Eigen::MatrixXd& tmat,
+        CARes4Result_Unbinned& result,
+        EEC::CARes4Result_Unbinned& unmatched_gen,
+        CARes4TransferResult_Unbinned& tresult) const noexcept {
+
+    call_CAres4_transfer<CARes4TransferResult_Unbinned, CARes4Result_Unbinned, EECjet_Precomputed>(
             result, unmatched_gen,
             tresult,
             J_reco, J_gen, nt,

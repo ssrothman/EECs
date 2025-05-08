@@ -11,7 +11,7 @@
 
 #include <array>
 
-template <bool distances_squared>
+template <class ResultType, bool distances_squared>
 inline void get_indices_CA(const double dR12, const double dR13, const double dR23,
                            const double E1, const double eta1, const double phi1,
                            const double E2, const double eta2, const double phi2,
@@ -19,7 +19,9 @@ inline void get_indices_CA(const double dR12, const double dR13, const double dR
                            const double deta12, const double dphi12,
                            const double deta13, const double dphi13,
                            const double deta23, const double dphi23,
-                           unsigned& R_idx, unsigned& r_idx, unsigned& c_idx,
+                           typename ResultType::T& R_idx, 
+                           typename ResultType::T& r_idx, 
+                           typename ResultType::T& c_idx,
                            const EEC::Res3Axes& axes) noexcept {
 
     std::array<std::pair<double, unsigned>, 3> dRs = {
@@ -41,7 +43,11 @@ inline void get_indices_CA(const double dR12, const double dR13, const double dR
         r_idx = 0;
         c_idx = 0;
     } else if (dRs[2].first == 0){
-        R_idx = simon::getIndex(dRs[0].first, axes.R);
+        if constexpr(ResultType::SHOULD_BIN){
+            R_idx = simon::getIndex(dRs[0].first, axes.R);
+        } else {
+            R_idx = dRs[0].first;
+        }
         r_idx = 0;
         c_idx = 0;
     } else {
@@ -97,15 +103,23 @@ inline void get_indices_CA(const double dR12, const double dR13, const double dR
             c = M_PI - c;
         }
 
-        R_idx = simon::getIndex(R, axes.R);
-        r_idx = simon::getIndex(r, axes.r);
-        c_idx = simon::getIndex(c, axes.c);
+        if constexpr(ResultType::SHOULD_BIN){
+            R_idx = simon::getIndex(R, axes.R);
+            r_idx = simon::getIndex(r, axes.r);
+            c_idx = simon::getIndex(c, axes.c);
+        } else {
+            R_idx = R;
+            r_idx = r;
+            c_idx = c;
+        }
     }
 }
 
-template <bool distances_squared>
+template <class ResultType, bool distances_squared>
 inline void get_indices(const double dR12, const double dR13, const double dR23,
-                        unsigned& R_idx, unsigned& r_idx, unsigned& c_idx,
+                        typename ResultType::T& R_idx,
+                        typename ResultType::T& r_idx,
+                        typename ResultType::T& c_idx,
                         const EEC::Res3Axes& axes) noexcept {
 
     std::array<double, 3> dRs = {{dR12, dR13, dR23}};
@@ -121,30 +135,40 @@ inline void get_indices(const double dR12, const double dR13, const double dR23,
         r_idx = 0;
         c_idx = 0;
     } else if (dRs[2] == 0){
-        R_idx = simon::getIndex(dRs[0], axes.R);
+        if constexpr(ResultType::SHOULD_BIN){
+            R_idx = simon::getIndex(dRs[0], axes.R);
+        } else {
+            R_idx = dRs[0];
+        }
         r_idx = 0;
         c_idx = 0;
     } else {
         double R = dRs[0];
         double r = dRs[2]/dRs[1];
         double c = std::asin(std::sqrt(1 - simon::square((dRs[0] - dRs[1])/dRs[2])));
-        R_idx = simon::getIndex(R, axes.R);
-        r_idx = simon::getIndex(r, axes.r);
-        c_idx = simon::getIndex(c, axes.c);
+        if constexpr(ResultType::SHOULD_BIN){
+            R_idx = simon::getIndex(R, axes.R);
+            r_idx = simon::getIndex(r, axes.r);
+            c_idx = simon::getIndex(c, axes.c);
+        } else {
+            R_idx = R;
+            r_idx = r;
+            c_idx = c;
+        }
     }
 }
 
-template <bool isCA, class JetType, class TransferContainer>
+template <bool isCA, class JetType, class TransferResultType>
 inline void res3_transferloop(
-        EEC::Res3TransferResult<TransferContainer>& transfer,
+        TransferResultType& transfer,
 
         const std::shared_ptr<const JetType> thisjet_reco,
 
         const EEC::Res3Axes& axes_reco,
 
-        const unsigned R_idx_gen,
-        const unsigned r_idx_gen,
-        const unsigned c_idx_gen,
+        const typename TransferResultType::T R_idx_gen,
+        const typename TransferResultType::T r_idx_gen,
+        const typename TransferResultType::T c_idx_gen,
 
         const EEC::neighborhood& n1,
         const EEC::neighborhood& n2,
@@ -169,9 +193,9 @@ inline void res3_transferloop(
                 const auto& pair13 = thisjet_reco->pairs.get(j1.idx, j3.idx);
                 const auto& pair23 = thisjet_reco->pairs.get(j2.idx, j3.idx);
 
-                unsigned R_idx_reco, r_idx_reco, c_idx_reco;
+                typename TransferResultType::T R_idx_reco, r_idx_reco, c_idx_reco;
                 if constexpr (isCA){
-                    get_indices_CA<JetType::pairType::distances_squared>(
+                    get_indices_CA<TransferResultType, JetType::pairType::distances_squared>(
                         pair12.floatDR, pair13.floatDR, pair23.floatDR,
                         p1.pt, p1.eta, p1.phi,
                         p2.pt, p2.eta, p2.phi,
@@ -182,7 +206,7 @@ inline void res3_transferloop(
                         R_idx_reco, r_idx_reco, c_idx_reco,
                         axes_reco);
                 } else {
-                    get_indices<JetType::pairType::distances_squared>(
+                    get_indices<TransferResultType, JetType::pairType::distances_squared>(
                             pair12.floatDR, pair13.floatDR, pair23.floatDR, 
                             R_idx_reco, r_idx_reco, c_idx_reco, 
                             axes_reco);
@@ -191,8 +215,8 @@ inline void res3_transferloop(
                 printf("(%g, %g), (%g, %g), (%g, %g): [transfer]\n",
                         p1.eta, p1.phi, p2.eta, p2.phi, p3.eta, p3.phi);
                 printf("\tE1*E2*E3 = %g\n", p1.pt*p2.pt*p3.pt);
-                printf("\tR_idx = %u\n", R_idx_reco);
-                printf("\tr_idx = %u\n", r_idx_reco);
+                std::cout << "\tR_idx = " << R_idx_reco << std::endl;
+                std::cout << "\tc_idx = " << c_idx_reco << std::endl;
 
                 printf("\tE1 = %g, E2 = %g, E3 = %g\n", p1.pt, p2.pt, p3.pt);
 #endif
@@ -205,11 +229,11 @@ inline void res3_transferloop(
     }
 }
 
-template <bool isCA, class BasicContainer, class JetType, bool doUnmatched, class TransferContainer, bool doTransfer>
+template <bool isCA, class ResultType, class JetType, bool doUnmatched, class TransferResultType, bool doTransfer>
 inline void res3_mainloop(
-        EEC::Res3Result<BasicContainer>& result,
-        [[maybe_unused]] EEC::Res3Result<BasicContainer>* unmatched_gen,
-        [[maybe_unused]] EEC::Res3TransferResult<TransferContainer>* transfer,
+        ResultType& result,
+        [[maybe_unused]] ResultType* unmatched_gen,
+        [[maybe_unused]] TransferResultType* transfer,
 
         [[maybe_unused]] const std::shared_ptr<const JetType> thisjet_reco,
         const std::shared_ptr<const JetType> thisjet_gen,
@@ -247,6 +271,7 @@ inline void res3_mainloop(
             printf("\tmatched = %d\n", matched1);
         }
 #endif
+
         result.fill(0, 0, 0, wt);
         if constexpr(doUnmatched){
             if(!matched1){
@@ -286,18 +311,20 @@ inline void res3_mainloop(
              * This has symmetry factor 3!/2! = 3
              * And RL = R12, r=c=0
              */
-            unsigned R_idx;
+            typename ResultType::T R_idx;
             if constexpr(JetType::pairType::distances_squared){
                 R_idx = simon::getIndex(std::sqrt(pair12.floatDR), axes_gen.R);
             } else {
                 R_idx = simon::getIndex(pair12.floatDR, axes_gen.R);
             }
             wt = 3 * E12 * (p1.pt + p2.pt);
+
+
             result.fill(R_idx, 0, 0, wt);
 #ifdef CHECK_BY_HAND
             printf("(%g, %g), (%g, %g): [2-particle]\n", p1.eta, p1.phi, p2.eta, p2.phi);
             printf("\tE1*E2*(E1+E2) = %g\n", E12*(p1.pt+p2.pt));
-            printf("\tR_idx = %u\n", R_idx);
+            std::cout << "\tR = " << R_idx << std::endl;
             printf("\tr_idx = 0\n");
             printf("\tc_idx = 0\n");
             if constexpr(doUnmatched){
@@ -320,7 +347,7 @@ inline void res3_mainloop(
                         *n1,
                         *n2,
                         wt1);
-                double wt2 = 3*E12*p1.pt;
+                double wt2 = 3*E12*p2.pt;
                 res3_transferloop<isCA>(
                         *transfer,
                         thisjet_reco,
@@ -353,9 +380,9 @@ inline void res3_mainloop(
                  * This has symmetry factor 3! = 6
                  * and full coordinates
                  */
-                unsigned r_idx, c_idx;
+                typename ResultType::T r_idx, c_idx;
                 if constexpr (isCA){
-                    get_indices_CA<JetType::pairType::distances_squared>(
+                    get_indices_CA<ResultType, JetType::pairType::distances_squared>(
                         pair12.floatDR, pair13.floatDR, pair23.floatDR,
                         p1.pt, p1.eta, p1.phi,
                         p2.pt, p2.eta, p2.phi,
@@ -366,7 +393,7 @@ inline void res3_mainloop(
                         R_idx, r_idx, c_idx,
                         axes_gen);
                 } else {
-                    get_indices<JetType::pairType::distances_squared>(
+                    get_indices<ResultType, JetType::pairType::distances_squared>(
                             pair12.floatDR, pair13.floatDR, pair23.floatDR, 
                             R_idx, r_idx, c_idx, 
                             axes_gen);
@@ -375,9 +402,9 @@ inline void res3_mainloop(
                 printf("(%g, %g), (%g, %g), (%g, %g): [3-particle]\n",
                         p1.eta, p1.phi, p2.eta, p2.phi, p3.eta, p3.phi);
                 printf("\tE1*E2*E3 = %g\n", p1.pt*p2.pt*p3.pt);
-                printf("\tR_idx = %u\n", R_idx);
-                printf("\tr_idx = %u\n", r_idx);
-                printf("\tc_idx = %u\n", c_idx);
+                std::cout << "\tR_idx = " << R_idx << std::endl;
+                std::cout << "\tr_idx = " << r_idx << std::endl;
+                std::cout << "\tc_idx = " << c_idx << std::endl;
                 if constexpr(doUnmatched){
                     printf("\tmatched = %d\n", matched3);
                 }

@@ -19,8 +19,12 @@ namespace EEC{
             chain_to_symmetric_wrtR(),
             chain_to_symmetric_wrtr(),
             symmetric_wrtR_to_chain(),
+            symmetric_wrtr_to_chain(),
             pt_denom_set(false),
             pt_denom_reco(-1), pt_denom_gen(-1) {}
+
+        constexpr static bool SHOULD_BIN = TransferContainer::SHOULD_BIN;
+        using T = typename TransferContainer::TYPE;
 
         CARes4TransferResult(
                 const size_t nR_reco,
@@ -57,6 +61,10 @@ namespace EEC{
                 nR_reco, nr_chain_reco, nc_chain_reco,
                 nR_gen, nr_symmetric_gen, nc_symmetric_gen
             ),
+            symmetric_wrtr_to_chain(
+                nR_reco, nr_chain_reco, nc_chain_reco,
+                nR_gen, nr_symmetric_gen, nc_symmetric_gen
+            ),
 
             pt_denom_set(false),
             pt_denom_reco(-1), pt_denom_gen(-1) {}
@@ -87,13 +95,15 @@ namespace EEC{
                             const TransferContainer& symmetric_wrtr_,
                             const TransferContainer& chain_to_symmetric_wrtR_,
                             const TransferContainer& chain_to_symmetric_wrtr_,
-                            const TransferContainer& symmetric_wrtR_to_chain_) noexcept :
+                            const TransferContainer& symmetric_wrtR_to_chain_,
+                            const TransferContainer& symmetric_wrtr_to_chain_) noexcept :
             chain(chain_),
             symmetric_wrtR(symmetric_wrtR_),
             symmetric_wrtr(symmetric_wrtr_),
             chain_to_symmetric_wrtR(chain_to_symmetric_wrtR_),
             chain_to_symmetric_wrtr(chain_to_symmetric_wrtr_),
             symmetric_wrtR_to_chain(symmetric_wrtR_to_chain_),
+            symmetric_wrtr_to_chain(symmetric_wrtr_to_chain_),
             pt_denom_set(false),
             pt_denom_reco(-1), pt_denom_gen(-1) {}
 
@@ -102,26 +112,29 @@ namespace EEC{
                             TransferContainer&& symmetric_wrtr_,
                             TransferContainer&& chain_to_symmetric_wrtR_,
                             TransferContainer&& chain_to_symmetric_wrtr_,
-                            TransferContainer&& symmetric_wrtR_to_chain_) noexcept :
+                            TransferContainer&& symmetric_wrtR_to_chain_,
+                            TransferContainer&& symmetric_wrtr_to_chain_) noexcept :
             chain(std::move(chain_)),
             symmetric_wrtR(std::move(symmetric_wrtR_)),
             symmetric_wrtr(std::move(symmetric_wrtr_)),
             chain_to_symmetric_wrtR(std::move(chain_to_symmetric_wrtR_)),
             chain_to_symmetric_wrtr(std::move(chain_to_symmetric_wrtr_)),
             symmetric_wrtR_to_chain(std::move(symmetric_wrtR_to_chain_)),
+            symmetric_wrtr_to_chain(std::move(symmetric_wrtr_to_chain_)),
             pt_denom_set(false),
             pt_denom_reco(-1), pt_denom_gen(-1) {}
 
-        void fill_chain(const CAres4_entry& entry_reco,
-                        const CAres4_entry& entry_gen,
+        template <typename T>
+        void fill_chain(const CAres4_entry<T>& entry_reco,
+                        const CAres4_entry<T>& entry_gen,
                         double wt_reco, 
                         double wt_gen) noexcept {
 #ifdef CHECK_BY_HAND
             printf("filling chain -> chain\n");
             printf("\tweight %g -> %g\n", wt_gen, wt_reco);
-            printf("\t(%u, %u, %u) -> (%u, %u, %u)\n", 
-                    entry_gen.R_idx, entry_gen.chain_r_idx, entry_gen.chain_c_idx,
-                    entry_reco.R_idx, entry_reco.chain_r_idx, entry_reco.chain_c_idx);
+            //printf("\t(%u, %u, %u) -> (%u, %u, %u)\n", 
+            //        entry_gen.R_idx, entry_gen.chain_r_idx, entry_gen.chain_c_idx,
+            //        entry_reco.R_idx, entry_reco.chain_r_idx, entry_reco.chain_c_idx);
 #endif
             chain.fill(
                 entry_reco.R_idx, 
@@ -134,34 +147,35 @@ namespace EEC{
             );
         }
 
-        void fill_symmetric(const CAres4_entry& entry_reco,
-                            const CAres4_entry& entry_gen,
+        template <typename T>
+        void fill_symmetric(const CAres4_entry<T>& entry_reco,
+                            const CAres4_entry<T>& entry_gen,
                             double wt_reco,
                             double wt_gen) noexcept {
 #ifdef CHECK_BY_HAND
             printf("filling symmetric -> symmetric\n");
             printf("\tweight %g -> %g\n", wt_gen, wt_reco);
-            printf("\twrt_r: (%u, %u, %u) -> (%u, %u, %u)\n", 
-                    entry_gen.R_idx,
-                    entry_gen.symmetric_wrtr_r_idx,
-                    entry_gen.symmetric_wrtr_c_idx,
-                    entry_reco.R_idx,
-                    entry_reco.symmetric_wrtr_r_idx,
-                    entry_reco.symmetric_wrtr_c_idx);
-            printf("\twrtR1: (%u, %u, %u) -> (%u, %u, %u)\n",
-                    entry_gen.R_idx,
-                    entry_gen.symmetric_wrtR1_r_idx,
-                    entry_gen.symmetric_wrtR1_c_idx,
-                    entry_reco.R_idx,
-                    entry_reco.symmetric_wrtR1_r_idx,
-                    entry_reco.symmetric_wrtR1_c_idx);
-            printf("\twrtR2: (%u, %u, %u) -> (%u, %u, %u)\n",
-                    entry_gen.R_idx,
-                    entry_gen.symmetric_wrtR2_r_idx,
-                    entry_gen.symmetric_wrtR2_c_idx,
-                    entry_reco.R_idx,
-                    entry_reco.symmetric_wrtR2_r_idx,
-                    entry_reco.symmetric_wrtR2_c_idx);
+            //printf("\twrt_r: (%u, %u, %u) -> (%u, %u, %u)\n", 
+            //        entry_gen.R_idx,
+            //        entry_gen.symmetric_wrtr_r_idx,
+            //        entry_gen.symmetric_wrtr_c_idx,
+            //        entry_reco.R_idx,
+            //        entry_reco.symmetric_wrtr_r_idx,
+            //        entry_reco.symmetric_wrtr_c_idx);
+            //printf("\twrtR1: (%u, %u, %u) -> (%u, %u, %u)\n",
+            //        entry_gen.R_idx,
+            //        entry_gen.symmetric_wrtR1_r_idx,
+            //        entry_gen.symmetric_wrtR1_c_idx,
+            //        entry_reco.R_idx,
+            //        entry_reco.symmetric_wrtR1_r_idx,
+            //        entry_reco.symmetric_wrtR1_c_idx);
+            //printf("\twrtR2: (%u, %u, %u) -> (%u, %u, %u)\n",
+            //        entry_gen.R_idx,
+            //        entry_gen.symmetric_wrtR2_r_idx,
+            //        entry_gen.symmetric_wrtR2_c_idx,
+            //        entry_reco.R_idx,
+            //        entry_reco.symmetric_wrtR2_r_idx,
+            //        entry_reco.symmetric_wrtR2_c_idx);
 #endif
             symmetric_wrtR.fill(
                 entry_reco.R_idx, 
@@ -194,9 +208,10 @@ namespace EEC{
             );
         }
 
+        template <typename T>
         void fill_chain_to_symmetric(
-                const CAres4_entry& entry_reco,
-                const CAres4_entry& entry_gen,
+                const CAres4_entry<T>& entry_reco,
+                const CAres4_entry<T>& entry_gen,
                 double wt_reco,
                 double wt_gen) noexcept {
             
@@ -231,9 +246,10 @@ namespace EEC{
             );
         }
 
+        template <typename T>
         void fill_symmetric_to_chain(
-                const CAres4_entry& entry_reco,
-                const CAres4_entry& entry_gen,
+                const CAres4_entry<T>& entry_reco,
+                const CAres4_entry<T>& entry_gen,
                 double wt_reco, 
                 double wt_gen) noexcept {
             
@@ -244,7 +260,7 @@ namespace EEC{
                 entry_gen.R_idx,
                 entry_gen.symmetric_wrtR1_r_idx,
                 entry_gen.symmetric_wrtR1_c_idx,
-                wt_reco/2, wt_gen/2
+                wt_reco/2, wt_gen
             );
 
             symmetric_wrtR_to_chain.fill(
@@ -254,13 +270,24 @@ namespace EEC{
                 entry_gen.R_idx,
                 entry_gen.symmetric_wrtR2_r_idx,
                 entry_gen.symmetric_wrtR2_c_idx,
-                wt_reco/2, wt_gen/2
+                wt_reco/2, wt_gen
+            );
+
+            symmetric_wrtr_to_chain.fill(
+                entry_reco.R_idx,
+                entry_reco.chain_r_idx,
+                entry_reco.chain_c_idx,
+                entry_gen.R_idx,
+                entry_gen.symmetric_wrtr_r_idx,
+                entry_gen.symmetric_wrtr_c_idx,
+                wt_reco, wt_gen
             );
         }
 
+        template <typename T>
         void fill(
-                const CAres4_entry& entry_reco,
-                const CAres4_entry& entry_gen,
+                const CAres4_entry<T>& entry_reco,
+                const CAres4_entry<T>& entry_gen,
                 double wt_reco,
                 double wt_gen) noexcept {
             if (entry_gen.is_chain){
@@ -340,6 +367,10 @@ namespace EEC{
             return symmetric_wrtR_to_chain;
         }
 
+        const TransferContainer& get_symmetric_wrtr_to_chain() const  noexcept {
+            return symmetric_wrtr_to_chain;
+        }
+
         CARes4TransferResult<TransferContainer>& operator+=(const CARes4TransferResult<TransferContainer>& other) noexcept {
             chain += other.chain;
             symmetric_wrtR += other.symmetric_wrtR;
@@ -347,6 +378,7 @@ namespace EEC{
             chain_to_symmetric_wrtR += other.chain_to_symmetric_wrtR;
             chain_to_symmetric_wrtr += other.chain_to_symmetric_wrtr;
             symmetric_wrtR_to_chain += other.symmetric_wrtR_to_chain;
+            symmetric_wrtr_to_chain += other.symmetric_wrtr_to_chain;
             return *this;
         }
 
@@ -363,7 +395,7 @@ namespace EEC{
             CARes4Result_MultiArray sum(
                     std::move(chain.get_sum_over_reco() + chain_to_symmetric_wrtr.get_sum_over_reco()),
                     std::move(symmetric_wrtR.get_sum_over_reco() + symmetric_wrtR_to_chain.get_sum_over_reco()),
-                    std::move(symmetric_wrtr.get_sum_over_reco()));
+                    std::move(symmetric_wrtr.get_sum_over_reco() + symmetric_wrtr_to_chain.get_sum_over_reco()));
             sum.set_pt_denom(pt_denom_gen);
             return sum;
         }
@@ -376,6 +408,7 @@ namespace EEC{
                    chain_to_symmetric_wrtR == other.get_chain_to_symmetric_wrtR() &&
                    chain_to_symmetric_wrtr == other.get_chain_to_symmetric_wrtr() &&
                    symmetric_wrtR_to_chain == other.get_symmetric_wrtR_to_chain();
+                   symmetric_wrtr_to_chain == other.get_symmetric_wrtr_to_chain();
         }
 
         double total_chain_weight_gen() const noexcept {
@@ -402,6 +435,10 @@ namespace EEC{
             return symmetric_wrtR_to_chain.total_weight_gen();
         }
 
+        double total_symmetric_wrtr_to_chain_weight_gen() const noexcept {
+            return symmetric_wrtr_to_chain.total_weight_gen();
+        }
+
         double total_chain_weight_reco() const noexcept {
             return chain.total_weight_reco();
         }
@@ -425,6 +462,10 @@ namespace EEC{
         double total_symmetric_wrtR_to_chain_weight_reco() const noexcept {
             return symmetric_wrtR_to_chain.total_weight_reco();
         }
+
+        double total_symmetric_wrtr_to_chain_weight_reco() const noexcept {
+            return symmetric_wrtr_to_chain.total_weight_reco();
+        }
     private:
         TransferContainer chain;
         TransferContainer symmetric_wrtR;
@@ -434,6 +475,7 @@ namespace EEC{
         TransferContainer chain_to_symmetric_wrtr;
 
         TransferContainer symmetric_wrtR_to_chain;
+        TransferContainer symmetric_wrtr_to_chain;
 
         bool pt_denom_set;
         double pt_denom_reco, pt_denom_gen;

@@ -53,8 +53,71 @@ namespace EEC{
             return axes;
         }
     private:
-        ProjAxes axes;
-        normType nt;
+        const ProjAxes axes;
+        const normType nt;
+    };
+
+    class ProjTransferCalculator {
+    public:
+        ProjTransferCalculator(const std::vector<double>& R_reco,
+                               const std::vector<double>& R_gen,
+                               const normType nt):
+            axes_reco(R_reco),
+            axes_gen(R_gen),
+            nt(nt) {}
+
+#ifdef CMSSW_GIT_HASH
+        ProjTransferCalculator(const edm::ParameterSet& iConfig);
+        static void fillPSetDescription(edm::ParameterSetDescription& desc);
+#endif
+
+        void compute(const simon::jet& J_reco,
+                     const simon::jet& J_gen,
+                     const Eigen::MatrixXd& tmat,
+                     ProjResult_Vector& result,
+                     ProjResult_Vector& unmatched,
+                     ProjTransferResult_Vector& tresult) const noexcept;
+
+        void compute(const simon::jet& J_reco,
+                     const simon::jet& J_gen,
+                     const Eigen::MatrixXd& tmat,
+                     ProjResult_Unbinned& result,
+                     ProjResult_Unbinned& unmatched,
+                     ProjTransferResult_Unbinned& tresult) const noexcept;
+
+        void compute(const simon::jet& J_reco,
+                     const simon::jet& J_gen,
+                     const Eigen::MatrixXd& tmat,
+                     ProjResult_Array& result,
+                     ProjResult_Array& unmatched,
+                     ProjTransferResult_Array& tresult) const noexcept;
+
+        void compute(const simon::jet& J_reco,
+                     const simon::jet& J_gen,
+                     const Eigen::MatrixXd& tmat,
+                     ProjResult_Array& result,
+                     ProjResult_Array& unmatched,
+                     ProjTransferResult_Vector& tresult) const noexcept;
+
+        void compute(const simon::jet& J_reco,
+                     const simon::jet& J_gen,
+                     const Eigen::MatrixXd& tmat,
+                     ProjResult_Vector& result,
+                     ProjResult_Vector& unmatched,
+                     ProjTransferResult_Array& tresult) const noexcept;
+
+        const ProjAxes& get_axes_reco() const noexcept {
+            return axes_reco;
+        }
+
+        const ProjAxes& get_axes_gen() const noexcept {
+            return axes_gen;
+        }
+
+    private:
+        const ProjAxes axes_reco;
+        const ProjAxes axes_gen;
+        const normType nt;
     };
 };
 

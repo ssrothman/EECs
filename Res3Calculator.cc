@@ -221,6 +221,7 @@ static void call_res3_transfer(
     auto thisjet_gen = std::make_shared<const JetType>(J_gen, nt);
 
     result_gen.set_pt_denom(thisjet_gen->singles.get_pt_denom());
+    unmatched_gen.set_pt_denom(thisjet_gen->singles.get_pt_denom());
     transfer.set_pt_denom(thisjet_reco->singles.get_pt_denom(),
                           thisjet_gen->singles.get_pt_denom());
 

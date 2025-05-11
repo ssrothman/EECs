@@ -6,6 +6,8 @@
 #include <numeric>
 #include <boost/multi_array.hpp>
 
+#include "ProjResultContainers.h"
+
 namespace EEC{
     template <typename T>
     class ProjTransferVectorContainer;
@@ -43,15 +45,19 @@ namespace EEC{
 
         ProjTransferArrayContainer(const ProjTransferVectorContainer<unsigned>& other) noexcept;
 
-        void fill(unsigned iR_reco, unsigned iR_gen, double wt) noexcept{
-            data[iR_reco][iR_gen] += wt;
+        void fill(unsigned iR_reco, unsigned iR_gen, double wt_reco, [[maybe_unused]] double wt_gen) noexcept{
+            data[iR_reco][iR_gen] += wt_reco;
         }
 
         const data_t& get_data() const noexcept{
             return data;
         }
 
-        double total_weight() const noexcept {
+        double total_weight_reco() const noexcept {
+            return std::accumulate(data.data(), data.data()+data.num_elements(), 0.0);  
+        }
+
+        double total_weight_gen() const noexcept {
             return std::accumulate(data.data(), data.data()+data.num_elements(), 0.0);  
         }
 
@@ -99,6 +105,26 @@ namespace EEC{
             return *this== ProjTransferArrayContainer(other);
         }
 
+        ProjArrayContainer get_sum_over_gen() const noexcept{
+            ProjArrayContainer sum(nR_reco);
+            for (size_t iR_reco = 0; iR_reco < nR_reco; ++iR_reco){
+                for (size_t iR_gen = 0; iR_gen < nR_gen; ++iR_gen){
+                    sum.fill(iR_reco, data[iR_reco][iR_gen]);
+                }
+            }
+            return sum;
+        }
+
+        ProjArrayContainer get_sum_over_reco() const noexcept{
+            ProjArrayContainer sum(nR_gen);
+            for (size_t iR_reco = 0; iR_reco < nR_reco; ++iR_reco){
+                for (size_t iR_gen = 0; iR_gen < nR_gen; ++iR_gen){
+                    sum.fill(iR_gen, data[iR_reco][iR_gen]);
+                }
+            }
+            return sum;
+        }
+
         const size_t nR_reco, nR_gen;
     private:
         data_t data;
@@ -110,9 +136,9 @@ namespace EEC{
     public:
         struct entry{
             T iR_reco, iR_gen;
-            double wt;
-            entry(T iR_reco, T iR_gen, double wt) noexcept :
-                iR_reco(iR_reco), iR_gen(iR_gen), wt(wt) {}
+            double wt_reco, wt_gen;
+            entry(T iR_reco, T iR_gen, double wt_reco, double wt_gen) noexcept :
+                iR_reco(iR_reco), iR_gen(iR_gen), wt_reco(wt_reco), wt_gen(wt_gen) {}
         };
         using data_t = std::vector<entry>;
         using TYPE = T;
@@ -136,8 +162,8 @@ namespace EEC{
             nR_reco(other.nR_reco), nR_gen(other.nR_gen),
             data(other.data) {}
 
-        void fill(T iR_reco, T iR_gen, double wt) noexcept{
-            data.emplace_back(iR_reco, iR_gen, wt);
+        void fill(T iR_reco, T iR_gen, double wt_reco, double wt_gen) noexcept{
+            data.emplace_back(iR_reco, iR_gen, wt_reco, wt_gen);
         }
 
         ProjTransferVectorContainer<T>& operator+=(const ProjTransferVectorContainer<T>& other) noexcept {
@@ -173,11 +199,34 @@ namespace EEC{
             return data;
         }
 
-        double total_weight() const noexcept {
+        double total_weight_reco() const noexcept {
             return std::accumulate(data.begin(), data.end(), 0.0,
                                    [](double sum, const entry& e) {
-                                       return sum + e.wt;
+                                       return sum + e.wt_reco;
                                    });
+        }
+
+        double total_weight_gen() const noexcept {
+            return std::accumulate(data.begin(), data.end(), 0.0,
+                                   [](double sum, const entry& e) {
+                                       return sum + e.wt_gen;
+                                   });
+        }
+
+        ProjArrayContainer get_sum_over_gen() const noexcept{
+            ProjArrayContainer sum(nR_reco);
+            for (const auto& entry : data){
+                sum.fill(entry.iR_reco, entry.wt_reco);
+            }
+            return sum;
+        }
+
+        ProjArrayContainer get_sum_over_reco() const noexcept{
+            ProjArrayContainer sum(nR_gen);
+            for (const auto& entry : data){
+                sum.fill(entry.iR_gen, entry.wt_reco);
+            }
+            return sum;
         }
 
         const size_t nR_reco, nR_gen;

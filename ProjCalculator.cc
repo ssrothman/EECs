@@ -121,3 +121,146 @@ void EEC::ProjCalculator::compute_matched(
         nt, axes
     );
 }
+
+template <class JetType, class ResultType, class TransferResultType>
+static void call_transfer(
+        ResultType& result,
+        ResultType& unmatched,
+        TransferResultType& tresult,
+
+        const simon::jet& J_reco,
+        const simon::jet& J_gen,
+        const Eigen::MatrixXd& tmat,
+        const EEC::normType& nt,
+
+        const EEC::ProjAxes& axes_reco,
+        const EEC::ProjAxes& axes_gen) noexcept {
+
+    auto thisjet_reco = std::make_shared<JetType>(
+        J_reco, nt, axes_reco
+    );
+    auto thisjet_gen = std::make_shared<JetType>(
+        J_gen, nt, axes_gen
+    );
+
+    result.set_pt_denom(thisjet_gen->singles.get_pt_denom());
+    unmatched.set_pt_denom(thisjet_gen->singles.get_pt_denom());
+    tresult.set_pt_denom(thisjet_reco->singles.get_pt_denom(),
+                         thisjet_gen->singles.get_pt_denom());
+
+    double denom_reco = thisjet_reco->singles.get_pt_denom();
+    double denom_gen = thisjet_gen->singles.get_pt_denom();
+    Eigen::VectorXd ptgen = J_gen.ptvec()/denom_gen;
+    Eigen::VectorXd ptreco = J_reco.ptvec()/denom_reco;
+    Eigen::VectorXd ptfwd = tmat * ptgen;
+
+    Eigen::MatrixXd tmat_copy(tmat);
+    for(unsigned iRecoPart=0; iRecoPart<J_reco.nPart; ++iRecoPart){
+        if(ptfwd(iRecoPart) == 0){
+            continue;
+        }
+        double factor = ptreco(iRecoPart) / ptfwd(iRecoPart);
+        for(unsigned iGenPart=0; iGenPart<J_gen.nPart; ++iGenPart){
+            if(tmat(iRecoPart, iGenPart) > 0){
+                tmat_copy(iRecoPart, iGenPart) *= factor;
+            }
+        }
+    }
+
+    auto adj = std::make_shared<EEC::Adjacency>(tmat_copy);
+
+    std::vector<bool> matched(J_gen.nPart, false);
+    for(unsigned iGenPart=0; iGenPart<J_gen.nPart; ++iGenPart){
+        for(unsigned iRecoPart=0; iRecoPart<J_reco.nPart; ++iRecoPart){
+            if(tmat_copy(iRecoPart, iGenPart) > 0){
+                matched[iGenPart] = true;
+                break;
+            }
+        }
+    }
+    
+    proj_mainloop<ResultType, JetType, true, TransferResultType, true>(
+        result,
+        &unmatched,
+        &tresult,
+        thisjet_reco,
+        thisjet_gen,
+        &matched, 
+        adj);
+}
+
+void EEC::ProjTransferCalculator::compute(
+        const simon::jet& J_reco,
+        const simon::jet& J_gen,
+        const Eigen::MatrixXd& tmat,
+        ProjResult_Vector& result,
+        ProjResult_Vector& unmatched,
+        ProjTransferResult_Vector& tresult) const noexcept {
+
+    call_transfer<EEC::EECjet_ProjBinned>(
+        result, unmatched, tresult,
+        J_reco, J_gen, tmat,
+        nt, axes_reco, axes_gen
+    );
+}
+
+void EEC::ProjTransferCalculator::compute(
+        const simon::jet& J_reco,
+        const simon::jet& J_gen,
+        const Eigen::MatrixXd& tmat,
+        ProjResult_Unbinned& result,
+        ProjResult_Unbinned& unmatched,
+        ProjTransferResult_Unbinned& tresult) const noexcept {
+
+    call_transfer<EEC::EECjet_ProjUnbinned>(
+        result, unmatched, tresult,
+        J_reco, J_gen, tmat,
+        nt, axes_reco, axes_gen
+    );
+}
+
+void EEC::ProjTransferCalculator::compute(
+        const simon::jet& J_reco,
+        const simon::jet& J_gen,
+        const Eigen::MatrixXd& tmat,
+        ProjResult_Array& result,
+        ProjResult_Array& unmatched,
+        ProjTransferResult_Array& tresult) const noexcept {
+
+    call_transfer<EEC::EECjet_ProjBinned>(
+        result, unmatched, tresult,
+        J_reco, J_gen, tmat,
+        nt, axes_reco, axes_gen
+    );
+}
+
+void EEC::ProjTransferCalculator::compute(
+        const simon::jet& J_reco,
+        const simon::jet& J_gen,
+        const Eigen::MatrixXd& tmat,
+        ProjResult_Array& result,
+        ProjResult_Array& unmatched,
+        ProjTransferResult_Vector& tresult) const noexcept {
+
+    call_transfer<EEC::EECjet_ProjBinned>(
+        result, unmatched, tresult,
+        J_reco, J_gen, tmat,
+        nt, axes_reco, axes_gen
+    );
+}
+
+void EEC::ProjTransferCalculator::compute(
+        const simon::jet& J_reco,
+        const simon::jet& J_gen,
+        const Eigen::MatrixXd& tmat,
+        ProjResult_Vector& result,
+        ProjResult_Vector& unmatched,
+        ProjTransferResult_Array& tresult) const noexcept {
+
+    call_transfer<EEC::EECjet_ProjBinned>(
+        result, unmatched, tresult,
+        J_reco, J_gen, tmat,
+        nt, axes_reco, axes_gen
+    );
+}
+

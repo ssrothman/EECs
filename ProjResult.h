@@ -47,6 +47,25 @@ namespace EEC{
             pt_denom_set(false),
             pt_denom(-1) {}
 
+        ProjResult(const Container& data0,
+                   const Container& data1,
+                   const Container& data2,
+                   const Container& data3,
+                   const Container& data4) noexcept :
+            data({data0, data1, data2, data3, data4}),
+            pt_denom_set(false),
+            pt_denom(-1) {}
+
+        ProjResult(Container&& data0,
+                   Container&& data1,
+                   Container&& data2,
+                   Container&& data3,
+                   Container&& data4) noexcept :
+            data({std::move(data0), std::move(data1), std::move(data2),
+                    std::move(data3), std::move(data4)}),
+            pt_denom_set(false),
+            pt_denom(-1) {}
+
         template <unsigned ORDER>
         void fill(T iR, double wt) noexcept {
             data[ORDER-2].fill(iR, wt);

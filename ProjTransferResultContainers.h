@@ -21,7 +21,9 @@ namespace EEC{
 
         ProjTransferArrayContainer() noexcept :
             nR_reco(0), nR_gen(0),
-            data() {}
+            data() {
+                printf("WARNING: CALLING DEFAULT CONSTRUCTOR FOR ProjTransferArrayContainer\n");
+            }
 
         ProjTransferArrayContainer(const size_t nR_reco, 
                                    const size_t nR_gen) noexcept :
@@ -36,6 +38,7 @@ namespace EEC{
             data.resize(boost::extents[nR_reco][nR_gen]);
             data = other.get_data();
         }
+
         ProjTransferArrayContainer(const ProjTransferArrayContainer& other) noexcept :
             nR_reco(other.nR_reco), nR_gen(other.nR_gen){
 
@@ -152,7 +155,10 @@ namespace EEC{
         }
 
         ProjTransferVectorContainer() noexcept :
-            ProjTransferVectorContainer(0) {}
+            nR_reco(0), nR_gen(0),
+            data() {
+                printf("WARNING: CALLING DEFAULT CONSTRUCTOR FOR ProjTransferVectorContainer\n");
+            }
 
         ProjTransferVectorContainer(ProjTransferVectorContainer&& other) noexcept :
             nR_reco(other.nR_reco), nR_gen(other.nR_gen),

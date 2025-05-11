@@ -29,7 +29,6 @@ inline void proj_transferloop(
             return;
         } else if (ns[i]->size() != 1){
             printf("ERROR: only 1-to-1 matching is supported! Results will be incomplete\n");
-            return;
         }
     }
 
@@ -48,20 +47,33 @@ inline void proj_transferloop(
         }
     }
 
+    printf("Transfer %u\n", N);
+
     double partial = basewt;
     if constexpr (N == 1){
         partial *= wtsum;
     }
+    printf("\tbasewt = %g\n", basewt);
+    printf("\twtsum = %g\n", wtsum);
+
+    //transfer.fill(2, dR, dR_gen, wt_gen[0], wt_gen[0]);
 
     transfer.fill(
         7-NWT(N),
         dR, dR_gen,
         partial*wt_gen[0], wt_gen[0]
     );
+    printf("\tTransfer fill %u:\n", 7-NWT(N));
+    std::cout << "\t\t" << dR_gen << " --> "<< dR << std::endl;
+    printf("\t\t%g --> %g\n", wt_gen[0], partial*wt_gen[0]);
 
     for (unsigned order=7-NWT(N)+1; order<7; ++order){
         unsigned i = order - (7-NWT(N));
         partial *= wtsum;
+
+        printf("\tTransfer fill %u: (i = %u)\n", order, i);
+        printf("\t\t%g --> %g\n", wt_gen[i], partial*wt_gen[i]);
+
         transfer.fill(
             order,
             dR, dR_gen,

@@ -23,11 +23,11 @@ namespace EEC{
         ProjTransferResult(
                 const size_t nR_reco,
                 const size_t nR_gen) noexcept :
-            data({{{nR_reco, nR_gen},
-                    {nR_reco, nR_gen},
-                    {nR_reco, nR_gen},
-                    {nR_reco, nR_gen},
-                    {nR_reco, nR_gen}}}),
+            data({{TransferContainer(nR_reco, nR_gen),
+                   TransferContainer(nR_reco, nR_gen),
+                   TransferContainer(nR_reco, nR_gen),
+                   TransferContainer(nR_reco, nR_gen),
+                   TransferContainer(nR_reco, nR_gen)}}),
             pt_denom_set(false),
             pt_denom_reco(-1), pt_denom_gen(-1) {}
 

@@ -242,7 +242,7 @@ inline void res3_mainloop(
         [[maybe_unused]] const std::shared_ptr<const EEC::Adjacency> adj,
 
         [[maybe_unused]] const EEC::Res3Axes* const axes_reco,
-        const EEC::Res3Axes& axes_gen) noexcept {//TODO: REMOVE [[maybe_unused]] here
+        const EEC::Res3Axes& axes_gen) noexcept {
 
     for(unsigned i1=0; i1<thisjet_gen->N; ++i1){
         const auto& p1 = thisjet_gen->singles.get(i1);

@@ -16,7 +16,7 @@ namespace EEC{
     template <class Container>
     class Res3Result{
     public:
-        Res3Result() : 
+        Res3Result() noexcept : 
             data(),
             pt_denom_set(false),
             pt_denom(-1) {}
@@ -52,8 +52,8 @@ namespace EEC{
             pt_denom(-1) {}
 
         void fill(
-                unsigned iR, unsigned ir,
-                unsigned ic, double wt) noexcept{
+                T iR, T ir,
+                T ic, double wt) noexcept{
             data.fill(iR, ir, ic, wt);
         }
 

@@ -36,9 +36,11 @@ namespace EEC{
         Singles(const simon::jet& J, const normType& nt);
 
         inline const oneentry& get(const unsigned i) const noexcept {
-            //printf("Singles::get(%u)\n",i);
-            //fflush(stdout);
             return singles[i];
+        }
+
+        inline const double& getE(const unsigned i) const noexcept {
+            return singles[i].pt;
         }
 
         size_t size() const noexcept {
@@ -75,8 +77,6 @@ namespace EEC{
         }
 
         inline const simon::pairentry_resolved<dsq>& get(const unsigned i, const unsigned j) const noexcept{
-            //printf("PrecomputedPairs::get(%u, %u)\n",i,j);
-            //fflush(stdout);
             return pairs[i][j];
         }
     private:
@@ -101,6 +101,48 @@ namespace EEC{
         Singles singles;
     };
 
+    template <typename T>
+    class ProjPairs {
+    public:
+        static constexpr bool BINNED = std::is_same<T, unsigned>::value;
+        static constexpr bool distances_squared = false;
+
+        template <typename AX>
+        ProjPairs(const Singles& singles,
+                  [[maybe_unused]] const AX& axes) noexcept{
+            pairs.resize(extents[singles.size()][singles.size()]);
+
+            for (unsigned i=0; i<singles.size(); ++i){
+                for (unsigned j=0; j<singles.size(); ++j){
+                    if (i==j) {
+                        pairs[i][j] = 0;
+                        continue;
+                    }
+                    const oneentry& singleI = singles.get(i);
+                    const oneentry& singleJ = singles.get(j);
+
+                    double dR = simon::deltaR(
+                        singleI.eta, singleI.phi,
+                        singleJ.eta, singleJ.phi
+                    );
+
+                    if constexpr(BINNED){
+                        pairs[i][j] = simon::getIndex(dR, axes.R);
+                    } else {
+                        pairs[i][j] = dR;
+                    }
+                }
+            }
+        }
+
+        inline const T& getDR(const unsigned i, const unsigned j) const noexcept{
+            return pairs[i][j];
+        }
+
+    private:
+        multi_array<T, 2> pairs;
+    };
+
     template <class Pairs>
     class EECjet {
     public:
@@ -114,10 +156,18 @@ namespace EEC{
             N(J.particles.size()),
             singles(J, nt),
             pairs(singles) {}
+
+        template <class AX>
+        EECjet(const simon::jet& J, const normType& nt, const AX& axes) :
+            N(J.particles.size()),
+            singles(J, nt),
+            pairs(singles, axes) {}
     };
 
     typedef EECjet<PrecomputedPairs<false>> EECjet_Precomputed;
     typedef EECjet<JITPairs<true>> EECjet_JIT;
+    typedef EECjet<ProjPairs<unsigned>> EECjet_ProjBinned;
+    typedef EECjet<ProjPairs<double>> EECjet_ProjUnbinned;
 };
 
 #endif

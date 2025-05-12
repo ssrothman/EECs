@@ -43,10 +43,10 @@ namespace EEC{
             ProjTransferResult(calculator.get_axes_reco(), 
                                calculator.get_axes_gen()) {}
 
-        void fill(unsigned order,
-                  T iR_reco, T iR_gen,
+        template <unsigned ORDER>
+        void fill(T iR_reco, T iR_gen,
                   double wt_reco, double wt_gen) noexcept {
-            data[order-2].fill(iR_reco, iR_gen, wt_reco, wt_gen);
+            data[ORDER-2].fill(iR_reco, iR_gen, wt_reco, wt_gen);
         }
 
         void set_pt_denom(double pt_denom_reco_, double pt_denom_gen_) {

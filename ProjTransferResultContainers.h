@@ -119,6 +119,7 @@ namespace EEC{
         }
 
         ProjArrayContainer get_sum_over_reco() const noexcept{
+            printf("WARNING: calling ProjArrayContainer::get_sum_over_reco()\n");
             ProjArrayContainer sum(nR_gen);
             for (size_t iR_reco = 0; iR_reco < nR_reco; ++iR_reco){
                 for (size_t iR_gen = 0; iR_gen < nR_gen; ++iR_gen){
@@ -230,7 +231,7 @@ namespace EEC{
         ProjArrayContainer get_sum_over_reco() const noexcept{
             ProjArrayContainer sum(nR_gen);
             for (const auto& entry : data){
-                sum.fill(entry.iR_gen, entry.wt_reco);
+                sum.fill(entry.iR_gen, entry.wt_gen);
             }
             return sum;
         }

@@ -8,80 +8,6 @@
 
 #include <memory>
 
-constexpr unsigned NWT(unsigned nneighbor){
-    if (nneighbor == 1) return 5;
-    else return 7 - nneighbor;
-}
-
-template <unsigned N, class JetType, class TransferResultType>
-inline void proj_transferloop(
-        TransferResultType& transfer,
-
-        const std::shared_ptr<const JetType> thisjet_reco,
-
-        const std::array<const EEC::neighborhood *, N>& ns,
-
-        const double dR_gen,
-        const std::array<double, NWT(N)>& wt_gen) noexcept {
-
-    for (unsigned i=0; i<N; ++i){
-        if (ns[i]->empty()){
-            return;
-        } else if (ns[i]->size() != 1){
-            printf("ERROR: only 1-to-1 matching is supported! Results will be incomplete\n");
-        }
-    }
-
-    typename TransferResultType::T dR = 0;
-    double basewt = ns[0]->at(0).wt;
-    double wtsum = basewt;
-    if constexpr(N > 1){
-        for (unsigned i=1; i<N; ++i){
-            basewt *= ns[i]->at(0).wt;
-            wtsum += ns[i]->at(0).wt;
-            for (unsigned j=0; j<i; ++j){
-                dR = std::max(dR, thisjet_reco->pairs.getDR(
-                            ns[j]->at(0).idx, ns[i]->at(0).idx
-                ));
-            }
-        }
-    }
-
-    printf("Transfer %u\n", N);
-
-    double partial = basewt;
-    if constexpr (N == 1){
-        partial *= wtsum;
-    }
-    printf("\tbasewt = %g\n", basewt);
-    printf("\twtsum = %g\n", wtsum);
-
-    //transfer.fill(2, dR, dR_gen, wt_gen[0], wt_gen[0]);
-
-    transfer.fill(
-        7-NWT(N),
-        dR, dR_gen,
-        partial*wt_gen[0], wt_gen[0]
-    );
-    printf("\tTransfer fill %u:\n", 7-NWT(N));
-    std::cout << "\t\t" << dR_gen << " --> "<< dR << std::endl;
-    printf("\t\t%g --> %g\n", wt_gen[0], partial*wt_gen[0]);
-
-    for (unsigned order=7-NWT(N)+1; order<7; ++order){
-        unsigned i = order - (7-NWT(N));
-        partial *= wtsum;
-
-        printf("\tTransfer fill %u: (i = %u)\n", order, i);
-        printf("\t\t%g --> %g\n", wt_gen[i], partial*wt_gen[i]);
-
-        transfer.fill(
-            order,
-            dR, dR_gen,
-            partial*wt_gen[i], wt_gen[i]
-        );
-    }
-}
-
 template <class ResultType, class JetType, bool doUnmatched, class TransferResultType, bool doTransfer>
 inline void proj_mainloop(
         ResultType& result,
@@ -101,11 +27,6 @@ inline void proj_mainloop(
         [[maybe_unused]] bool matched1;
         if constexpr(doUnmatched){
             matched1 = matched->at(i1);
-        }
-        [[maybe_unused]] EEC::neighborhood const * n1 = nullptr;
-        if constexpr(doTransfer){
-            n1 = &(adj->get_neighborhood(i1));
-
         }
 
         /*
@@ -136,14 +57,29 @@ inline void proj_mainloop(
             }
         }
 
+        [[maybe_unused]] unsigned j1=0;
+        [[maybe_unused]] double Ej1=0;
         if constexpr(doTransfer){
-            proj_transferloop<1>(
-                *transfer,
-                thisjet_reco,
-                {n1},
-                0,
-                {wt2, wt3, wt4, wt5, wt6}
-            );
+            const auto& n1 = adj->get_neighborhood(i1);
+            if constexpr(!doUnmatched){
+                matched1 = !(n1.empty());
+            }
+            if (matched1){
+                j1 = n1[0].idx;
+                Ej1 = thisjet_reco->singles.getE(j1);
+
+                double jwt2 = Ej1*Ej1;
+                double jwt3 = Ej1*jwt2;
+                double jwt4 = Ej1*jwt3;
+                double jwt5 = Ej1*jwt4;
+                double jwt6 = Ej1*jwt5;
+
+                transfer->template fill<2>(0, 0, jwt2, wt2);
+                transfer->template fill<3>(0, 0, jwt3, wt3);
+                transfer->template fill<4>(0, 0, jwt4, wt4);
+                transfer->template fill<5>(0, 0, jwt5, wt5);
+                transfer->template fill<6>(0, 0, jwt6, wt6);
+            }
         }
 
         for(unsigned i2=i1+1; i2<thisjet_gen->N; ++i2){
@@ -151,10 +87,6 @@ inline void proj_mainloop(
             [[maybe_unused]] bool matched2;
             if constexpr(doUnmatched){
                 matched2 = matched1 && matched->at(i2);
-            }
-            [[maybe_unused]] EEC::neighborhood const * n2 = nullptr;
-            if constexpr(doTransfer){
-                n2 = &(adj->get_neighborhood(i2));
             }
 
             const typename ResultType::T& dR12 = thisjet_gen->pairs.getDR(i1, i2);
@@ -186,14 +118,34 @@ inline void proj_mainloop(
                 }
             }
 
+            [[maybe_unused]] unsigned j2=0;
+            [[maybe_unused]] double Ej2=0, Ej12=0;
+            [[maybe_unused]] typename ResultType::T dRj12=0;
             if constexpr(doTransfer){
-                proj_transferloop<2>(
-                    *transfer,
-                    thisjet_reco,
-                    {n1, n2},
-                    dR12,
-                    {wt2, wt3, wt4, wt5, wt6}
-                );
+                const auto& n2 = adj->get_neighborhood(i2);
+                if constexpr(!doUnmatched){
+                    matched2 = matched1 && !(n2.empty());
+                }
+                if (matched2){
+                    j2 = n2[0].idx;
+                    Ej2 = thisjet_reco->singles.getE(j2);
+
+                    Ej12 = Ej1 * Ej2;
+
+                    dRj12 = thisjet_reco->pairs.getDR(j1, j2);
+
+                    double jwt2 = 2*Ej12;
+                    double jwt3 = 3*Ej12*(Ej1+Ej2);
+                    double jwt4 = 2*Ej12*(2*(Ej1*Ej1+Ej2*Ej2) + 3*Ej12);
+                    double jwt5 = 5*Ej12*(Ej1+Ej2)*(Ej1*Ej1 + Ej1*Ej2 + Ej2*Ej2);
+                    double jwt6 = Ej12*(6*(Ej1*Ej1*Ej1*Ej1+Ej2*Ej2*Ej2*Ej2) + 15*(Ej1*Ej1*Ej1*Ej2+Ej1*Ej2*Ej2*Ej2) + 20*Ej1*Ej1*Ej2*Ej2);   
+
+                    transfer->template fill<2>(dRj12, dR12, jwt2, wt2);
+                    transfer->template fill<3>(dRj12, dR12, jwt3, wt3);
+                    transfer->template fill<4>(dRj12, dR12, jwt4, wt4);
+                    transfer->template fill<5>(dRj12, dR12, jwt5, wt5);
+                    transfer->template fill<6>(dRj12, dR12, jwt6, wt6);
+                }
             }
 
             for(unsigned i3=i2+1; i3<thisjet_gen->N; ++i3){
@@ -201,10 +153,6 @@ inline void proj_mainloop(
                 [[maybe_unused]] bool matched3;
                 if constexpr(doUnmatched){
                     matched3 = matched2 && matched->at(i3);
-                }
-                [[maybe_unused]] EEC::neighborhood const * n3 = nullptr;
-                if constexpr(doTransfer){
-                    n3 = &(adj->get_neighborhood(i3));
                 }
 
                 const typename ResultType::T& dR13 = thisjet_gen->pairs.getDR(i1, i3);
@@ -238,15 +186,38 @@ inline void proj_mainloop(
                         unmatched_gen->template fill<6>(dR123, wt6);
                     }
                 }
-
+                [[maybe_unused]] unsigned j3=0;
+                [[maybe_unused]] double Ej3=0, Ej123=0;
+                [[maybe_unused]] typename ResultType::T dRj123=0;
                 if constexpr(doTransfer){
-                    proj_transferloop<3>(
-                        *transfer,
-                        thisjet_reco,
-                        {n1, n2, n3},
-                        dR123,
-                        {wt3, wt4, wt5, wt6}
-                    );
+                    const auto& n3 = adj->get_neighborhood(i3);
+                    if constexpr(!doUnmatched){
+                        matched3 = matched2 && !(n3.empty());
+                    }
+                    if (matched3){
+                        j3 = n3[0].idx;
+                        Ej3 = thisjet_reco->singles.getE(j3);
+
+                        Ej123 = Ej12 * Ej3;
+
+                        const typename ResultType::T& dRj13 = thisjet_reco->pairs.getDR(j1, j3);
+                        const typename ResultType::T& dRj23 = thisjet_reco->pairs.getDR(j2, j3);
+                        dRj123 = std::max({
+                            dRj12,
+                            dRj13,
+                            dRj23
+                        });
+
+                        double jwt3 = 6*Ej123;
+                        double jwt4 = 12*Ej123*(Ej1+Ej2+Ej3);
+                        double jwt5 = 10*Ej123*(2*(Ej1*Ej1+Ej2*Ej2+Ej3*Ej3) + 3*(Ej1*Ej2+Ej1*Ej3+Ej2*Ej3));
+                        double jwt6 = 30*Ej123*(Ej1+Ej2+Ej3)*(Ej1*Ej1+Ej2*Ej2+Ej3*Ej3+Ej1*Ej2+Ej1*Ej3+Ej2*Ej3);
+
+                        transfer->template fill<3>(dRj123, dR123, jwt3, wt3);
+                        transfer->template fill<4>(dRj123, dR123, jwt4, wt4);
+                        transfer->template fill<5>(dRj123, dR123, jwt5, wt5);
+                        transfer->template fill<6>(dRj123, dR123, jwt6, wt6);
+                    }
                 }
 
                 for(unsigned i4=i3+1; i4<thisjet_gen->N; ++i4){
@@ -254,10 +225,6 @@ inline void proj_mainloop(
                     [[maybe_unused]] bool matched4;
                     if constexpr(doUnmatched){
                         matched4 = matched3 && matched->at(i4);
-                    }
-                    [[maybe_unused]] EEC::neighborhood const * n4 = nullptr;
-                    if constexpr(doTransfer){
-                        n4 = &(adj->get_neighborhood(i4));
                     }
 
                     const typename ResultType::T& dR14 = thisjet_gen->pairs.getDR(i1, i4);  
@@ -291,14 +258,38 @@ inline void proj_mainloop(
                         }
                     }
 
+                    [[maybe_unused]] unsigned j4=0;
+                    [[maybe_unused]] double Ej4=0, Ej1234=0;
+                    [[maybe_unused]] typename ResultType::T dRj1234=0;
                     if constexpr(doTransfer){
-                        proj_transferloop<4>(
-                            *transfer,
-                            thisjet_reco,
-                            {n1, n2, n3, n4},
-                            dR1234,
-                            {wt4, wt5, wt6}
-                        );
+                        const auto& n4 = adj->get_neighborhood(i4);
+                        if constexpr(!doUnmatched){
+                            matched4 = matched3 && !(n4.empty());
+                        }
+                        if (matched4){
+                            j4 = n4[0].idx;
+                            Ej4 = thisjet_reco->singles.getE(j4);
+
+                            Ej1234 = Ej123 * Ej4;
+                            const typename ResultType::T& dRj14 = thisjet_reco->pairs.getDR(j1, j4);
+                            const typename ResultType::T& dRj24 = thisjet_reco->pairs.getDR(j2, j4);
+                            const typename ResultType::T& dRj34 = thisjet_reco->pairs.getDR(j3, j4);
+
+                            dRj1234 = std::max({
+                                dRj123,
+                                dRj14,
+                                dRj24,
+                                dRj34
+                            });
+
+                            double jwt4 = 24*Ej1234;
+                            double jwt5 = 60*Ej1234*(Ej1+Ej2+Ej3+Ej4);
+                            double jwt6 = 60*Ej1234*(2*(Ej1*Ej1+Ej2*Ej2+Ej3*Ej3+Ej4*Ej4)+3*(Ej1*Ej2+Ej1*Ej3+Ej1*Ej4+Ej2*Ej3+Ej2*Ej4+Ej3*Ej4));
+
+                            transfer->template fill<4>(dRj1234, dR1234, jwt4, wt4);
+                            transfer->template fill<5>(dRj1234, dR1234, jwt5, wt5);
+                            transfer->template fill<6>(dRj1234, dR1234, jwt6, wt6);
+                        }
                     }
 
                     for(unsigned i5=i4+1; i5<thisjet_gen->N; ++i5){
@@ -306,10 +297,6 @@ inline void proj_mainloop(
                         [[maybe_unused]] bool matched5;
                         if constexpr(doUnmatched){
                             matched5 = matched4 && matched->at(i5);
-                        }
-                        [[maybe_unused]] EEC::neighborhood const * n5 = nullptr;
-                        if constexpr(doTransfer){
-                            n5 = &(adj->get_neighborhood(i5));
                         }
 
                         const typename ResultType::T& dR15 = thisjet_gen->pairs.getDR(i1, i5);
@@ -343,14 +330,38 @@ inline void proj_mainloop(
                             }
                         }
 
+                        [[maybe_unused]] unsigned j5=0;
+                        [[maybe_unused]] double Ej5=0, Ej12345=0;
+                        [[maybe_unused]] typename ResultType::T dRj12345=0;
                         if constexpr(doTransfer){
-                            proj_transferloop<5>(
-                                *transfer,
-                                thisjet_reco,
-                                {n1, n2, n3, n4, n5},
-                                dR12345,
-                                {wt5, wt6}
-                            );
+                            auto n5 = adj->get_neighborhood(i5);
+                            if constexpr(!doUnmatched){
+                                matched5 = matched4 && !(n5.empty());
+                            }
+                            if (matched5){
+                                j5 = n5[0].idx;
+                                Ej5 = thisjet_reco->singles.getE(j5);
+                                Ej12345 = Ej1234 * Ej5;
+
+                                const typename ResultType::T& dRj15 = thisjet_reco->pairs.getDR(j1, j5);
+                                const typename ResultType::T& dRj25 = thisjet_reco->pairs.getDR(j2, j5);
+                                const typename ResultType::T& dRj35 = thisjet_reco->pairs.getDR(j3, j5);
+                                const typename ResultType::T& dRj45 = thisjet_reco->pairs.getDR(j4, j5);
+
+                                dRj12345 = std::max({
+                                    dRj1234,
+                                    dRj15,
+                                    dRj25,
+                                    dRj35,
+                                    dRj45
+                                });
+
+                                double jwt5 = 120*Ej12345;
+                                double jwt6 = 360*Ej12345*(Ej1+Ej2+Ej3+Ej4+Ej5);
+
+                                transfer->template fill<5>(dRj12345, dR12345, jwt5, wt5);
+                                transfer->template fill<6>(dRj12345, dR12345, jwt6, wt6);
+                            }
                         }
 
                         for(unsigned i6=i5+1; i6<thisjet_gen->N; ++i6){
@@ -358,10 +369,6 @@ inline void proj_mainloop(
                             [[maybe_unused]] bool matched6;
                             if constexpr(doUnmatched){
                                 matched6 = matched5 && matched->at(i6);
-                            }
-                            [[maybe_unused]] EEC::neighborhood const * n6 = nullptr;
-                            if constexpr(doTransfer){
-                                n6 = &(adj->get_neighborhood(i6));
                             }
 
                             const typename ResultType::T& dR16 = thisjet_gen->pairs.getDR(i1, i6);
@@ -391,14 +398,38 @@ inline void proj_mainloop(
                                 }
                             }
 
+                            [[maybe_unused]] unsigned j6=0;
+                            [[maybe_unused]] double Ej6=0, Ej123456=0;
+                            [[maybe_unused]] typename ResultType::T dRj123456=0;
                             if constexpr(doTransfer){
-                                proj_transferloop<6>(
-                                    *transfer,
-                                    thisjet_reco,
-                                    {n1, n2, n3, n4, n5, n6},
-                                    dR123456,
-                                    {wt6}
-                                );
+                                const auto& n6 = adj->get_neighborhood(i6);
+                                if constexpr(!doUnmatched){
+                                    matched6 = matched5 && !(n6.empty());
+                                }
+                                if (matched6){
+                                    j6 = n6[0].idx;
+                                    Ej6 = thisjet_reco->singles.getE(j6);
+                                    Ej123456 = Ej12345 * Ej6;
+
+                                    const typename ResultType::T& dRj16 = thisjet_reco->pairs.getDR(j1, j6);
+                                    const typename ResultType::T& dRj26 = thisjet_reco->pairs.getDR(j2, j6);
+                                    const typename ResultType::T& dRj36 = thisjet_reco->pairs.getDR(j3, j6);
+                                    const typename ResultType::T& dRj46 = thisjet_reco->pairs.getDR(j4, j6);
+                                    const typename ResultType::T& dRj56 = thisjet_reco->pairs.getDR(j5, j6);
+
+                                    dRj123456 = std::max({
+                                        dRj12345,
+                                        dRj16,
+                                        dRj26,
+                                        dRj36,
+                                        dRj46,
+                                        dRj56
+                                    });
+
+                                    double jwt6 = 720*Ej123456;
+
+                                    transfer->template fill<6>(dRj123456, dR123456, jwt6, wt6);
+                                }
                             }
                         }
                     }

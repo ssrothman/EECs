@@ -66,6 +66,24 @@ namespace EEC{
             pt_denom_set(false),
             pt_denom(-1) {}
 
+        template <class OtherContainer>
+        ProjResult(const ProjResult<OtherContainer>& other) noexcept :
+            data({other.get_data()[0], other.get_data()[1],
+                  other.get_data()[2], other.get_data()[3],
+                  other.get_data()[4]}),
+            pt_denom_set(other.is_pt_denom_set()),
+            pt_denom(other.get_pt_denom_noexcept()) {}
+
+        template <class OtherContainer>
+        ProjResult(ProjResult<OtherContainer>&& other) noexcept :
+            data({std::move(other.get_data()[0]),
+                  std::move(other.get_data()[1]),
+                  std::move(other.get_data()[2]),
+                  std::move(other.get_data()[3]),
+                  std::move(other.get_data()[4])}),
+            pt_denom_set(other.is_pt_denom_set()),
+            pt_denom(other.get_pt_denom_noexcept()) {}
+
         template <unsigned ORDER>
         void fill(T iR, double wt) noexcept {
             data[ORDER-2].fill(iR, wt);
@@ -81,6 +99,14 @@ namespace EEC{
                 throw std::runtime_error("pt_denom not set");
             }
             return pt_denom;
+        }
+
+        double get_pt_denom_noexcept() const noexcept {
+            return pt_denom;
+        }
+
+        bool is_pt_denom_set() const noexcept {
+            return pt_denom_set;
         }
 
         const std::array<Container, 5>& get_data() const noexcept {

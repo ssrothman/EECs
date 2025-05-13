@@ -98,6 +98,8 @@ namespace EEC{
 
     class Res3TransferCalculator {
     public:
+        constexpr static bool HAS_UNTRANSFERED = false;
+
         Res3TransferCalculator(
                 const std::vector<double>& R_reco,
                 const std::vector<double>& r_reco,

@@ -18,6 +18,7 @@ namespace EEC{
         using TYPE = unsigned;
 
         constexpr static bool SHOULD_BIN = true;
+        constexpr static bool IS_ARRAY = true;
 
         ProjTransferArrayContainer() noexcept :
             nR_reco(0), nR_gen(0),
@@ -148,6 +149,7 @@ namespace EEC{
         using TYPE = T;
 
         constexpr static bool SHOULD_BIN = std::is_same<T, unsigned>::value;
+        constexpr static bool IS_ARRAY = false;
 
         ProjTransferVectorContainer(const size_t nR_reco,
                                    const size_t nR_gen) noexcept :

@@ -25,6 +25,7 @@ namespace EEC{
         using TYPE = T;
 
         constexpr static bool SHOULD_BIN = std::is_same<T, unsigned>::value;
+        constexpr static bool IS_ARRAY = false;
             
         ResVectorContainer(
                 const size_t nR, 
@@ -87,6 +88,7 @@ namespace EEC{
         using TYPE = unsigned;
 
         constexpr static bool SHOULD_BIN = true;
+        constexpr static bool IS_ARRAY = true;
 
         ResMultiArrayContainer() noexcept :
             ResMultiArrayContainer(0, 0, 0) {}

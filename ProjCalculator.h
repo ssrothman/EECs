@@ -34,6 +34,12 @@ namespace EEC{
         void compute(const simon::jet& J,
                      ProjResult_Unbinned& result) const noexcept;
 
+        template <class ResultType>
+        void compute_precomputed(const simon::jet& J,
+                                 ResultType& result) const noexcept {
+            compute(J, result);
+        }
+
         void compute_matched(const simon::jet& J,
                              const std::vector<bool>& matched,
                              ProjResult_Array& result,
@@ -49,6 +55,14 @@ namespace EEC{
                              ProjResult_Unbinned& result,
                              ProjResult_Unbinned& unmatched) const noexcept;
 
+        template <class ResultType>
+        void compute_precomputed_matched(const simon::jet& J,
+                                         const std::vector<bool>& matched,
+                                         ResultType& result,
+                                         ResultType& unmatched) const noexcept {
+            compute_matched(J, matched, result, unmatched);
+        }
+
         const ProjAxes& get_axes() const noexcept {
             return axes;
         }
@@ -59,6 +73,8 @@ namespace EEC{
 
     class ProjTransferCalculator {
     public:
+        constexpr static bool HAS_UNTRANSFERED = false;
+
         ProjTransferCalculator(const std::vector<double>& R_reco,
                                const std::vector<double>& R_gen,
                                const normType nt):
@@ -105,6 +121,16 @@ namespace EEC{
                      ProjResult_Vector& result,
                      ProjResult_Vector& unmatched,
                      ProjTransferResult_Array& tresult) const noexcept;
+
+        template <class ResultType, class TransferResultType>
+        void compute_precomputed(const simon::jet& J_reco,
+                                 const simon::jet& J_gen,
+                                 const Eigen::MatrixXd& tmat,
+                                 ResultType& result,
+                                 ResultType& unmatched,
+                                 TransferResultType& tresult) const noexcept {
+            compute(J_reco, J_gen, tmat, result, unmatched, tresult);
+        }
 
         const ProjAxes& get_axes_reco() const noexcept {
             return axes_reco;

@@ -23,6 +23,7 @@ namespace EEC{
     
         using T = typename Container::TYPE;
         constexpr static bool SHOULD_BIN = Container::SHOULD_BIN;
+        constexpr static bool IS_ARRAY = Container::IS_ARRAY;
 
         Res3Result(
                 const size_t nR, 

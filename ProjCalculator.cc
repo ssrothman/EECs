@@ -264,3 +264,36 @@ void EEC::ProjTransferCalculator::compute(
     );
 }
 
+#ifdef CMSSW_GIT_HASH
+
+EEC::ProjCalculator::ProjCalculator(const edm::ParameterSet& iConfig) :
+    axes(iConfig.getParameter<edm::ParameterSet>("bins")),
+    nt(normType_from_string(iConfig.getParameter<std::string>("normType"))) {}
+
+void EEC::ProjCalculator::fillPSetDescription(edm::ParameterSetDescription& desc) {
+    edm::ParameterSetDescription binsDesc; 
+    ProjAxes::fillPSetDescription(binsDesc);
+    desc.add<edm::ParameterSetDescription>("bins", binsDesc);
+
+    desc.add<std::string>("normType");
+}
+
+EEC::ProjTransferCalculator::ProjTransferCalculator(const edm::ParameterSet& iConfig):
+    axes_reco(iConfig.getParameter<edm::ParameterSet>("bins_reco")),
+    axes_gen(iConfig.getParameter<edm::ParameterSet>("bins_gen")),
+    nt(normType_from_string(iConfig.getParameter<std::string>("normType"))) {}
+
+void EEC::ProjTransferCalculator::fillPSetDescription(edm::ParameterSetDescription& desc) {
+
+    edm::ParameterSetDescription binsRecoDesc;
+    ProjAxes::fillPSetDescription(binsRecoDesc);
+    desc.add<edm::ParameterSetDescription>("bins_reco", binsRecoDesc);
+
+    edm::ParameterSetDescription binsGenDesc;
+    ProjAxes::fillPSetDescription(binsGenDesc);
+    desc.add<edm::ParameterSetDescription>("bins_gen", binsGenDesc);
+
+    desc.add<std::string>("normType");
+}
+
+#endif

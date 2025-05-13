@@ -16,7 +16,8 @@ namespace EEC{
         using TYPE = unsigned;
 
         constexpr static bool SHOULD_BIN = true;
-
+        constexpr static bool IS_ARRAY = true;
+            
         ProjArrayContainer() noexcept :
             nR(0),
             data() {}
@@ -110,6 +111,7 @@ namespace EEC{
         using TYPE = T;
 
         constexpr static bool SHOULD_BIN = std::is_same<T, unsigned>::value;
+        constexpr static bool IS_ARRAY = false;
 
         ProjVectorContainer(const size_t nR) noexcept :
             nR(nR){

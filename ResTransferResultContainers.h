@@ -30,6 +30,7 @@ namespace EEC{
         using TYPE = T;
 
         constexpr static bool SHOULD_BIN = std::is_same<T, unsigned>::value;
+        constexpr static bool IS_ARRAY = false;
 
         ResTransferVectorContainer(
                 const size_t nR_reco, 
@@ -99,6 +100,7 @@ namespace EEC{
         using TYPE = unsigned;
 
         static constexpr bool SHOULD_BIN = true;
+        constexpr static bool IS_ARRAY = true;
 
         ResTransferMultiArrayContainer(
                 const size_t nR_reco, 

@@ -117,6 +117,8 @@ namespace EEC{
 
     class Res4TransferCalculator {
     public:
+        constexpr static bool HAS_UNTRANSFERED = true;
+
         Res4TransferCalculator(
                 const std::vector<double>& R_reco,
                 const std::vector<double>& r_dipole_reco,

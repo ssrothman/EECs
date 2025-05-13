@@ -6,7 +6,7 @@
 
 #include "SRothman/SimonTools/src/histutil.h"
 #include "ResTransferResultContainers.h"
-
+#include "Res4Result.h"
 
 namespace EEC{
     template <class TransferContainer>
@@ -14,6 +14,7 @@ namespace EEC{
     public:
         using T = typename TransferContainer::TYPE;
         constexpr static bool SHOULD_BIN = TransferContainer::SHOULD_BIN;
+        constexpr static bool IS_ARRAY = TransferContainer::IS_ARRAY;
 
         Res4TransferResult() noexcept  :
             dipole(), tee(), triangle(),

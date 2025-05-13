@@ -23,6 +23,7 @@ namespace EEC{
             pt_denom(-1) {}
 
         constexpr static bool SHOULD_BIN = Container::SHOULD_BIN;
+        constexpr static bool IS_ARRAY = Container::IS_ARRAY;
         using T = typename Container::TYPE;
 
         Res4Result(

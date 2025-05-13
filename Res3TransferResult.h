@@ -20,6 +20,7 @@ namespace EEC{
     
         using T = typename TransferContainer::TYPE;
         constexpr static bool SHOULD_BIN = TransferContainer::SHOULD_BIN;
+        constexpr static bool IS_ARRAY = TransferContainer::IS_ARRAY;
 
         Res3TransferResult(
                 const size_t nR_reco,
